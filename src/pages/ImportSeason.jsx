@@ -50,7 +50,7 @@ export default function ImportSeason() {
 
   const [dynastyId, setDynastyId] = useState(null);
   const [dynastyName, setDynastyName] = useState("");
-  const [seasonYear, setSeasonYear] = useState(new Date().getFullYear());
+  const [seasonYear, setSeasonYear] = useState(2025);
   const [files, setFiles] = useState([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,7 +68,9 @@ export default function ImportSeason() {
       setDynastyId(id);
       const d = await getDynasty(id);
       setDynastyName(d?.name ?? "");
-      setSeasonYear(d?.currentYear ?? new Date().getFullYear());
+      setSeasonYear(d?.currentYear ?? 2025);
+
+      if (!id) return;
 
       const allGames = await db.games.where({ dynastyId: id }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
@@ -122,8 +124,9 @@ export default function ImportSeason() {
 
   async function onImportClicked() {
     setStatus("");
+
     if (!dynastyId) {
-      setStatus("No active dynasty selected.");
+      setStatus("No dynasty loaded. Select a dynasty from the sidebar.");
       return;
     }
 
@@ -170,7 +173,7 @@ export default function ImportSeason() {
       <div className="hrow">
         <div>
           <h2>Import Season</h2>
-          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : null}
+          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : <p className="kicker">No dynasty loaded.</p>}
         </div>
       </div>
 
@@ -178,9 +181,11 @@ export default function ImportSeason() {
         Required (Phase 1): upload files ending in <b>TEAM.csv</b> and <b>SCHD.csv</b>. Only the last 4 characters before .csv are used to detect type.
       </p>
 
-      <div style={{ marginBottom: 10 }}>
-        <b>Existing seasons:</b> {existingYearsLabel}
-      </div>
+      {dynastyId ? (
+        <div style={{ marginBottom: 10 }}>
+          <b>Existing seasons:</b> {existingYearsLabel}
+        </div>
+      ) : null}
 
       {willOverwrite ? (
         <div style={{ padding: 10, border: "1px solid #caa", marginBottom: 12 }}>

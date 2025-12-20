@@ -1,24 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
-import {
-  createDynasty,
-  deleteDynasty,
-  getActiveDynastyId,
-  listDynasties,
-  setActiveDynastyId,
-} from "./db";
+import { createDynasty, deleteDynasty, getActiveDynastyId, listDynasties, setActiveDynastyId } from "./db";
 
-function Modal({ title, children, onClose }) {
+function Modal({ title, children }) {
   return (
     <div className="modalOverlay">
       <div className="card" style={{ width: "100%", maxWidth: 560 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <button onClick={onClose}>Close</button>
-        </div>
+        <h2 style={{ margin: 0 }}>{title}</h2>
         <div style={{ marginTop: 12 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function CreateDynastySplash({ onCreate }) {
+  return (
+    <div className="card" style={{ padding: 18 }}>
+      <h2 style={{ marginTop: 0 }}>Create your first dynasty</h2>
+      <p className="kicker">
+        Dynasties are stored locally on your PC (IndexedDB). Create one to start importing seasons.
+      </p>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button className="primary" onClick={onCreate}>
+          + New Dynasty
+        </button>
       </div>
     </div>
   );
@@ -33,7 +40,7 @@ export default function App() {
   // New dynasty modal
   const [showNewDynasty, setShowNewDynasty] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newStartYear, setNewStartYear] = useState(2024);
+  const [newStartYear, setNewStartYear] = useState(2025);
   const [newErr, setNewErr] = useState("");
 
   // Dynasty action modal (load/delete)
@@ -54,6 +61,9 @@ export default function App() {
     refresh();
   }, []);
 
+  const activeDynasty = useMemo(() => dynasties.find((d) => d.id === activeId) || null, [dynasties, activeId]);
+  const otherDynasties = useMemo(() => dynasties.filter((d) => d.id !== activeId), [dynasties, activeId]);
+
   function openDynastyActions(d) {
     setSelectedDynasty(d);
     setShowDynastyActions(true);
@@ -62,13 +72,14 @@ export default function App() {
   async function loadDynasty(id) {
     await setActiveDynastyId(id);
     setActiveId(id);
+
     setShowDynastyActions(false);
     setSelectedDynasty(null);
 
     // Go to home page (schedule/results)
     navigate("/");
 
-    // Simple/robust refresh for now so all pages pick up new active dynasty
+    // Simple and reliable for now
     window.location.reload();
   }
 
@@ -87,7 +98,7 @@ export default function App() {
     await deleteDynasty(d.id);
     await refresh();
 
-    // Always go home after delete (per your requirement)
+    // Always go home after delete
     navigate("/");
     window.location.reload();
   }
@@ -98,7 +109,8 @@ export default function App() {
       const d = await createDynasty({ name: newName, startYear: newStartYear });
       setShowNewDynasty(false);
       setNewName("");
-      setNewStartYear(2024);
+      setNewStartYear(2025);
+
       await refresh();
 
       // After creating, load it and go home
@@ -112,20 +124,13 @@ export default function App() {
     <div className="shell">
       <div className="shellGrid">
         <aside className="sidebar">
-          <div className="brandRow">
+          {/* Dynasties section at the TOP */}
+          <div className="brandRow" style={{ marginBottom: 10 }}>
             <h1>NCAA Next Dynasty Tracker</h1>
             <span className="badge">Local • Offline</span>
           </div>
 
-          <button
-            className="primary"
-            onClick={() => navigate("/import")}
-            style={{ width: "100%", marginBottom: 10 }}
-          >
-            + Upload New Season
-          </button>
-
-          <div className="sideSection">
+          <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
             <div className="sideTitle">Dynasties</div>
 
             <button onClick={() => setShowNewDynasty(true)} style={{ width: "100%", marginBottom: 10 }}>
@@ -133,71 +138,119 @@ export default function App() {
             </button>
 
             <div className="sideNav">
-              {dynasties.map((d) => (
+              {/* Active dynasty first */}
+              {activeDynasty ? (
+                <>
+                  <a
+                    href="#"
+                    className="active"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openDynastyActions(activeDynasty);
+                    }}
+                  >
+                    <span>{activeDynasty.name}</span>
+                    <span className="badge">Active</span>
+                  </a>
+
+                  {/* Upload button sits directly BELOW the active dynasty */}
+                  <button
+                    className="primary"
+                    onClick={() => navigate("/import")}
+                    style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
+                    disabled={!activeId}
+                  >
+                    + Upload New Season
+                  </button>
+                </>
+              ) : null}
+
+              {/* If no active dynasty but there are dynasties, show upload disabled until one is loaded */}
+              {!activeDynasty && dynasties.length > 0 ? (
+                <>
+                  <button className="primary" style={{ width: "100%" }} disabled>
+                    + Upload New Season
+                  </button>
+                  <p className="kicker" style={{ marginTop: 8 }}>
+                    Select a dynasty to load it.
+                  </p>
+                </>
+              ) : null}
+
+              {/* Other dynasties */}
+              {otherDynasties.map((d) => (
                 <a
                   key={d.id}
                   href="#"
-                  className={d.id === activeId ? "active" : ""}
                   onClick={(e) => {
                     e.preventDefault();
                     openDynastyActions(d);
                   }}
                 >
                   <span>{d.name}</span>
-                  {d.id === activeId ? <span className="badge">Loaded</span> : null}
                 </a>
               ))}
+
+              {/* If there are no dynasties at all */}
+              {dynasties.length === 0 ? (
+                <p className="kicker" style={{ marginTop: 8 }}>
+                  No dynasties yet.
+                </p>
+              ) : null}
             </div>
           </div>
 
           <div className="sideSection">
             <div className="sideTitle">Version</div>
-            <p className="kicker" style={{ marginTop: 0 }}>
-              v0.4 • Dynasties actions
-            </p>
+            <p className="kicker" style={{ marginTop: 0 }}>v0.5 • Dynasty UX</p>
           </div>
         </aside>
 
         <main className="main">
-          <div className="card">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/import" element={<ImportSeason />} />
-              <Route path="*" element={<div>Not found</div>} />
-            </Routes>
-          </div>
+          {/* If there are no dynasties, show splash instead of app pages */}
+          {dynasties.length === 0 ? (
+            <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
+          ) : (
+            <div className="card">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/import" element={<ImportSeason />} />
+                <Route path="*" element={<div>Not found</div>} />
+              </Routes>
+            </div>
+          )}
         </main>
       </div>
 
       {/* New Dynasty Modal */}
       {showNewDynasty ? (
-        <Modal title="Create New Dynasty" onClose={() => setShowNewDynasty(false)}>
+        <Modal title="Create New Dynasty">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span>Dynasty Name</span>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., Talon Dynasty"
+                placeholder="e.g., My Dynasty"
               />
             </label>
 
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span>Starting Year</span>
-              <input type="number" value={newStartYear} onChange={(e) => setNewStartYear(e.target.value)} />
+              <input
+                type="number"
+                value={newStartYear}
+                onChange={(e) => setNewStartYear(e.target.value)}
+              />
             </label>
 
             {newErr ? (
-              <p className="kicker" style={{ color: "#ff9b9b" }}>
-                {newErr}
-              </p>
+              <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>
             ) : null}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
-              <button className="primary" onClick={onCreateDynasty}>
-                Create Dynasty
-              </button>
+              <button className="primary" onClick={onCreateDynasty}>Create Dynasty</button>
             </div>
           </div>
         </Modal>
@@ -205,7 +258,7 @@ export default function App() {
 
       {/* Dynasty Actions Modal */}
       {showDynastyActions && selectedDynasty ? (
-        <Modal title="Dynasty Options" onClose={() => setShowDynastyActions(false)}>
+        <Modal title="Dynasty Options">
           <p className="kicker" style={{ marginTop: 0 }}>
             Selected: <b>{selectedDynasty.name}</b>
           </p>
@@ -233,7 +286,7 @@ export default function App() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedDynasty ? (
-        <Modal title="Confirm Delete" onClose={() => setShowDeleteConfirm(false)}>
+        <Modal title="Confirm Delete">
           <p style={{ marginTop: 0 }}>
             Delete dynasty <b>{selectedDynasty.name}</b>?
           </p>
@@ -242,7 +295,15 @@ export default function App() {
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                // put you back into options for convenience
+                setShowDynastyActions(true);
+              }}
+            >
+              Cancel
+            </button>
             <button className="danger" onClick={confirmDeleteDynasty}>
               Yes, delete
             </button>

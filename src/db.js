@@ -21,42 +21,27 @@ db.version(2).stores({
 
 const ACTIVE_KEY = "activeDynastyId";
 
-export async function ensureAtLeastOneDynasty() {
-  const count = await db.dynasties.count();
-  if (count > 0) return;
-
-  const d = {
-    id: crypto.randomUUID(),
-    name: "My Dynasty",
-    startYear: 2024,
-    currentYear: 2024,
-  };
-
-  await db.dynasties.put(d);
-  await db.settings.put({ key: ACTIVE_KEY, value: d.id });
-}
-
 export async function listDynasties() {
-  await ensureAtLeastOneDynasty();
   return db.dynasties.toArray();
 }
 
 export async function getActiveDynastyId() {
-  await ensureAtLeastOneDynasty();
-
   const row = await db.settings.get(ACTIVE_KEY);
-  if (row?.value) return row.value;
+  const id = row?.value ?? null;
+  if (!id) return null;
 
-  const first = await db.dynasties.toCollection().first();
-  if (first) {
-    await db.settings.put({ key: ACTIVE_KEY, value: first.id });
-    return first.id;
-  }
-  return null;
+  const exists = await db.dynasties.get(id);
+  if (!exists) return null;
+
+  return id;
 }
 
-export async function setActiveDynastyId(id) {
-  await db.settings.put({ key: ACTIVE_KEY, value: id });
+export async function setActiveDynastyId(idOrNull) {
+  if (!idOrNull) {
+    await db.settings.put({ key: ACTIVE_KEY, value: null });
+    return;
+  }
+  await db.settings.put({ key: ACTIVE_KEY, value: idOrNull });
 }
 
 export async function createDynasty({ name, startYear }) {
@@ -77,34 +62,21 @@ export async function createDynasty({ name, startYear }) {
 }
 
 export async function getDynasty(id) {
+  if (!id) return null;
   return db.dynasties.get(id);
 }
 
 export async function deleteDynasty(dynastyId) {
-  // Delete dynasty + all data scoped to it
   await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, async () => {
     await db.teams.where({ dynastyId }).delete();
     await db.teamSeasons.where({ dynastyId }).delete();
     await db.games.where({ dynastyId }).delete();
     await db.dynasties.delete(dynastyId);
 
-    // If it was active, pick a new active dynasty (or create one)
     const active = await db.settings.get(ACTIVE_KEY);
     if (active?.value === dynastyId) {
-      const remaining = await db.dynasties.toCollection().first();
-      if (remaining) {
-        await db.settings.put({ key: ACTIVE_KEY, value: remaining.id });
-      } else {
-        // Ensure there is always at least one dynasty
-        const d = {
-          id: crypto.randomUUID(),
-          name: "My Dynasty",
-          startYear: 2024,
-          currentYear: 2024,
-        };
-        await db.dynasties.put(d);
-        await db.settings.put({ key: ACTIVE_KEY, value: d.id });
-      }
+      // IMPORTANT: no auto-create. Just unset active and let the app show the create splash.
+      await db.settings.put({ key: ACTIVE_KEY, value: null });
     }
   });
 }

@@ -8,7 +8,6 @@ export default function Home() {
   const [seasonYear, setSeasonYear] = useState("");
   const [rows, setRows] = useState([]);
 
-  // Load active dynasty on mount
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
@@ -18,9 +17,14 @@ export default function Home() {
     })();
   }, []);
 
-  // Load season list for active dynasty
   useEffect(() => {
-    if (!dynastyId) return;
+    if (!dynastyId) {
+      setAvailableSeasons([]);
+      setSeasonYear("");
+      setRows([]);
+      return;
+    }
+
     (async () => {
       const allGames = await db.games.where({ dynastyId }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
@@ -29,7 +33,6 @@ export default function Home() {
     })();
   }, [dynastyId]);
 
-  // Load schedule rows for selected season
   useEffect(() => {
     if (!dynastyId || seasonYear === "" || seasonYear == null) {
       setRows([]);
@@ -64,6 +67,15 @@ export default function Home() {
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
+
+  if (!dynastyId) {
+    return (
+      <div>
+        <h2>Schedule / Results</h2>
+        <p className="kicker">No dynasty loaded. Select a dynasty from the sidebar.</p>
+      </div>
+    );
+  }
 
   return (
     <div>
