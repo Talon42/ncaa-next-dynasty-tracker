@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { db, getActiveDynastyId, getDynasty } from "../db";
+import { db, getActiveDynastyId } from "../db";
 
-// 🔑 Global fallback logo (always available)
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 
@@ -31,7 +30,6 @@ function TeamCell({ name, logoUrl }) {
 
 export default function Home() {
   const [dynastyId, setDynastyId] = useState(null);
-  const [dynastyName, setDynastyName] = useState("");
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
@@ -45,8 +43,6 @@ export default function Home() {
     (async () => {
       const id = await getActiveDynastyId();
       setDynastyId(id);
-      const d = await getDynasty(id);
-      setDynastyName(d?.name ?? "");
     })();
   }, []);
 
@@ -66,7 +62,7 @@ export default function Home() {
   }, [dynastyId]);
 
   useEffect(() => {
-    if (!dynastyId || seasonYear === "" || seasonYear == null) {
+    if (!dynastyId || seasonYear === "") {
       setAvailableWeeks([]);
       setWeekFilter("All");
       return;
@@ -76,18 +72,16 @@ export default function Home() {
       const year = Number(seasonYear);
       const games = await db.games.where({ dynastyId, seasonYear: year }).toArray();
       const weeks = Array.from(new Set(games.map((g) => g.week))).sort((a, b) => a - b);
-
       setAvailableWeeks(weeks);
 
-      if (weekFilter !== "All") {
-        const wf = Number(weekFilter);
-        if (!weeks.includes(wf)) setWeekFilter("All");
+      if (weekFilter !== "All" && !weeks.includes(Number(weekFilter))) {
+        setWeekFilter("All");
       }
     })();
   }, [dynastyId, seasonYear]);
 
   useEffect(() => {
-    if (!dynastyId || seasonYear === "" || seasonYear == null) {
+    if (!dynastyId || seasonYear === "") {
       setRows([]);
       return;
     }
@@ -106,7 +100,8 @@ export default function Home() {
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
 
-      const logoFor = (tgid) => overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
+      const logoFor = (tgid) =>
+        overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
 
       let games = gamesRaw;
       if (weekFilter !== "All") {
@@ -121,7 +116,8 @@ export default function Home() {
           week: g.week,
           homeName: nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`,
           awayName: nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`,
-          result: g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—",
+          result:
+            g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—",
           homeLogo: logoFor(g.homeTgid),
           awayLogo: logoFor(g.awayTgid),
         }));
@@ -146,10 +142,7 @@ export default function Home() {
   return (
     <div>
       <div className="hrow">
-        <div>
-          <h2>Schedule / Results</h2>
-          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : null}
-        </div>
+        <h2>Schedule / Results</h2>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
