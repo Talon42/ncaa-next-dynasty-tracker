@@ -20,13 +20,11 @@ function CreateDynastySplash({ onCreate }) {
     <div className="card" style={{ padding: 18 }}>
       <h2 style={{ marginTop: 0 }}>Create your first dynasty</h2>
       <p className="kicker">
-        Dynasties are stored locally on your PC (IndexedDB). Create one to start importing seasons.
+        Dynasties are stored locally on your PC. Create one to start importing seasons.
       </p>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button className="primary" onClick={onCreate}>
-          + New Dynasty
-        </button>
-      </div>
+      <button className="primary" onClick={onCreate}>
+        + New Dynasty
+      </button>
     </div>
   );
 }
@@ -36,6 +34,9 @@ export default function App() {
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
+
+  // Collapsible sidebar section
+  const [dynastyOpen, setDynastyOpen] = useState(true);
 
   // New dynasty modal
   const [showNewDynasty, setShowNewDynasty] = useState(false);
@@ -72,14 +73,9 @@ export default function App() {
   async function loadDynasty(id) {
     await setActiveDynastyId(id);
     setActiveId(id);
-
     setShowDynastyActions(false);
     setSelectedDynasty(null);
-
-    // Go to home page (schedule/results)
     navigate("/");
-
-    // Simple and reliable for now
     window.location.reload();
   }
 
@@ -92,13 +88,11 @@ export default function App() {
     const d = selectedDynasty;
     setShowDeleteConfirm(false);
     setSelectedDynasty(null);
-
     if (!d) return;
 
     await deleteDynasty(d.id);
     await refresh();
 
-    // Always go home after delete
     navigate("/");
     window.location.reload();
   }
@@ -110,10 +104,7 @@ export default function App() {
       setShowNewDynasty(false);
       setNewName("");
       setNewStartYear(2025);
-
       await refresh();
-
-      // After creating, load it and go home
       await loadDynasty(d.id);
     } catch (e) {
       setNewErr(e?.message || String(e));
@@ -124,90 +115,128 @@ export default function App() {
     <div className="shell">
       <div className="shellGrid">
         <aside className="sidebar">
-          {/* Dynasties section at the TOP */}
           <div className="brandRow" style={{ marginBottom: 10 }}>
             <h1>NCAA Next Dynasty Tracker</h1>
             <span className="badge">Local • Offline</span>
           </div>
 
+          {/* Dynasties section (collapsible) */}
           <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
-            <div className="sideTitle">Dynasties</div>
-
-            <button onClick={() => setShowNewDynasty(true)} style={{ width: "100%", marginBottom: 10 }}>
-              + New Dynasty
-            </button>
-
-            <div className="sideNav">
-              {/* Active dynasty first */}
-              {activeDynasty ? (
-                <>
-                  <a
-                    href="#"
-                    className="active"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      openDynastyActions(activeDynasty);
-                    }}
-                  >
-                    <span>{activeDynasty.name}</span>
-                    <span className="badge">Active</span>
-                  </a>
-
-                  {/* Upload button sits directly BELOW the active dynasty */}
-                  <button
-                    className="primary"
-                    onClick={() => navigate("/import")}
-                    style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
-                    disabled={!activeId}
-                  >
-                    + Upload New Season
-                  </button>
-                </>
-              ) : null}
-
-              {/* If no active dynasty but there are dynasties, show upload disabled until one is loaded */}
-              {!activeDynasty && dynasties.length > 0 ? (
-                <>
-                  <button className="primary" style={{ width: "100%" }} disabled>
-                    + Upload New Season
-                  </button>
-                  <p className="kicker" style={{ marginTop: 8 }}>
-                    Select a dynasty to load it.
-                  </p>
-                </>
-              ) : null}
-
-              {/* Other dynasties */}
-              {otherDynasties.map((d) => (
-                <a
-                  key={d.id}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openDynastyActions(d);
-                  }}
-                >
-                  <span>{d.name}</span>
-                </a>
-              ))}
-
-              {/* If there are no dynasties at all */}
-              {dynasties.length === 0 ? (
-                <p className="kicker" style={{ marginTop: 8 }}>
-                  No dynasties yet.
-                </p>
-              ) : null}
+            <div className="sideTitleRow">
+              <div className="sideTitle">Dynasties</div>
+              <button className="toggleBtn" onClick={() => setDynastyOpen((v) => !v)}>
+                {dynastyOpen ? "Collapse" : "Expand"}
+              </button>
             </div>
+
+            {dynastyOpen ? (
+              <>
+                <button
+                  className="sidebarBtn"
+                  onClick={() => setShowNewDynasty(true)}
+                  style={{ width: "100%", marginBottom: 10 }}
+                >
+                  + New Dynasty
+                </button>
+
+                <div className="sideNav">
+                  {/* Active first */}
+                  {activeDynasty ? (
+                    <>
+                      <a
+                        href="#"
+                        className="active"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openDynastyActions(activeDynasty);
+                        }}
+                      >
+                        <span>{activeDynasty.name}</span>
+                        <span className="badge active">Active</span>
+                      </a>
+
+                      {/* Upload directly beneath active dynasty */}
+                      <button
+                        className="primary"
+                        onClick={() => navigate("/import")}
+                        style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
+                        disabled={!activeId}
+                      >
+                        + Upload New Season
+                      </button>
+                    </>
+                  ) : null}
+
+                  {/* If dynasties exist but none active */}
+                  {!activeDynasty && dynasties.length > 0 ? (
+                    <>
+                      <button className="primary" style={{ width: "100%" }} disabled>
+                        + Upload New Season
+                      </button>
+                      <p className="kicker" style={{ marginTop: 8 }}>
+                        Select a dynasty to load it.
+                      </p>
+                    </>
+                  ) : null}
+
+                  {/* Other dynasties */}
+                  {otherDynasties.map((d) => (
+                    <a
+                      key={d.id}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openDynastyActions(d);
+                      }}
+                    >
+                      <span>{d.name}</span>
+                    </a>
+                  ))}
+
+                  {dynasties.length === 0 ? (
+                    <p className="kicker" style={{ marginTop: 8 }}>
+                      No dynasties yet.
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              /* Collapsed state: show active + upload only (compact) */
+              <div className="sideNav">
+                {activeDynasty ? (
+                  <>
+                    <a
+                      href="#"
+                      className="active"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openDynastyActions(activeDynasty);
+                      }}
+                    >
+                      <span>{activeDynasty.name}</span>
+                      <span className="badge active">Active</span>
+                    </a>
+
+                    <button className="primary" onClick={() => navigate("/import")} style={{ width: "100%" }} disabled={!activeId}>
+                      + Upload New Season
+                    </button>
+                  </>
+                ) : (
+                  <p className="kicker" style={{ marginTop: 0 }}>
+                    Expand to manage dynasties.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="sideSection">
             <div className="sideTitle">Version</div>
-            <p className="kicker" style={{ marginTop: 0 }}>v0.5 • Dynasty UX</p>
+            <p className="kicker" style={{ marginTop: 0 }}>v0.6 • UI polish</p>
           </div>
         </aside>
 
         <main className="main">
-          {/* If there are no dynasties, show splash instead of app pages */}
           {dynasties.length === 0 ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : (
@@ -237,16 +266,10 @@ export default function App() {
 
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span>Starting Year</span>
-              <input
-                type="number"
-                value={newStartYear}
-                onChange={(e) => setNewStartYear(e.target.value)}
-              />
+              <input type="number" value={newStartYear} onChange={(e) => setNewStartYear(e.target.value)} />
             </label>
 
-            {newErr ? (
-              <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>
-            ) : null}
+            {newErr ? <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p> : null}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
@@ -264,22 +287,11 @@ export default function App() {
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button
-              onClick={() => {
-                setShowDynastyActions(false);
-                setSelectedDynasty(null);
-              }}
-            >
+            <button onClick={() => { setShowDynastyActions(false); setSelectedDynasty(null); }}>
               Cancel
             </button>
-
-            <button className="danger" onClick={askDeleteDynasty}>
-              Delete
-            </button>
-
-            <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
-              Load
-            </button>
+            <button className="danger" onClick={askDeleteDynasty}>Delete</button>
+            <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>Load</button>
           </div>
         </Modal>
       ) : null}
@@ -295,18 +307,10 @@ export default function App() {
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button
-              onClick={() => {
-                setShowDeleteConfirm(false);
-                // put you back into options for convenience
-                setShowDynastyActions(true);
-              }}
-            >
+            <button onClick={() => { setShowDeleteConfirm(false); setShowDynastyActions(true); }}>
               Cancel
             </button>
-            <button className="danger" onClick={confirmDeleteDynasty}>
-              Yes, delete
-            </button>
+            <button className="danger" onClick={confirmDeleteDynasty}>Yes, delete</button>
           </div>
         </Modal>
       ) : null}
