@@ -4,12 +4,22 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { requestPersistentStorage } from "./persistence";
 import "./styles.css";
-import { ensureBundledLogoBaseLoaded } from "./logoService";
+import {
+  ensureBundledLogoBaseLoaded,
+  refreshTeamLogosForActiveDynastyMostRecentSeason,
+} from "./logoService";
 
-requestPersistentStorage(); // best-effort; safe if unsupported
+requestPersistentStorage();
 
-// Silent: pre-load base logo CSV if present
-ensureBundledLogoBaseLoaded().catch(() => {});
+// Silent: load CSV base + refresh active dynasty mappings
+(async () => {
+  try {
+    await ensureBundledLogoBaseLoaded();
+    await refreshTeamLogosForActiveDynastyMostRecentSeason();
+  } catch {
+    // silent by design
+  }
+})();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
