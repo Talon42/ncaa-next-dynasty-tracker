@@ -1,8 +1,10 @@
-import { NavLink, Routes, Route } from "react-router-dom";
+import { NavLink, Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
 
 export default function App() {
+  const navigate = useNavigate();
+
   return (
     <div className="shell">
       <div className="shellGrid">
@@ -11,6 +13,10 @@ export default function App() {
             <h1>NCAA Next Dynasty Tracker</h1>
             <span className="badge">Local • Offline</span>
           </div>
+
+          <button className="primary" onClick={() => navigate("/import")} style={{ width: "100%", marginBottom: 10 }}>
+            + Upload New Season
+          </button>
 
           <div className="sideSection">
             <div className="sideTitle">Navigation</div>
@@ -25,17 +31,15 @@ export default function App() {
           </div>
 
           <div className="sideSection">
-            <div className="sideTitle">Dynasties (coming soon)</div>
+            <div className="sideTitle">Dynasties (coming next)</div>
             <p className="kicker" style={{ marginTop: 0 }}>
-              Next we’ll add multiple dynasties and switching here.
+              Next: create multiple dynasties and switch here.
             </p>
           </div>
 
           <div className="sideSection">
             <div className="sideTitle">Version</div>
-            <p className="kicker" style={{ marginTop: 0 }}>
-              v0.1 • Theme + Import + Schedule
-            </p>
+            <p className="kicker" style={{ marginTop: 0 }}>v0.2 • Sidebar CTA</p>
           </div>
         </aside>
 
