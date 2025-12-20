@@ -333,3 +333,17 @@ button:disabled {
   .shellGrid { grid-template-columns: 1fr; }
   .sidebar { position: relative; top: 0; }
 }
+
+.teamCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.teamLogo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: inline-block;
+}

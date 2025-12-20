@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 
 const FALLBACK_LOGO =
@@ -114,6 +115,8 @@ export default function Home() {
         .sort((a, b) => a.week - b.week)
         .map((g) => ({
           week: g.week,
+          homeTgid: g.homeTgid,
+          awayTgid: g.awayTgid,
           homeName: nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`,
           awayName: nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`,
           result:
@@ -196,11 +199,23 @@ export default function Home() {
               <tr key={`${r.week}-${idx}`}>
                 <td>{r.week}</td>
                 <td>
-                  <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
+                  <Link
+                    to={`/team/${r.homeTgid}`}
+                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
+                    title="View team page"
+                  >
+                    <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
+                  </Link>
                 </td>
                 <td>{r.result}</td>
                 <td>
-                  <TeamCell name={r.awayName} logoUrl={r.awayLogo} />
+                  <Link
+                    to={`/team/${r.awayTgid}`}
+                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
+                    title="View team page"
+                  >
+                    <TeamCell name={r.awayName} logoUrl={r.awayLogo} />
+                  </Link>
                 </td>
               </tr>
             ))}
