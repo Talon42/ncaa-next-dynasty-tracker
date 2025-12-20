@@ -45,12 +45,7 @@ export default function Home() {
           const result =
             g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—";
 
-          return {
-            weekDisplay: g.week, // show SEWN exactly, including 0
-            homeName,
-            awayName,
-            result,
-          };
+          return { week: g.week, homeName, result, awayName };
         });
 
       setRows(sorted);
@@ -62,8 +57,8 @@ export default function Home() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>Schedule / Results</h2>
+      <div className="hrow">
+        <h2>Schedule / Results</h2>
 
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span>Season</span>
@@ -82,23 +77,23 @@ export default function Home() {
       </div>
 
       {!hasSeasons ? (
-        <p>
+        <p className="kicker">
           No seasons uploaded yet. Go to <b>Import Season</b> and upload TEAM + SCHD.
         </p>
       ) : (
-        <table border="1" cellPadding="6" style={{ borderCollapse: "collapse" }}>
+        <table className="table">
           <thead>
             <tr>
-              <th>Week</th>
+              <th style={{ width: 80 }}>Week</th>
               <th>Home</th>
-              <th>Result</th>
+              <th style={{ width: 140 }}>Result</th>
               <th>Away</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, idx) => (
-              <tr key={`${r.weekDisplay}-${idx}`}>
-                <td>{r.weekDisplay}</td>
+              <tr key={`${r.week}-${idx}`}>
+                <td>{r.week}</td>
                 <td>{r.homeName}</td>
                 <td>{r.result}</td>
                 <td>{r.awayName}</td>
