@@ -2,16 +2,8 @@ import Papa from "papaparse";
 import { db, ensureDefaultDynasty } from "./db";
 
 function parseCsvText(text) {
-  const res = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  if (res.errors?.length) {
-    const first = res.errors[0];
-    throw new Error(first?.message || "CSV parse error");
-  }
-
+  const res = Papa.parse(text, { header: true, skipEmptyLines: true });
+  if (res.errors?.length) throw new Error(res.errors[0]?.message || "CSV parse error");
   return res.data;
 }
 
@@ -24,9 +16,15 @@ function requireColumns(rows, required, label) {
 
 function getTypeFromName(fileName) {
   // Only last 4 chars before ".csv" matter (per spec)
-  // Example: "BASLUS-21214DDyn1 - TEAM.csv" -> TEAM
   const m = fileName.match(/([A-Za-z0-9]{4})\.csv$/i);
   return m ? m[1].toUpperCase() : null;
+}
+
+function normId(x) {
+  // Normalize ids so "26", " 26", "26.0" all become "26"
+  const s = String(x ?? "").trim();
+  const n = Number(s);
+  return Number.isFinite(n) ? String(Math.trunc(n)) : s;
 }
 
 export async function seasonExists({ dynastyId, seasonYear }) {
@@ -41,64 +39,57 @@ export async function importSeasonBatch({ seasonYear, files }) {
   if (!Number.isFinite(year)) throw new Error("Season year must be a number.");
   if (!files?.length) throw new Error("Please select CSV files to upload.");
 
-  // Map by the 4-char suffix type
   const byType = {};
   for (const f of files) {
     const t = getTypeFromName(f.name);
     if (t) byType[t] = f;
   }
 
-  // Phase 1 required set
   const requiredTypes = ["TEAM", "SCHD"];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(`Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM and SCHD.`);
   }
 
-  // Read + parse
   const [teamText, schdText] = await Promise.all([byType.TEAM.text(), byType.SCHD.text()]);
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
 
-  // IMPORTANT: In your actual TEAM export, the stable team id is TEZ1 (TGID equivalent)
-  requireColumns(teamRows, ["TEZ1", "TDNA", "TMNA"], "TEAM");
+  // Use ONLY the columns you specified
+  requireColumns(teamRows, ["TGID", "TDNA", "TMNA"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
 
-  // Transform TEAM rows -> team season snapshots
   const teamSeasons = teamRows.map((r) => ({
     dynastyId: dynasty.id,
     seasonYear: year,
-    tgid: String(r.TEZ1),
+    tgid: normId(r.TGID),
     tdna: String(r.TDNA ?? "").trim(),
     tmna: String(r.TMNA ?? "").trim(),
   }));
 
-  // Stable teams identity table (just dynastyId+tgid)
   const teams = teamSeasons.map((t) => ({
     dynastyId: dynasty.id,
     tgid: t.tgid,
   }));
 
-  // Transform schedule -> games
-  // NOTE: SCHD SEWN appears 0-based in your file (0..22). We store 0-based and display +1.
   const games = schdRows.map((r) => {
-    const awayScore = Number(r.GASC);
-    const homeScore = Number(r.GHSC);
-    const week0 = Number(r.SEWN);
+    const week = Number(String(r.SEWN ?? "").trim()); // keep as-is (0..22)
+    const awayScore = Number(String(r.GASC ?? "").trim());
+    const homeScore = Number(String(r.GHSC ?? "").trim());
 
     return {
       dynastyId: dynasty.id,
       seasonYear: year,
-      week: Number.isFinite(week0) ? week0 : 0,
-      homeTgid: String(r.GHTG),
-      awayTgid: String(r.GATG),
+      week: Number.isFinite(week) ? week : 0,
+      homeTgid: normId(r.GHTG),
+      awayTgid: normId(r.GATG),
       homeScore: Number.isFinite(homeScore) ? homeScore : null,
       awayScore: Number.isFinite(awayScore) ? awayScore : null,
     };
   });
 
-  // Overwrite ONLY this season year (per spec)
   await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.dynasties, async () => {
+    // Overwrite ONLY this season year
     await db.teamSeasons.where({ dynastyId: dynasty.id, seasonYear: year }).delete();
     await db.games.where({ dynastyId: dynasty.id, seasonYear: year }).delete();
 
@@ -106,7 +97,7 @@ export async function importSeasonBatch({ seasonYear, files }) {
     await db.teamSeasons.bulkPut(teamSeasons);
     await db.games.bulkPut(games);
 
-    // Option A: currentYear advances only if uploaded year >= currentYear
+    // Option A: advance only if uploaded year >= currentYear
     const d = await db.dynasties.get(dynasty.id);
     if (d && year >= Number(d.currentYear)) {
       await db.dynasties.update(dynasty.id, { currentYear: year + 1 });

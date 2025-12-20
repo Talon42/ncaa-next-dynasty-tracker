@@ -7,7 +7,6 @@ export default function Home() {
   const [seasonYear, setSeasonYear] = useState("");
   const [rows, setRows] = useState([]);
 
-  // Load seasons list
   useEffect(() => {
     (async () => {
       const d = await ensureDefaultDynasty();
@@ -21,9 +20,8 @@ export default function Home() {
     })();
   }, []);
 
-  // Load schedule rows for selected season
   useEffect(() => {
-    if (!seasonYear) {
+    if (seasonYear === "" || seasonYear == null) {
       setRows([]);
       return;
     }
@@ -36,9 +34,7 @@ export default function Home() {
         db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
       ]);
 
-      const nameByTgid = new Map(
-        teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()])
-      );
+      const nameByTgid = new Map(teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()]));
 
       const sorted = games
         .slice()
@@ -50,7 +46,7 @@ export default function Home() {
             g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—";
 
           return {
-            weekDisplay: (g.week ?? 0) + 1,
+            weekDisplay: g.week, // show SEWN exactly, including 0
             homeName,
             awayName,
             result,
@@ -62,7 +58,6 @@ export default function Home() {
   }, [dynastyId, seasonYear]);
 
   const hasSeasons = availableSeasons.length > 0;
-
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
 
   return (
