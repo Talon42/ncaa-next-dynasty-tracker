@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
+import Team from "./pages/Team";
 import {
   createDynasty,
   deleteDynasty,
@@ -149,8 +150,11 @@ export default function App() {
                         className="active"
                         onClick={(e) => {
                           e.preventDefault();
-                          openDynastyActions(activeDynasty);
+                          setShowDynastyActions(false);
+                          setSelectedDynasty(null);
+                          navigate("/");
                         }}
+                        title="Go to Schedule / Results"
                       >
                         <span>{activeDynasty.name}</span>
                         <span className="badge active">Active</span>
@@ -192,6 +196,7 @@ export default function App() {
             <div className="card">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
               </Routes>
