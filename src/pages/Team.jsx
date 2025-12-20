@@ -237,44 +237,42 @@ export default function Team() {
         </p>
       ) : (
         <table className="table">
-          <thead>
-            <tr>
-              <th style={{ width: 80 }}>Week</th>
-              <th style={{ width: 120 }}>Home/Away</th>
-              <th>Opponent</th>
-              <th style={{ width: 140 }}>Result</th>
-            </tr>
-          </thead>
+        <thead>
+        <tr>
+            <th style={{ width: 80 }}>Week</th>
+            <th>Opponent</th>
+            <th style={{ width: 140 }}>Result</th>
+        </tr>
+        </thead>
           <tbody>
             {rows.map((r, idx) => (
-              <tr key={`${r.week}-${idx}`}>
-                <td>{r.week}</td>
-                <td>{r.isHome ? "Home" : "Away"}</td>
-                <td>
+            <tr key={`${r.week}-${idx}`}>
+            <td>{r.week}</td>
+            <td>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
+                <span
                     style={{
-                        width: 22,
-                        textAlign: "center",
-                        fontWeight: 700,
-                        opacity: 0.9,
+                    width: 22,
+                    textAlign: "center",
+                    fontWeight: 700,
+                    opacity: 0.9,
                     }}
                     title={r.isHome ? "Home game" : "Away game"}
-                    >
+                >
                     {r.isHome ? "vs" : "@"}
-                    </span>
+                </span>
 
-                    <Link
+                <Link
                     to={`/team/${r.oppTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
                     title="View opponent team page"
-                    >
+                >
                     <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                    </Link>
+                </Link>
                 </div>
-                </td>
-                <td>{r.result}</td>
-              </tr>
+            </td>
+            <td>{r.result}</td>
+            </tr>
             ))}
           </tbody>
         </table>
