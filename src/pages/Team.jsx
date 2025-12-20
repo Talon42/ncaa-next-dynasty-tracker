@@ -29,6 +29,28 @@ function TeamCell({ name, logoUrl }) {
   );
 }
 
+function OutcomeBadge({ outcome }) {
+  if (!outcome) return null;
+
+  const color = outcome === "W" ? "green" : outcome === "L" ? "red" : "inherit";
+  const title = outcome === "W" ? "Win" : outcome === "L" ? "Loss" : "Tie";
+
+  return (
+    <span
+      title={title}
+      style={{
+        display: "inline-block",
+        minWidth: 16,
+        fontWeight: 900,
+        marginRight: 8,
+        color,
+      }}
+    >
+      {outcome}
+    </span>
+  );
+}
+
 export default function Team() {
   const { tgid } = useParams();
   const teamTgid = String(tgid ?? "");
@@ -36,15 +58,16 @@ export default function Team() {
   const [dynastyId, setDynastyId] = useState(null);
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
-  const [seasonYear, setSeasonYear] = useState("");
-
-  const [availableWeeks, setAvailableWeeks] = useState([]);
-  const [weekFilter, setWeekFilter] = useState("All");
+  const [seasonYear, setSeasonYear] = useState("All");
 
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
 
+  // When a specific season is selected
   const [rows, setRows] = useState([]);
+
+  // When "All" seasons is selected
+  const [seasonSections, setSeasonSections] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -57,7 +80,7 @@ export default function Team() {
   useEffect(() => {
     if (!dynastyId || !teamTgid) {
       setAvailableSeasons([]);
-      setSeasonYear("");
+      setSeasonYear("All");
       return;
     }
 
@@ -69,98 +92,105 @@ export default function Team() {
 
       const years = Array.from(new Set(teamGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
-      setSeasonYear(years[0] ?? "");
+      setSeasonYear("All"); // default to All
     })();
   }, [dynastyId, teamTgid]);
 
-  // Weeks available for the selected season (team only)
+  // Load header + rows/sections (supports Season = All)
   useEffect(() => {
-    if (!dynastyId || seasonYear === "" || !teamTgid) {
-      setAvailableWeeks([]);
-      setWeekFilter("All");
-      return;
-    }
-
-    (async () => {
-      const year = Number(seasonYear);
-      const games = await db.games.where({ dynastyId, seasonYear: year }).toArray();
-      const teamGames = games.filter(
-        (g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid
-      );
-
-      const weeks = Array.from(new Set(teamGames.map((g) => g.week))).sort((a, b) => a - b);
-      setAvailableWeeks(weeks);
-
-      if (weekFilter !== "All" && !weeks.includes(Number(weekFilter))) {
-        setWeekFilter("All");
-      }
-    })();
-  }, [dynastyId, seasonYear, teamTgid]);
-
-  // Load header (team name/logo) + table rows
-  useEffect(() => {
-    if (!dynastyId || seasonYear === "" || !teamTgid) {
+    if (!dynastyId || !teamTgid) {
       setRows([]);
+      setSeasonSections([]);
       setTeamName("");
       setTeamLogo(FALLBACK_LOGO);
       return;
     }
 
     (async () => {
-      const year = Number(seasonYear);
-
-      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows] = await Promise.all([
-        db.games.where({ dynastyId, seasonYear: year }).toArray(),
-        db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
+      // Pull all needed data once (local-first, small enough for now)
+      const [gamesAll, teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
+        db.games.where({ dynastyId }).toArray(),
+        db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);
 
-      const nameByTgid = new Map(
-        teamSeasonRows.map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
-      );
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
 
       const logoFor = (id) =>
         overrideByTgid.get(String(id)) || baseLogoByTgid.get(String(id)) || FALLBACK_LOGO;
 
-      setTeamName(nameByTgid.get(teamTgid) || `TGID ${teamTgid}`);
+      // Prefer the most recent season's name for the header (if available)
+      const latestYear = availableSeasons[0];
+      const latestNameMap = new Map(
+        teamSeasonsAll
+          .filter((t) => t.seasonYear === latestYear)
+          .map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
+      );
+
+      setTeamName(latestNameMap.get(teamTgid) || `TGID ${teamTgid}`);
       setTeamLogo(logoFor(teamTgid));
 
-      let games = gamesRaw.filter(
-        (g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid
-      );
-      if (weekFilter !== "All") {
-        const wf = Number(weekFilter);
-        games = games.filter((g) => g.week === wf);
+      const makeRowsForSeason = (year) => {
+        const nameByTgid = new Map(
+          teamSeasonsAll
+            .filter((t) => t.seasonYear === year)
+            .map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
+        );
+
+        const teamGames = gamesAll
+          .filter((g) => g.seasonYear === year)
+          .filter((g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid);
+
+        return teamGames
+          .slice()
+          .sort((a, b) => a.week - b.week)
+          .map((g) => {
+            const isHome = String(g.homeTgid) === teamTgid;
+            const oppTgid = String(isHome ? g.awayTgid : g.homeTgid);
+
+            const hasScore = g.homeScore != null && g.awayScore != null;
+            const teamScore = hasScore ? (isHome ? g.homeScore : g.awayScore) : null;
+            const oppScore = hasScore ? (isHome ? g.awayScore : g.homeScore) : null;
+
+            let outcome = "";
+            if (hasScore && teamScore != null && oppScore != null) {
+              if (teamScore > oppScore) outcome = "W";
+              else if (teamScore < oppScore) outcome = "L";
+              else outcome = "T";
+            }
+
+            return {
+              week: g.week,
+              isHome,
+              oppTgid,
+              oppName: nameByTgid.get(oppTgid) || `TGID ${oppTgid}`,
+              oppLogo: logoFor(oppTgid),
+              outcome,
+              result: hasScore ? `${g.homeScore} - ${g.awayScore}` : "—",
+            };
+          });
+      };
+
+      if (seasonYear === "All") {
+        setRows([]);
+        setSeasonSections(
+          availableSeasons.map((y) => ({
+            seasonYear: y,
+            rows: makeRowsForSeason(y),
+          }))
+        );
+      } else {
+        const year = Number(seasonYear);
+        setSeasonSections([]);
+        setRows(makeRowsForSeason(year));
       }
-
-      const sorted = games
-        .slice()
-        .sort((a, b) => a.week - b.week)
-        .map((g) => {
-          const isHome = String(g.homeTgid) === teamTgid;
-          const oppTgid = String(isHome ? g.awayTgid : g.homeTgid);
-
-          return {
-            week: g.week,
-            isHome,
-            oppTgid,
-            oppName: nameByTgid.get(oppTgid) || `TGID ${oppTgid}`,
-            oppLogo: logoFor(oppTgid),
-            result:
-              g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—",
-          };
-        });
-
-      setRows(sorted);
     })();
-  }, [dynastyId, seasonYear, weekFilter, teamTgid]);
+  }, [dynastyId, teamTgid, seasonYear, availableSeasons]);
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
-  const weekOptions = useMemo(() => ["All", ...availableWeeks.map(String)], [availableWeeks]);
 
   if (!dynastyId) {
     return (
@@ -176,39 +206,44 @@ export default function Team() {
       <div>
         <h2>Team</h2>
         <p className="kicker">Invalid team TGID.</p>
-        <Link to="/" className="kicker">← Back to Schedule / Results</Link>
+        <Link to="/" className="kicker">
+          ← Back to Schedule / Results
+        </Link>
       </div>
     );
   }
 
   return (
     <div>
-        <div
+      {/* Centered logo */}
+      <div
         style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: 0,
-            marginBottom: 2,
+          display: "flex",
+          justifyContent: "center",
+          marginTop: 0,
+          marginBottom: 6,
         }}
-        >
-    <img
-        src={teamLogo}
-        alt={teamName}
-        style={{
-        width: 180,
-        height: 180,
-        objectFit: "contain",
-        }}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={(e) => {
-        e.currentTarget.src = FALLBACK_LOGO;
-        }}
-    />
-    </div>
-    <h2 style={{ marginTop: 0, marginBottom: 10, textAlign: "center" }}>
-    {teamName}
-    </h2>
+      >
+        <img
+          src={teamLogo}
+          alt={teamName}
+          style={{
+            width: 180,
+            height: 180,
+            objectFit: "contain",
+          }}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_LOGO;
+          }}
+        />
+      </div>
+
+      {/* Centered team name */}
+      <h2 style={{ marginTop: 0, marginBottom: 10, textAlign: "center" }}>{teamName}</h2>
+
+      {/* Back link + Season filter row */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>
         <div>
           <Link to="/" className="kicker" style={{ display: "inline-block", marginBottom: 10 }}>
@@ -227,27 +262,15 @@ export default function Team() {
               {!hasSeasons ? (
                 <option value="">No seasons uploaded</option>
               ) : (
-                seasonOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))
+                <>
+                  <option value="All">All</option>
+                  {seasonOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </>
               )}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Week</span>
-            <select
-              value={weekFilter}
-              onChange={(e) => setWeekFilter(e.target.value)}
-              disabled={!hasSeasons || availableWeeks.length === 0}
-            >
-              {weekOptions.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
             </select>
           </label>
         </div>
@@ -257,44 +280,107 @@ export default function Team() {
         <p className="kicker">
           This team has no games yet. Import a season via <b>Upload New Season</b>.
         </p>
+      ) : seasonYear === "All" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {seasonSections.map((sec) => (
+            <div key={sec.seasonYear} className="card" style={{ padding: 14 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 10 }}>{sec.seasonYear}</h3>
+
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 80 }}>Week</th>
+                    <th>Opponent</th>
+                    <th style={{ width: 180 }}>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sec.rows.map((r, idx) => (
+                    <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
+                      <td>{r.week}</td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span
+                            style={{
+                              width: 22,
+                              textAlign: "center",
+                              fontWeight: 800,
+                              opacity: 0.9,
+                            }}
+                            title={r.isHome ? "Home game" : "Away game"}
+                          >
+                            {r.isHome ? "vs" : "@"}
+                          </span>
+
+                          <Link
+                            to={`/team/${r.oppTgid}`}
+                            style={{
+                              color: "inherit",
+                              textDecoration: "none",
+                              display: "inline-block",
+                            }}
+                            title="View opponent team page"
+                          >
+                            <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                          </Link>
+                        </div>
+                      </td>
+                      <td>
+                        <OutcomeBadge outcome={r.outcome} />
+                        {r.result}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
       ) : (
         <table className="table">
-        <thead>
-        <tr>
-            <th style={{ width: 80 }}>Week</th>
-            <th>Opponent</th>
-            <th style={{ width: 140 }}>Result</th>
-        </tr>
-        </thead>
+          <thead>
+            <tr>
+              <th style={{ width: 80 }}>Week</th>
+              <th>Opponent</th>
+              <th style={{ width: 180 }}>Result</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r, idx) => (
-            <tr key={`${r.week}-${idx}`}>
-            <td>{r.week}</td>
-            <td>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                    style={{
-                    width: 22,
-                    textAlign: "center",
-                    fontWeight: 700,
-                    opacity: 0.9,
-                    }}
-                    title={r.isHome ? "Home game" : "Away game"}
-                >
-                    {r.isHome ? "vs" : "@"}
-                </span>
+              <tr key={`${r.week}-${idx}`}>
+                <td>{r.week}</td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 22,
+                        textAlign: "center",
+                        fontWeight: 800,
+                        opacity: 0.9,
+                      }}
+                      title={r.isHome ? "Home game" : "Away game"}
+                    >
+                      {r.isHome ? "vs" : "@"}
+                    </span>
 
-                <Link
-                    to={`/team/${r.oppTgid}`}
-                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                    title="View opponent team page"
-                >
-                    <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                </Link>
-                </div>
-            </td>
-            <td>{r.result}</td>
-            </tr>
+                    <Link
+                      to={`/team/${r.oppTgid}`}
+                      style={{
+                        color: "inherit",
+                        textDecoration: "none",
+                        display: "inline-block",
+                      }}
+                      title="View opponent team page"
+                    >
+                      <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                    </Link>
+                  </div>
+                </td>
+                <td>
+                  <OutcomeBadge outcome={r.outcome} />
+                  {r.result}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
