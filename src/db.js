@@ -2,7 +2,7 @@ import Dexie from "dexie";
 
 export const db = new Dexie("dynasty-tracker-v1");
 
-// v1 stores
+// v1
 db.version(1).stores({
   dynasties: "id, name, startYear, currentYear",
   teams: "[dynastyId+tgid], dynastyId, tgid",
@@ -10,13 +10,31 @@ db.version(1).stores({
   games: "[dynastyId+seasonYear+week+homeTgid+awayTgid], dynastyId, seasonYear, week",
 });
 
-// v2 adds settings
+// v2 (settings)
 db.version(2).stores({
   dynasties: "id, name, startYear, currentYear",
   teams: "[dynastyId+tgid], dynastyId, tgid",
   teamSeasons: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
   games: "[dynastyId+seasonYear+week+homeTgid+awayTgid], dynastyId, seasonYear, week",
   settings: "key",
+});
+
+// v3 (logos)
+db.version(3).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+  games: "[dynastyId+seasonYear+week+homeTgid+awayTgid], dynastyId, seasonYear, week",
+  settings: "key",
+
+  // Base logos from bundled CSV keyed by normalized team name (global, not per dynasty)
+  logoBaseByName: "nameKey",
+
+  // Resolved logo per dynasty + TGID (what schedule will use)
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+
+  // Optional manual overrides per dynasty + TGID (future UI)
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
 });
 
 const ACTIVE_KEY = "activeDynastyId";
@@ -37,11 +55,7 @@ export async function getActiveDynastyId() {
 }
 
 export async function setActiveDynastyId(idOrNull) {
-  if (!idOrNull) {
-    await db.settings.put({ key: ACTIVE_KEY, value: null });
-    return;
-  }
-  await db.settings.put({ key: ACTIVE_KEY, value: idOrNull });
+  await db.settings.put({ key: ACTIVE_KEY, value: idOrNull ?? null });
 }
 
 export async function createDynasty({ name, startYear }) {
@@ -67,15 +81,16 @@ export async function getDynasty(id) {
 }
 
 export async function deleteDynasty(dynastyId) {
-  await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, async () => {
+  await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, db.teamLogos, db.logoOverrides, async () => {
     await db.teams.where({ dynastyId }).delete();
     await db.teamSeasons.where({ dynastyId }).delete();
     await db.games.where({ dynastyId }).delete();
+    await db.teamLogos.where({ dynastyId }).delete();
+    await db.logoOverrides.where({ dynastyId }).delete();
     await db.dynasties.delete(dynastyId);
 
     const active = await db.settings.get(ACTIVE_KEY);
     if (active?.value === dynastyId) {
-      // IMPORTANT: no auto-create. Just unset active and let the app show the create splash.
       await db.settings.put({ key: ACTIVE_KEY, value: null });
     }
   });

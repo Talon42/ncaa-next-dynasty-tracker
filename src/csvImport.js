@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { db, getDynasty } from "./db";
+import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 
 function parseCsvText(text) {
   const res = Papa.parse(text, { header: true, skipEmptyLines: true });
@@ -44,7 +45,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     if (t) byType[t] = f;
   }
 
-  // Mandatory set for now (and will remain mandatory as we expand)
+  // Mandatory set for now (and will remain mandatory)
   const requiredTypes = ["TEAM", "SCHD"];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
@@ -55,7 +56,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
 
-  // Contract (your confirmed headers)
+  // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "TDNA", "TMNA"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
 
@@ -70,7 +71,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
 
   const games = schdRows.map((r) => {
-    const week = Number(String(r.SEWN ?? "").trim()); // show as-is (0..22)
+    const week = Number(String(r.SEWN ?? "").trim()); // supports 0..22
     const awayScore = Number(String(r.GASC ?? "").trim());
     const homeScore = Number(String(r.GHSC ?? "").trim());
 
@@ -100,6 +101,14 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.dynasties.update(dynastyId, { currentYear: year + 1 });
     }
   });
+
+  // ✅ Silent logo mapping step (no UI required)
+  // If the bundled CSV doesn't exist, it does nothing.
+  try {
+    await upsertTeamLogosFromSeasonTeams({ dynastyId, seasonYear: year });
+  } catch {
+    // stay silent per your preference
+  }
 
   return { dynastyId, seasonYear: year, teams: teamSeasons.length, games: games.length };
 }
