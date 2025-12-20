@@ -4,8 +4,13 @@ import { db, getActiveDynastyId, getDynasty } from "../db";
 export default function Home() {
   const [dynastyId, setDynastyId] = useState(null);
   const [dynastyName, setDynastyName] = useState("");
+
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
+
+  const [availableWeeks, setAvailableWeeks] = useState([]); // numbers
+  const [weekFilter, setWeekFilter] = useState("All"); // "All" or number string like "0"
+
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
@@ -17,11 +22,11 @@ export default function Home() {
     })();
   }, []);
 
+  // Load season list for active dynasty
   useEffect(() => {
     if (!dynastyId) {
       setAvailableSeasons([]);
       setSeasonYear("");
-      setRows([]);
       return;
     }
 
@@ -33,6 +38,30 @@ export default function Home() {
     })();
   }, [dynastyId]);
 
+  // Load weeks list for selected season
+  useEffect(() => {
+    if (!dynastyId || seasonYear === "" || seasonYear == null) {
+      setAvailableWeeks([]);
+      setWeekFilter("All");
+      return;
+    }
+
+    (async () => {
+      const year = Number(seasonYear);
+      const games = await db.games.where({ dynastyId, seasonYear: year }).toArray();
+      const weeks = Array.from(new Set(games.map((g) => g.week))).sort((a, b) => a - b);
+
+      setAvailableWeeks(weeks);
+
+      // If current selection no longer exists, reset to All
+      if (weekFilter !== "All") {
+        const wf = Number(weekFilter);
+        if (!weeks.includes(wf)) setWeekFilter("All");
+      }
+    })();
+  }, [dynastyId, seasonYear]); // (intentionally not depending on weekFilter)
+
+  // Load schedule rows for selected season + week filter
   useEffect(() => {
     if (!dynastyId || seasonYear === "" || seasonYear == null) {
       setRows([]);
@@ -42,12 +71,19 @@ export default function Home() {
     (async () => {
       const year = Number(seasonYear);
 
-      const [games, teamSeasonRows] = await Promise.all([
+      const [gamesRaw, teamSeasonRows] = await Promise.all([
         db.games.where({ dynastyId, seasonYear: year }).toArray(),
         db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
       ]);
 
       const nameByTgid = new Map(teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()]));
+
+      // Apply week filter
+      let games = gamesRaw;
+      if (weekFilter !== "All") {
+        const wf = Number(weekFilter);
+        games = gamesRaw.filter((g) => g.week === wf);
+      }
 
       const sorted = games
         .slice()
@@ -63,10 +99,15 @@ export default function Home() {
 
       setRows(sorted);
     })();
-  }, [dynastyId, seasonYear]);
+  }, [dynastyId, seasonYear, weekFilter]);
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
+
+  const weekOptions = useMemo(() => {
+    // Always: All + existing weeks
+    return ["All", ...availableWeeks.map((w) => String(w))];
+  }, [availableWeeks]);
 
   if (!dynastyId) {
     return (
@@ -85,20 +126,37 @@ export default function Home() {
           {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : null}
         </div>
 
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span>Season</span>
-          <select value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} disabled={!hasSeasons}>
-            {!hasSeasons ? (
-              <option value="">No seasons uploaded</option>
-            ) : (
-              seasonOptions.map((y) => (
-                <option key={y} value={y}>
-                  {y}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Season</span>
+            <select value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} disabled={!hasSeasons}>
+              {!hasSeasons ? (
+                <option value="">No seasons uploaded</option>
+              ) : (
+                seasonOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Week</span>
+            <select
+              value={weekFilter}
+              onChange={(e) => setWeekFilter(e.target.value)}
+              disabled={!hasSeasons || availableWeeks.length === 0}
+            >
+              {weekOptions.map((w) => (
+                <option key={w} value={w}>
+                  {w}
                 </option>
-              ))
-            )}
-          </select>
-        </label>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {!hasSeasons ? (

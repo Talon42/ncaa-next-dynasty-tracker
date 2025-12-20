@@ -201,12 +201,18 @@ label {
 }
 
 input, select {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(20, 20, 20, 0.95); /* match card vibe */
   border: 1px solid var(--border);
   color: var(--text);
   padding: 9px 10px;
   border-radius: 12px;
   outline: none;
+}
+
+/* Dropdown list items (fixes white dropdown issue in many browsers) */
+select option {
+  background: rgba(20, 20, 20, 0.98);
+  color: var(--text);
 }
 
 input:focus, select:focus {
