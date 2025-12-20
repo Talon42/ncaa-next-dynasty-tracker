@@ -7,14 +7,16 @@
   --muted: #a9a9a9;
   --border: #2a2a2a;
 
-  --radius: 12px;
-  --shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  --radius: 14px;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
 
   --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji",
     "Segoe UI Emoji";
 
   --gap: 14px;
-  --sidebar-w: 280px;
+  --sidebar-w: 292px;
+
+  --focus: 0 0 0 3px rgba(211, 0, 0, 0.22);
 }
 
 * { box-sizing: border-box; }
@@ -24,7 +26,9 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font);
-  background: var(--bg);
+  background: radial-gradient(1200px 800px at 25% 0%, rgba(211,0,0,0.08), transparent 60%),
+              radial-gradient(1000px 800px at 80% 20%, rgba(255,255,255,0.04), transparent 55%),
+              var(--bg);
   color: var(--text);
 }
 
@@ -53,6 +57,7 @@ a { color: inherit; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 14px;
+  backdrop-filter: blur(6px);
 }
 
 .brandRow {
@@ -73,9 +78,15 @@ a { color: inherit; }
   font-size: 12px;
   color: var(--muted);
   border: 1px solid var(--border);
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.badge.active {
+  color: #fff;
+  border-color: rgba(211, 0, 0, 0.6);
+  background: rgba(211, 0, 0, 0.14);
 }
 
 .sideSection {
@@ -88,7 +99,7 @@ a { color: inherit; }
   margin: 0 0 8px 0;
   color: var(--muted);
   font-size: 12px;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.45px;
   text-transform: uppercase;
 }
 
@@ -103,16 +114,24 @@ a { color: inherit; }
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text);
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.sideNav a:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .sideNav a.active {
   border-color: rgba(211, 0, 0, 0.55);
-  box-shadow: 0 0 0 2px rgba(211, 0, 0, 0.15) inset;
+  box-shadow: 0 0 0 2px rgba(211, 0, 0, 0.14) inset;
 }
 
 /* Main content */
@@ -123,11 +142,12 @@ a { color: inherit; }
 }
 
 .card {
-  background: var(--panel);
+  background: rgba(20,20,20,0.92);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 14px;
+  backdrop-filter: blur(6px);
 }
 
 /* Forms */
@@ -140,14 +160,14 @@ input, select {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px 10px;
-  border-radius: 10px;
+  padding: 9px 10px;
+  border-radius: 12px;
   outline: none;
 }
 
 input:focus, select:focus {
   border-color: rgba(211, 0, 0, 0.6);
-  box-shadow: 0 0 0 3px rgba(211, 0, 0, 0.18);
+  box-shadow: var(--focus);
 }
 
 /* Buttons */
@@ -155,29 +175,47 @@ button {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 9px 12px;
-  border-radius: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
   cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
 button:hover {
-  border-color: rgba(211, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 button.primary {
-  background: var(--red);
+  background: linear-gradient(180deg, rgba(211,0,0,1), rgba(170,0,0,1));
   border-color: rgba(211, 0, 0, 0.9);
   color: white;
 }
 
+button.primary:hover {
+  box-shadow: 0 10px 26px rgba(211, 0, 0, 0.20);
+  border-color: rgba(255, 60, 60, 0.9);
+}
+
 button.danger {
-  background: rgba(211, 0, 0, 0.18);
-  border-color: rgba(211, 0, 0, 0.6);
+  background: rgba(211, 0, 0, 0.14);
+  border-color: rgba(211, 0, 0, 0.55);
+}
+
+button.danger:hover {
+  background: rgba(211, 0, 0, 0.20);
+  box-shadow: 0 10px 26px rgba(211, 0, 0, 0.12);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* Tables */
@@ -185,32 +223,38 @@ button:disabled {
   width: 100%;
   border-collapse: collapse;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
 }
 
 .table thead th {
   text-align: left;
   font-size: 12px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.35px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border);
-  padding: 10px;
+  padding: 10px 12px;
 }
 
 .table tbody td {
-  padding: 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(42,42,42,0.85);
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .kicker {
   color: var(--muted);
   font-size: 13px;
   margin: 0;
+  line-height: 1.45;
 }
 
 .hrow {
@@ -227,25 +271,31 @@ button:disabled {
   font-size: 18px;
 }
 
-/* Modal (THIS FIXES "+ New Dynasty") */
+/* Modal */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0,0,0,0.70);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
   z-index: 9999;
+  backdrop-filter: blur(6px);
 }
+
+/* Scrollbar (best effort; mostly affects Chromium on Windows) */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.10);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
 
 /* Responsive */
 @media (max-width: 980px) {
-  .shellGrid {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: relative;
-    top: 0;
-  }
+  .shellGrid { grid-template-columns: 1fr; }
+  .sidebar { position: relative; top: 0; }
 }
