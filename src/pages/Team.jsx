@@ -183,15 +183,37 @@ export default function Team() {
 
   return (
     <div>
+        <div
+        style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: 0,
+            marginBottom: 2,
+        }}
+        >
+    <img
+        src={teamLogo}
+        alt={teamName}
+        style={{
+        width: 180,
+        height: 180,
+        objectFit: "contain",
+        }}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={(e) => {
+        e.currentTarget.src = FALLBACK_LOGO;
+        }}
+    />
+    </div>
+    <h2 style={{ marginTop: 0, marginBottom: 10, textAlign: "center" }}>
+    {teamName}
+    </h2>
       <div className="hrow" style={{ alignItems: "flex-start" }}>
         <div>
           <Link to="/" className="kicker" style={{ display: "inline-block", marginBottom: 10 }}>
             ← Back to Schedule / Results
           </Link>
-          <h2 style={{ marginTop: 0 }}>{teamName}</h2>
-          <div style={{ marginTop: 6 }}>
-            <TeamCell name="" logoUrl={teamLogo} />
-          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
