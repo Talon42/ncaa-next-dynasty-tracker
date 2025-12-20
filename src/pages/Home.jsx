@@ -1,6 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { db, getActiveDynastyId, getDynasty } from "../db";
 
+// 🔑 Global fallback logo (always available)
+const FALLBACK_LOGO =
+  "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
+
+function TeamCell({ name, logoUrl }) {
+  const [src, setSrc] = useState(logoUrl || FALLBACK_LOGO);
+
+  useEffect(() => {
+    setSrc(logoUrl || FALLBACK_LOGO);
+  }, [logoUrl]);
+
+  return (
+    <div className="teamCell">
+      <img
+        className="teamLogo"
+        src={src}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => {
+          if (src !== FALLBACK_LOGO) setSrc(FALLBACK_LOGO);
+        }}
+      />
+      <span>{name}</span>
+    </div>
+  );
+}
+
 export default function Home() {
   const [dynastyId, setDynastyId] = useState(null);
   const [dynastyName, setDynastyName] = useState("");
@@ -8,8 +36,8 @@ export default function Home() {
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
 
-  const [availableWeeks, setAvailableWeeks] = useState([]); // numbers
-  const [weekFilter, setWeekFilter] = useState("All"); // "All" or number string like "0"
+  const [availableWeeks, setAvailableWeeks] = useState([]);
+  const [weekFilter, setWeekFilter] = useState("All");
 
   const [rows, setRows] = useState([]);
 
@@ -22,7 +50,6 @@ export default function Home() {
     })();
   }, []);
 
-  // Load season list for active dynasty
   useEffect(() => {
     if (!dynastyId) {
       setAvailableSeasons([]);
@@ -38,7 +65,6 @@ export default function Home() {
     })();
   }, [dynastyId]);
 
-  // Load weeks list for selected season
   useEffect(() => {
     if (!dynastyId || seasonYear === "" || seasonYear == null) {
       setAvailableWeeks([]);
@@ -53,15 +79,13 @@ export default function Home() {
 
       setAvailableWeeks(weeks);
 
-      // If current selection no longer exists, reset to All
       if (weekFilter !== "All") {
         const wf = Number(weekFilter);
         if (!weeks.includes(wf)) setWeekFilter("All");
       }
     })();
-  }, [dynastyId, seasonYear]); // (intentionally not depending on weekFilter)
+  }, [dynastyId, seasonYear]);
 
-  // Load schedule rows for selected season + week filter
   useEffect(() => {
     if (!dynastyId || seasonYear === "" || seasonYear == null) {
       setRows([]);
@@ -71,14 +95,19 @@ export default function Home() {
     (async () => {
       const year = Number(seasonYear);
 
-      const [gamesRaw, teamSeasonRows] = await Promise.all([
+      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows] = await Promise.all([
         db.games.where({ dynastyId, seasonYear: year }).toArray(),
         db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
+        db.teamLogos.where({ dynastyId }).toArray(),
+        db.logoOverrides.where({ dynastyId }).toArray(),
       ]);
 
       const nameByTgid = new Map(teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()]));
+      const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
+      const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
 
-      // Apply week filter
+      const logoFor = (tgid) => overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
+
       let games = gamesRaw;
       if (weekFilter !== "All") {
         const wf = Number(weekFilter);
@@ -88,14 +117,14 @@ export default function Home() {
       const sorted = games
         .slice()
         .sort((a, b) => a.week - b.week)
-        .map((g) => {
-          const homeName = nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`;
-          const awayName = nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`;
-          const result =
-            g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—";
-
-          return { week: g.week, homeName, result, awayName };
-        });
+        .map((g) => ({
+          week: g.week,
+          homeName: nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`,
+          awayName: nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`,
+          result: g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—",
+          homeLogo: logoFor(g.homeTgid),
+          awayLogo: logoFor(g.awayTgid),
+        }));
 
       setRows(sorted);
     })();
@@ -103,11 +132,7 @@ export default function Home() {
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
-
-  const weekOptions = useMemo(() => {
-    // Always: All + existing weeks
-    return ["All", ...availableWeeks.map((w) => String(w))];
-  }, [availableWeeks]);
+  const weekOptions = useMemo(() => ["All", ...availableWeeks.map(String)], [availableWeeks]);
 
   if (!dynastyId) {
     return (
@@ -177,9 +202,13 @@ export default function Home() {
             {rows.map((r, idx) => (
               <tr key={`${r.week}-${idx}`}>
                 <td>{r.week}</td>
-                <td>{r.homeName}</td>
+                <td>
+                  <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
+                </td>
                 <td>{r.result}</td>
-                <td>{r.awayName}</td>
+                <td>
+                  <TeamCell name={r.awayName} logoUrl={r.awayLogo} />
+                </td>
               </tr>
             ))}
           </tbody>
