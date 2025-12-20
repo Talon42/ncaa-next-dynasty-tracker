@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { db, ensureDefaultDynasty } from "../db";
+import { db, getActiveDynastyId, getDynasty } from "../db";
 import { importSeasonBatch, seasonExists } from "../csvImport";
 
 function Modal({ title, children, onCancel, onConfirm, confirmText }) {
@@ -36,15 +36,7 @@ function Modal({ title, children, onCancel, onConfirm, confirmText }) {
 
         <div style={{ padding: 16 }}>{children}</div>
 
-        <div
-          style={{
-            padding: 16,
-            borderTop: "1px solid #333",
-            display: "flex",
-            gap: 10,
-            justifyContent: "flex-end",
-          }}
-        >
+        <div style={{ padding: 16, borderTop: "1px solid #333", display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onCancel}>Cancel</button>
           <button onClick={onConfirm}>{confirmText}</button>
         </div>
@@ -56,6 +48,8 @@ function Modal({ title, children, onCancel, onConfirm, confirmText }) {
 export default function ImportSeason() {
   const navigate = useNavigate();
 
+  const [dynastyId, setDynastyId] = useState(null);
+  const [dynastyName, setDynastyName] = useState("");
   const [seasonYear, setSeasonYear] = useState(new Date().getFullYear());
   const [files, setFiles] = useState([]);
   const [status, setStatus] = useState("");
@@ -70,10 +64,13 @@ export default function ImportSeason() {
 
   useEffect(() => {
     (async () => {
-      const d = await ensureDefaultDynasty();
-      setSeasonYear(d.currentYear);
+      const id = await getActiveDynastyId();
+      setDynastyId(id);
+      const d = await getDynasty(id);
+      setDynastyName(d?.name ?? "");
+      setSeasonYear(d?.currentYear ?? new Date().getFullYear());
 
-      const allGames = await db.games.where({ dynastyId: d.id }).toArray();
+      const allGames = await db.games.where({ dynastyId: id }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setExistingYears(years);
     })();
@@ -82,31 +79,28 @@ export default function ImportSeason() {
   useEffect(() => {
     (async () => {
       try {
-        const d = await ensureDefaultDynasty();
+        if (!dynastyId) return;
         const yearNum = Number(seasonYear);
         if (!Number.isFinite(yearNum)) {
           setWillOverwrite(false);
           return;
         }
-        const exists = await seasonExists({ dynastyId: d.id, seasonYear: yearNum });
+        const exists = await seasonExists({ dynastyId, seasonYear: yearNum });
         setWillOverwrite(exists);
       } catch {
         setWillOverwrite(false);
       }
     })();
-  }, [seasonYear]);
+  }, [dynastyId, seasonYear]);
 
-  const existingYearsLabel = useMemo(() => {
-    return existingYears.length ? existingYears.join(", ") : "None yet";
-  }, [existingYears]);
+  const existingYearsLabel = useMemo(() => (existingYears.length ? existingYears.join(", ") : "None yet"), [existingYears]);
 
   function onPickFiles(e) {
     setFiles(Array.from(e.target.files || []));
   }
 
   async function refreshExistingYears() {
-    const d = await ensureDefaultDynasty();
-    const allGames = await db.games.where({ dynastyId: d.id }).toArray();
+    const allGames = await db.games.where({ dynastyId }).toArray();
     const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
     setExistingYears(years);
   }
@@ -115,7 +109,7 @@ export default function ImportSeason() {
     setStatus("");
     setBusy(true);
     try {
-      const result = await importSeasonBatch({ seasonYear: yearNum, files: filesToUse });
+      const result = await importSeasonBatch({ dynastyId, seasonYear: yearNum, files: filesToUse });
       await refreshExistingYears();
       setStatus(`Imported ${result.seasonYear}: ${result.teams} teams, ${result.games} games`);
       setTimeout(() => navigate("/"), 400);
@@ -128,6 +122,10 @@ export default function ImportSeason() {
 
   async function onImportClicked() {
     setStatus("");
+    if (!dynastyId) {
+      setStatus("No active dynasty selected.");
+      return;
+    }
 
     const yearNum = Number(seasonYear);
     if (!Number.isFinite(yearNum)) {
@@ -139,9 +137,7 @@ export default function ImportSeason() {
       return;
     }
 
-    const d = await ensureDefaultDynasty();
-    const exists = await seasonExists({ dynastyId: d.id, seasonYear: yearNum });
-
+    const exists = await seasonExists({ dynastyId, seasonYear: yearNum });
     if (exists) {
       setPendingYear(yearNum);
       setPendingFiles(files);
@@ -171,11 +167,15 @@ export default function ImportSeason() {
 
   return (
     <div>
-      <h2>Import Season (Batch CSV Upload)</h2>
+      <div className="hrow">
+        <div>
+          <h2>Import Season</h2>
+          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : null}
+        </div>
+      </div>
 
-      <p style={{ marginTop: 0 }}>
-        Required (Phase 1): upload files ending in <b>TEAM.csv</b> and <b>SCHD.csv</b>. (Only the last 4 characters
-        before .csv are used to detect file type.)
+      <p className="kicker" style={{ marginTop: 0 }}>
+        Required (Phase 1): upload files ending in <b>TEAM.csv</b> and <b>SCHD.csv</b>. Only the last 4 characters before .csv are used to detect type.
       </p>
 
       <div style={{ marginBottom: 10 }}>
@@ -184,21 +184,14 @@ export default function ImportSeason() {
 
       {willOverwrite ? (
         <div style={{ padding: 10, border: "1px solid #caa", marginBottom: 12 }}>
-          <b>Overwrite warning:</b> Season <b>{seasonYear}</b> already exists. Importing will delete and replace that
-          season’s data.
+          <b>Overwrite warning:</b> Season <b>{seasonYear}</b> already exists. Importing will delete and replace that season’s data.
         </div>
       ) : null}
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span>Season Year</span>
-          <input
-            type="number"
-            value={seasonYear}
-            onChange={(e) => setSeasonYear(e.target.value)}
-            style={{ width: 120 }}
-            disabled={busy}
-          />
+          <input type="number" value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} style={{ width: 120 }} disabled={busy} />
         </label>
 
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -206,7 +199,7 @@ export default function ImportSeason() {
           <input type="file" accept=".csv,text/csv" multiple onChange={onPickFiles} disabled={busy} />
         </label>
 
-        <button onClick={onImportClicked} disabled={busy}>
+        <button className="primary" onClick={onImportClicked} disabled={busy}>
           {busy ? "Importing..." : willOverwrite ? "Overwrite Season" : "Import Season"}
         </button>
 
@@ -240,8 +233,7 @@ export default function ImportSeason() {
             Season <b>{pendingYear}</b> already exists.
           </p>
           <p>
-            This will <b>DELETE</b> and <b>REPLACE</b> all stored records for that season year (TEAM + SCHD, and future
-            required CSVs).
+            This will <b>DELETE</b> and <b>REPLACE</b> all stored records for that season year (TEAM + SCHD, and future required CSVs).
           </p>
           <p style={{ marginBottom: 0 }}>Continue?</p>
         </Modal>

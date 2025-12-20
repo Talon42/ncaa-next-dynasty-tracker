@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { db, ensureDefaultDynasty } from "./db";
+import { db, getDynasty } from "./db";
 
 function parseCsvText(text) {
   const res = Papa.parse(text, { header: true, skipEmptyLines: true });
@@ -15,13 +15,11 @@ function requireColumns(rows, required, label) {
 }
 
 function getTypeFromName(fileName) {
-  // Only last 4 chars before ".csv" matter (per spec)
   const m = fileName.match(/([A-Za-z0-9]{4})\.csv$/i);
   return m ? m[1].toUpperCase() : null;
 }
 
 function normId(x) {
-  // Normalize ids so "26", " 26", "26.0" all become "26"
   const s = String(x ?? "").trim();
   const n = Number(s);
   return Number.isFinite(n) ? String(Math.trunc(n)) : s;
@@ -32,10 +30,11 @@ export async function seasonExists({ dynastyId, seasonYear }) {
   return count > 0;
 }
 
-export async function importSeasonBatch({ seasonYear, files }) {
-  const dynasty = await ensureDefaultDynasty();
-  const year = Number(seasonYear);
+export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
+  const dynasty = await getDynasty(dynastyId);
+  if (!dynasty) throw new Error("No active dynasty selected.");
 
+  const year = Number(seasonYear);
   if (!Number.isFinite(year)) throw new Error("Season year must be a number.");
   if (!files?.length) throw new Error("Please select CSV files to upload.");
 
@@ -45,6 +44,7 @@ export async function importSeasonBatch({ seasonYear, files }) {
     if (t) byType[t] = f;
   }
 
+  // Mandatory set for now (and will remain mandatory as we expand)
   const requiredTypes = ["TEAM", "SCHD"];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
@@ -55,30 +55,27 @@ export async function importSeasonBatch({ seasonYear, files }) {
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
 
-  // Use ONLY the columns you specified
+  // Contract (your confirmed headers)
   requireColumns(teamRows, ["TGID", "TDNA", "TMNA"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
 
   const teamSeasons = teamRows.map((r) => ({
-    dynastyId: dynasty.id,
+    dynastyId,
     seasonYear: year,
     tgid: normId(r.TGID),
     tdna: String(r.TDNA ?? "").trim(),
     tmna: String(r.TMNA ?? "").trim(),
   }));
 
-  const teams = teamSeasons.map((t) => ({
-    dynastyId: dynasty.id,
-    tgid: t.tgid,
-  }));
+  const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
 
   const games = schdRows.map((r) => {
-    const week = Number(String(r.SEWN ?? "").trim()); // keep as-is (0..22)
+    const week = Number(String(r.SEWN ?? "").trim()); // show as-is (0..22)
     const awayScore = Number(String(r.GASC ?? "").trim());
     const homeScore = Number(String(r.GHSC ?? "").trim());
 
     return {
-      dynastyId: dynasty.id,
+      dynastyId,
       seasonYear: year,
       week: Number.isFinite(week) ? week : 0,
       homeTgid: normId(r.GHTG),
@@ -90,19 +87,19 @@ export async function importSeasonBatch({ seasonYear, files }) {
 
   await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.dynasties, async () => {
     // Overwrite ONLY this season year
-    await db.teamSeasons.where({ dynastyId: dynasty.id, seasonYear: year }).delete();
-    await db.games.where({ dynastyId: dynasty.id, seasonYear: year }).delete();
+    await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
+    await db.games.where({ dynastyId, seasonYear: year }).delete();
 
     await db.teams.bulkPut(teams);
     await db.teamSeasons.bulkPut(teamSeasons);
     await db.games.bulkPut(games);
 
-    // Option A: advance only if uploaded year >= currentYear
-    const d = await db.dynasties.get(dynasty.id);
+    // Option A currentYear advance
+    const d = await db.dynasties.get(dynastyId);
     if (d && year >= Number(d.currentYear)) {
-      await db.dynasties.update(dynasty.id, { currentYear: year + 1 });
+      await db.dynasties.update(dynastyId, { currentYear: year + 1 });
     }
   });
 
-  return { dynastyId: dynasty.id, seasonYear: year, teams: teamSeasons.length, games: games.length };
+  return { dynastyId, seasonYear: year, teams: teamSeasons.length, games: games.length };
 }

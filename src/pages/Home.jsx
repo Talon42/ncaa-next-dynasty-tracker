@@ -1,27 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
-import { db, ensureDefaultDynasty } from "../db";
+import { db, getActiveDynastyId, getDynasty } from "../db";
 
 export default function Home() {
-  const [dynastyId, setDynastyId] = useState("default");
+  const [dynastyId, setDynastyId] = useState(null);
+  const [dynastyName, setDynastyName] = useState("");
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
   const [rows, setRows] = useState([]);
 
+  // Load active dynasty on mount
   useEffect(() => {
     (async () => {
-      const d = await ensureDefaultDynasty();
-      setDynastyId(d.id);
-
-      const allGames = await db.games.where({ dynastyId: d.id }).toArray();
-      const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
-
-      setAvailableSeasons(years);
-      setSeasonYear(years[0] ?? "");
+      const id = await getActiveDynastyId();
+      setDynastyId(id);
+      const d = await getDynasty(id);
+      setDynastyName(d?.name ?? "");
     })();
   }, []);
 
+  // Load season list for active dynasty
   useEffect(() => {
-    if (seasonYear === "" || seasonYear == null) {
+    if (!dynastyId) return;
+    (async () => {
+      const allGames = await db.games.where({ dynastyId }).toArray();
+      const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
+      setAvailableSeasons(years);
+      setSeasonYear(years[0] ?? "");
+    })();
+  }, [dynastyId]);
+
+  // Load schedule rows for selected season
+  useEffect(() => {
+    if (!dynastyId || seasonYear === "" || seasonYear == null) {
       setRows([]);
       return;
     }
@@ -58,7 +68,10 @@ export default function Home() {
   return (
     <div>
       <div className="hrow">
-        <h2>Schedule / Results</h2>
+        <div>
+          <h2>Schedule / Results</h2>
+          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : null}
+        </div>
 
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span>Season</span>
@@ -78,7 +91,7 @@ export default function Home() {
 
       {!hasSeasons ? (
         <p className="kicker">
-          No seasons uploaded yet. Go to <b>Import Season</b> and upload TEAM + SCHD.
+          No seasons uploaded yet for this dynasty. Use <b>Upload New Season</b> in the sidebar.
         </p>
       ) : (
         <table className="table">
