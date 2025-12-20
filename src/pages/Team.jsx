@@ -251,13 +251,27 @@ export default function Team() {
                 <td>{r.week}</td>
                 <td>{r.isHome ? "Home" : "Away"}</td>
                 <td>
-                  <Link
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                    style={{
+                        width: 22,
+                        textAlign: "center",
+                        fontWeight: 700,
+                        opacity: 0.9,
+                    }}
+                    title={r.isHome ? "Home game" : "Away game"}
+                    >
+                    {r.isHome ? "vs" : "@"}
+                    </span>
+
+                    <Link
                     to={`/team/${r.oppTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
                     title="View opponent team page"
-                  >
+                    >
                     <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                  </Link>
+                    </Link>
+                </div>
                 </td>
                 <td>{r.result}</td>
               </tr>
