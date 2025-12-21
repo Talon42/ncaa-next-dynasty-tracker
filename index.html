@@ -6,6 +6,18 @@
     <title>NCAA Next Dynasty Tracker</title>
   </head>
   <body>
+    <script>
+      // If we came from 404.html redirect, restore the original path.
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get("p");
+        if (p) {
+          params.delete("p");
+          var newUrl = p + (params.toString() ? "?" + params.toString() : "");
+          window.history.replaceState(null, "", newUrl);
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
