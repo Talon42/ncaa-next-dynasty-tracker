@@ -6,7 +6,7 @@ import ImportSeason from "./pages/ImportSeason";
 import Team from "./pages/Team";
 import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
-
+import TeamStats from "./pages/TeamStats";
 
 import {
   createDynasty,
@@ -43,8 +43,8 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // widen the routed card ONLY on TeamsIndex
-  const isTeamsPage = location.pathname === "/teams";
+  // widen the routed card on TeamsIndex and Team Stats
+  const isTeamsPage = location.pathname === "/teams" || location.pathname === "/team-stats";
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -165,6 +165,17 @@ export default function App() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  navigate("/team-stats");
+                }}
+                title="Team Stats"
+              >
+                <span>Team Stats</span>
+              </a>
+
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
                 navigate(`/standings?conf=All&ts=${Date.now()}`);
                 }}
                 title="Conference Standings"
@@ -249,6 +260,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/teams" element={<TeamsIndex />} />
                 <Route path="/team/:tgid" element={<Team />} />
+                <Route path="/team-stats" element={<TeamStats />} />
                 <Route path="/standings" element={<ConferenceStandings />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />

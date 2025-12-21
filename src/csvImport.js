@@ -107,13 +107,15 @@ const teamStats = tsseRows.map((r) => {
   const stats = {};
   for (const [k, v] of Object.entries(r)) {
     if (k === "TGID") continue;
+    const key = String(k).trim().toLowerCase();
+    if (!key) continue;
 
     // Prefer numbers when possible, otherwise store trimmed string or null
     const num = toNumberOrNull(v);
-    if (num !== null) stats[k] = num;
+    if (num !== null) stats[key] = num;
     else {
       const s = String(v ?? "").trim();
-      stats[k] = s ? s : null;
+      stats[key] = s ? s : null;
     }
   }
 
