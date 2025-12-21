@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import { db } from "./db";
 
-const CSV_PATH = "/logos/fbs_logos.csv";
+const CSV_PATH = `${import.meta.env.BASE_URL}logos/fbs_logos.csv`;
 const CSV_HASH_KEY = "logosCsvHash";
 
 /** Normalize a team display name to a stable key */
