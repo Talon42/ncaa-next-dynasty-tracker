@@ -7,12 +7,14 @@ const FALLBACK_TEAM_LOGO =
 
 /**
  * Team Stats (TSSE)
- * - Keys are the TSSE column names (lowercase). We also support older imports where TSSE headers
- *   were mixed-case (e.g., tsDi, tsPt, tsPy, tsTy) by building a lowercase lookup map per row.
+ * - Keys are the TSSE column names. We also support older imports where TSSE headers
+ *   were mixed-case by building a lowercase lookup map per row.
  *
- * Notes from your real TSSE sample:
- * - "Sacks" is TSSE column "tssa" (not "tsaa")
- * - TSSE includes "tspd" (not present in the definitions reference); we show it as Passing TD.
+ * Notes:
+ * - Offense Total Yards is TSSE column "tsTy" (case sensitive)
+ * - Passing TD is TSSE column "tspt" per your CSV
+ * - Defensive Total Yards is NOT a TSSE column; it is derived as tsdp + tsdy
+ * - Pts/Gm is derived from SCHD -> db.games (opponent score / games played with scores)
  */
 const STAT_DEFS = [
   // Offense (requested order)
@@ -26,13 +28,15 @@ const STAT_DEFS = [
   { key: "tssa", label: "SACK", fullLabel: "Sacks", group: "Offense" },
   { key: "tspi", label: "INT", fullLabel: "Interceptions", group: "Offense" },
 
-  // Defense (requested order)
-  // NOTE: TSSE uses the same "tsTy/tsPy/tsRy" style headers. We read case-insensitively via __lc.
+  // Defense (requested order + additions)
   { key: "defTotYds", label: "Tot Yds", fullLabel: "Total Yards Allowed", group: "Defense" },
-  { key: "tsdp", label: "Pass Yds", fullLabel: "Passing Yards", group: "Defense" },
-  { key: "tsdy", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Defense" },
+  { key: "tsdp", label: "Pass Yds", fullLabel: "Passing Yards Allowed", group: "Defense" },
+  { key: "tsdy", label: "Rush Yds", fullLabel: "Rushing Yards Allowed", group: "Defense" },
+  { key: "defPtsPerGame", label: "Pts/Gm", fullLabel: "Points Allowed Per Game", group: "Defense" },
   { key: "tssk", label: "SACK", fullLabel: "Sacks", group: "Defense" },
   { key: "tsdi", label: "INT", fullLabel: "Interceptions", group: "Defense" },
+  { key: "tsta", label: "TO", fullLabel: "Turnovers", group: "Defense" },
+  { key: "tsfr", label: "FUM", fullLabel: "Fumbles Recovered", group: "Defense" },
 
   // Efficiency (requested order)
   { key: "ts3c", label: "3DC", fullLabel: "3rd Down Conversions", group: "Efficiency" },
@@ -200,9 +204,10 @@ export default function TeamStats() {
 
       setLoading(true);
 
-      const [teamSeasons, teamStats] = await Promise.all([
+      const [teamSeasons, teamStats, games] = await Promise.all([
         db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
         db.teamStats.where({ dynastyId, seasonYear }).toArray(),
+        db.games.where({ dynastyId, seasonYear }).toArray(),
       ]);
 
       if (!alive) return;
@@ -216,6 +221,29 @@ export default function TeamStats() {
         })
       );
 
+      // Points Allowed per game (derived from SCHD -> db.games)
+      // For each game with scores, a team's points allowed is the opponent's score.
+      const ptsAllowedByTgid = new Map();
+      const gamesPlayedByTgid = new Map();
+
+      for (const g of games) {
+        const ht = String(g.homeTgid ?? "");
+        const at = String(g.awayTgid ?? "");
+        const hs = g.homeScore;
+        const as = g.awayScore;
+
+        // Only count games with both scores present
+        if (hs === null || hs === undefined || as === null || as === undefined) continue;
+
+        // home team allowed away score
+        ptsAllowedByTgid.set(ht, (ptsAllowedByTgid.get(ht) ?? 0) + Number(as));
+        gamesPlayedByTgid.set(ht, (gamesPlayedByTgid.get(ht) ?? 0) + 1);
+
+        // away team allowed home score
+        ptsAllowedByTgid.set(at, (ptsAllowedByTgid.get(at) ?? 0) + Number(hs));
+        gamesPlayedByTgid.set(at, (gamesPlayedByTgid.get(at) ?? 0) + 1);
+      }
+
       // Build a lowercase lookup map so we can read older imports with mixed-case TSSE keys
       const merged = teamStats.map((s) => {
         const lc = {};
@@ -228,14 +256,20 @@ export default function TeamStats() {
         // Defensive Total Yards Allowed is not a TSSE column; derive it as Pass Yds Allowed + Rush Yds Allowed
         const defPass = Number(s.tsdp ?? lc["tsdp"] ?? 0);
         const defRush = Number(s.tsdy ?? lc["tsdy"] ?? 0);
-        const defTotYds = Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
+        const defTotYds =
+          Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
 
+        const pa = ptsAllowedByTgid.get(tgid);
+        const gp = gamesPlayedByTgid.get(tgid);
+        const defPtsPerGame = 
+          gp ? Math.round((pa / gp) * 10) / 10 : null;
         return {
           ...s,
           __lc: lc,
           teamName: nameByTgid.get(tgid) ?? tgid,
           logoUrl: teamLogoFor(tgid),
           defTotYds,
+          defPtsPerGame,
         };
       });
 
@@ -378,7 +412,13 @@ export default function TeamStats() {
                 <tr>
                   <th
                     onClick={() => clickSort("teamName")}
-                    style={{ width: 190, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", paddingRight: 10 }}
+                    style={{
+                      width: 190,
+                      cursor: "pointer",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                      paddingRight: 10,
+                    }}
                     title="Sort"
                   >
                     Team{sortIndicator("teamName")}
@@ -403,7 +443,12 @@ export default function TeamStats() {
                     <td style={{ paddingRight: 10 }}>
                       <Link
                         to={`/team/${r.tgid}`}
-                        style={{ color: "inherit", textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          display: "inline-block",
+                          whiteSpace: "nowrap",
+                        }}
                         title="View team page"
                       >
                         <TeamCell name={r.teamName} logoUrl={r.logoUrl} />
@@ -411,7 +456,9 @@ export default function TeamStats() {
                     </td>
 
                     {colsForTab.map((c) => (
-                      <td key={c.key} style={{ whiteSpace: "nowrap" }}>{getVal(r, c.key) ?? ""}</td>
+                      <td key={c.key} style={{ whiteSpace: "nowrap" }}>
+                        {getVal(r, c.key) ?? ""}
+                      </td>
                     ))}
                   </tr>
                 ))}
