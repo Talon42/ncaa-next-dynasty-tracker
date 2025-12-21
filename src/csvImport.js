@@ -45,20 +45,24 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     if (t) byType[t] = f;
   }
 
-  // Mandatory set for now (and will remain mandatory)
-  const requiredTypes = ["TEAM", "SCHD"];
-  const missingTypes = requiredTypes.filter((t) => !byType[t]);
-  if (missingTypes.length) {
-    throw new Error(`Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM and SCHD.`);
-  }
+// Mandatory set for now (and will remain mandatory)
+const requiredTypes = ["TEAM", "SCHD", "TSSE"];
+const missingTypes = requiredTypes.filter((t) => !byType[t]);
+if (missingTypes.length) {
+  throw new Error(`Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, and TSSE.`);
+}
 
-  const [teamText, schdText] = await Promise.all([byType.TEAM.text(), byType.SCHD.text()]);
+  const [teamText, schdText, tsseText] = await Promise.all([byType.TEAM.text(), byType.SCHD.text(), byType.TSSE.text()]);
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
+  const tsseRows = parseCsvText(tsseText);
+
 
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
+  requireColumns(tsseRows, ["TGID"], "TSSE");
+
 
 const teamSeasons = teamRows.map((r) => ({
   dynastyId,
@@ -91,14 +95,46 @@ const teamSeasons = teamRows.map((r) => ({
     };
   });
 
-  await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.dynasties, async () => {
+  function toNumberOrNull(v) {
+  const n = Number(String(v ?? "").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+const teamStats = tsseRows.map((r) => {
+  const tgid = normId(r.TGID);
+
+  // Copy every TSSE column except TGID into a stats object
+  const stats = {};
+  for (const [k, v] of Object.entries(r)) {
+    if (k === "TGID") continue;
+
+    // Prefer numbers when possible, otherwise store trimmed string or null
+    const num = toNumberOrNull(v);
+    if (num !== null) stats[k] = num;
+    else {
+      const s = String(v ?? "").trim();
+      stats[k] = s ? s : null;
+    }
+  }
+
+  return {
+    dynastyId,
+    seasonYear: year,
+    tgid,
+    ...stats,
+  };
+});
+
+    await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.teamStats, db.dynasties, async () => {
     // Overwrite ONLY this season year
     await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
     await db.games.where({ dynastyId, seasonYear: year }).delete();
+    await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
 
     await db.teams.bulkPut(teams);
     await db.teamSeasons.bulkPut(teamSeasons);
     await db.games.bulkPut(games);
+    await db.teamStats.bulkPut(teamStats);
 
     // Option A currentYear advance
     const d = await db.dynasties.get(dynastyId);

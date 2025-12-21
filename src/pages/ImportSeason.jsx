@@ -136,7 +136,7 @@ export default function ImportSeason() {
       return;
     }
     if (!files.length) {
-      setStatus("Please select TEAM.csv and SCHD.csv.");
+    setStatus("Please select TEAM.csv, SCHD.csv, and TSSE.csv.");
       return;
     }
 
@@ -178,7 +178,7 @@ export default function ImportSeason() {
       </div>
 
       <p className="kicker" style={{ marginTop: 0 }}>
-        Required (Phase 1): upload files ending in <b>TEAM.csv</b> and <b>SCHD.csv</b>. Only the last 4 characters before .csv are used to detect type.
+       Required (Phase 1): upload files ending in <b>TEAM.csv</b>, <b>SCHD.csv</b>, and <b>TSSE.csv</b>. Only the last 4 characters before .csv are used to detect type.
       </p>
 
       {dynastyId ? (

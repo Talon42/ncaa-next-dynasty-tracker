@@ -37,6 +37,22 @@ db.version(3).stores({
   logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
 });
 
+// v4 (team stats)
+db.version(4).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+  games: "[dynastyId+seasonYear+week+homeTgid+awayTgid], dynastyId, seasonYear, week",
+  settings: "key",
+
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+
+  // TSSE season snapshot per team
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+});
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -81,10 +97,11 @@ export async function getDynasty(id) {
 }
 
 export async function deleteDynasty(dynastyId) {
-  await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, db.teamLogos, db.logoOverrides, async () => {
+  await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, db.teamLogos, db.logoOverrides, db.teamStats, async () => {
     await db.teams.where({ dynastyId }).delete();
     await db.teamSeasons.where({ dynastyId }).delete();
     await db.games.where({ dynastyId }).delete();
+    await db.teamStats.where({ dynastyId }).delete();
     await db.teamLogos.where({ dynastyId }).delete();
     await db.logoOverrides.where({ dynastyId }).delete();
     await db.dynasties.delete(dynastyId);
