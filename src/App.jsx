@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
@@ -38,6 +39,9 @@ function CreateDynastySplash({ onCreate }) {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // widen the routed card ONLY on TeamsIndex
+  const isTeamsPage = location.pathname === "/teams";
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -118,8 +122,6 @@ export default function App() {
     }
   }
 
-  const isTeamsRoute = location.pathname === "/teams";
-
   return (
     <div className="shell">
       <div className="shellGrid">
@@ -128,16 +130,42 @@ export default function App() {
             <h1>NCAA Next Dynasty Tracker</h1>
           </div>
 
-          <div
-            className="sideSection"
-            style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}
-          >
+          {/* Navigation (outside Dynasties section) */}
+          <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
+            <div className="sideTitle" style={{ marginBottom: 8 }}>
+              Navigation
+            </div>
+
+            <div className="sideNav">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/");
+                }}
+                title="Schedule / Results"
+              >
+                <span>Schedule / Results</span>
+              </a>
+
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/teams");
+                }}
+                title="Teams"
+              >
+                <span>Teams</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Dynasties */}
+          <div className="sideSection">
             <div className="sideTitleRow">
               <div className="sideTitle">Dynasties</div>
-              <button
-                className="toggleBtn"
-                onClick={() => setDynastyOpen((v) => !v)}
-              >
+              <button className="toggleBtn" onClick={() => setDynastyOpen((v) => !v)}>
                 {dynastyOpen ? "Collapse" : "Expand"}
               </button>
             </div>
@@ -173,11 +201,7 @@ export default function App() {
                       <button
                         className="primary"
                         onClick={() => navigate("/import")}
-                        style={{
-                          width: "100%",
-                          marginTop: 6,
-                          marginBottom: 6,
-                        }}
+                        style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
                         disabled={!activeId}
                       >
                         + Upload New Season
@@ -201,38 +225,17 @@ export default function App() {
               </>
             ) : null}
           </div>
-
-          {/* Browse section (outside Dynasties collapsible) */}
-          <div className="sideSection">
-            <div className="sideTitleRow">
-              <div className="sideTitle">Browse</div>
-            </div>
-
-            <div className="sideNav">
-              <a
-                href="#"
-                className={isTeamsRoute ? "active" : ""}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/teams");
-                }}
-                title="Browse all teams"
-              >
-                <span>Teams</span>
-              </a>
-            </div>
-          </div>
         </aside>
 
         <main className="main">
           {dynasties.length === 0 ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : (
-            <div className="card">
+            <div className={`card routedCard ${isTeamsPage ? "cardWide" : ""}`}>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/teams" element={<TeamsIndex />} />
+                <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
               </Routes>
@@ -263,15 +266,9 @@ export default function App() {
               />
             </label>
 
-            {newErr && (
-              <p className="kicker" style={{ color: "#ff9b9b" }}>
-                {newErr}
-              </p>
-            )}
+            {newErr && <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>}
 
-            <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
-            >
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
               <button className="primary" onClick={onCreateDynasty}>
                 Create Dynasty
@@ -290,10 +287,7 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => setShowDynastyActions(false)}>Cancel</button>
-            <button
-              className="primary"
-              onClick={() => loadDynasty(selectedDynasty.id)}
-            >
+            <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
               Load
             </button>
             <button className="danger" onClick={askDeleteDynasty}>
@@ -310,8 +304,7 @@ export default function App() {
             Delete dynasty <b>{selectedDynasty.name}</b>?
           </p>
           <p className="kicker">
-            This permanently deletes all seasons, teams, and games for this
-            dynasty.
+            This permanently deletes all seasons, teams, and games for this dynasty.
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>

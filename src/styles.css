@@ -1,3 +1,4 @@
+/* src/styles.css */
 :root {
   /* Design system */
   --red: #d30000;
@@ -17,6 +18,10 @@
   --sidebar-w: 292px;
 
   --focus: 0 0 0 3px rgba(211, 0, 0, 0.22);
+
+  /* page widths */
+  --page-max: 980px;   /* default pages (Home/Team/Import) */
+  --teams-max: 1600px; /* TeamsIndex page */
 }
 
 * { box-sizing: border-box; }
@@ -185,16 +190,17 @@ a { color: inherit; }
   gap: var(--gap);
 }
 
-/*
-  IMPORTANT:
-  We cannot rely on :has() consistently, so we make the routed page card
-  wide enough globally to contain your fixed 4-column Teams grid.
-*/
-.main > .card {
+/* Default routed page card sizing */
+.routedCard {
   width: 100%;
-  max-width: 1600px;
+  max-width: var(--page-max);
   margin-left: auto;
   margin-right: auto;
+}
+
+/* Wide variant only used for TeamsIndex route (via App.jsx class) */
+.routedCard.cardWide {
+  max-width: var(--teams-max);
 }
 
 .card {
@@ -338,7 +344,7 @@ button:disabled {
   z-index: 9999;
 }
 
-/* Responsive (kept, harmless) */
+/* Responsive (kept harmless) */
 @media (max-width: 980px) {
   .shellGrid { grid-template-columns: 1fr; }
   .sidebar { position: relative; top: 0; }
@@ -360,27 +366,26 @@ button:disabled {
   display: inline-block;
 }
 
-/* Teams page: conference grid (always 4 columns, fixed widths) */
+/* Teams page: conference grid (always 4 columns, centered within Teams card) */
 .confGrid {
   display: grid;
   grid-template-columns: repeat(4, 360px);
   gap: 14px;
-  align-items: stretch; /* makes cards in the same ROW equal height */
+  align-items: stretch;
+
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/*
-  Equal-height conference cards without scrollbars:
-  CSS cannot compute "height of the biggest conference across ALL rows",
-  so we pick a min-height that fits the largest conference you expect.
-  (ACC/Big Ten/etc. commonly ~16–18 teams; 20-team buffer looks good.)
-*/
+/* Equal-height conference cards (no scrollbars; blank space is fine) */
 .confCard {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.02);
   padding: 12px;
 
-  min-height: 860px; /* adjust if you want taller/shorter */
+  min-height: 860px; /* tweak if needed */
   display: flex;
   flex-direction: column;
 }
