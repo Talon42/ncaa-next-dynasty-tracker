@@ -7,6 +7,7 @@ import Team from "./pages/Team";
 import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
 
+
 import {
   createDynasty,
   deleteDynasty,
@@ -164,7 +165,7 @@ export default function App() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate("/standings");
+                navigate(`/standings?conf=All&ts=${Date.now()}`);
                 }}
                 title="Conference Standings"
               >

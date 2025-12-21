@@ -68,7 +68,7 @@ function PrestigeStars({ value }) {
         textAlign: "center",
         marginTop: -6,
         marginBottom: 10,
-        fontSize: 18,
+        fontSize: 30,
         letterSpacing: 2,
         opacity: 0.95,
         userSelect: "none",

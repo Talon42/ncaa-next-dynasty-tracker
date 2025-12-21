@@ -1,6 +1,6 @@
 // src/pages/ConferenceStandings.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 
@@ -39,7 +39,7 @@ function TeamCell({ name, logoUrl }) {
 /**
  * Conference header row (logo + name)
  */
-function ConfHeader({ name, logoUrl, size = 22 }) {
+function ConfHeader({ name, logoUrl, size = 44 }) {
   const [src, setSrc] = useState(logoUrl || FALLBACK_CONF_LOGO);
 
   useEffect(() => {
@@ -78,6 +78,8 @@ function pickField(row, candidates) {
 }
 
 export default function ConferenceStandings() {
+  const location = useLocation();
+
   const [dynastyId, setDynastyId] = useState(null);
 
   // Filters
@@ -99,6 +101,13 @@ export default function ConferenceStandings() {
   // Standings
   const [standings, setStandings] = useState([]); // rows for single selected conf
   const [standingsByConf, setStandingsByConf] = useState(new Map()); // confId -> rows (for All)
+
+  // ✅ When navigating to /standings?conf=All (sidebar), force All
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const conf = params.get("conf");
+    if (conf === "All") setCgid("All");
+  }, [location.search]);
 
   /* -------------------------------------------------- */
   /* Active dynasty                                     */
@@ -127,7 +136,7 @@ export default function ConferenceStandings() {
         if (!res.ok) return;
         const text = await res.text();
 
-        // Simple CSV parsing (assumes no embedded commas in fields; OK for your controlled CSV)
+        // Simple CSV parsing (assumes no embedded commas in fields; OK for controlled CSV)
         const lines = text.split(/\r?\n/).filter(Boolean);
         if (lines.length < 2) return;
 
@@ -168,7 +177,7 @@ export default function ConferenceStandings() {
         if (!alive) return;
         setConfLogoByKey(map);
       } catch {
-        // stay silent (do not break page if CSV missing)
+        // stay silent
       }
     })();
 
@@ -248,7 +257,6 @@ export default function ConferenceStandings() {
       if (!alive) return;
       setTeamsById(map);
 
-      // If conference filter is unset somehow, keep it at All
       if (!cgid) setCgid("All");
     })();
 
@@ -320,15 +328,13 @@ export default function ConferenceStandings() {
   /* Standings computation                              */
   /* -------------------------------------------------- */
   const computeStandingsForConf = (confId) => {
-    // Teams in the conference for this season snapshot
     const confTeamIds = new Set(
       Array.from(teamsById.values())
         .filter((t) => String(t.cgid) === String(confId))
         .map((t) => t.id)
     );
 
-    // Init records (overall + conf)
-    const rec = new Map(); // tgid -> stats
+    const rec = new Map();
     for (const id of confTeamIds) {
       rec.set(id, {
         id,
@@ -345,9 +351,6 @@ export default function ConferenceStandings() {
       });
     }
 
-    // Walk ALL games in the season:
-    // - Overall: count any played game involving a conference team
-    // - Conf: count only played games where both teams are in the conference
     for (const g of gamesForSeason) {
       const homeId = String(g.homeTgid ?? "");
       const awayId = String(g.awayTgid ?? "");
@@ -381,7 +384,7 @@ export default function ConferenceStandings() {
         else away.OverallT += 1;
       }
 
-      // Conference updates only if both are in the conference
+      // Conf updates only if both teams are in this conference
       if (homeIn && awayIn) {
         const home = rec.get(homeId);
         const away = rec.get(awayId);
@@ -399,7 +402,6 @@ export default function ConferenceStandings() {
       }
     }
 
-    // Build sorted rows
     const rows = Array.from(rec.values()).map((r) => {
       const t = teamsById.get(r.id);
       const name = t ? `${t.name}${t.mascot ? " " + t.mascot : ""}` : r.id;
@@ -417,7 +419,6 @@ export default function ConferenceStandings() {
       };
     });
 
-    // Sort: conf win% > conf wins > diff > name
     rows.sort((a, b) => {
       if (b.ConfPCT !== a.ConfPCT) return b.ConfPCT - a.ConfPCT;
       if (b.ConfW !== a.ConfW) return b.ConfW - a.ConfW;
@@ -440,14 +441,12 @@ export default function ConferenceStandings() {
 
     if (!cgid) return;
 
-    // Single conference
     if (cgid !== "All") {
       setStandingsByConf(new Map());
       setStandings(computeStandingsForConf(cgid));
       return;
     }
 
-    // All conferences: compute per conference
     const map = new Map();
     for (const confId of availableConfs) {
       map.set(confId, computeStandingsForConf(confId));
@@ -468,15 +467,9 @@ export default function ConferenceStandings() {
 
   const hasSeasons = seasons.length > 0;
 
-  /* -------------------------------------------------- */
-  /* Header content                                     */
-  /* -------------------------------------------------- */
   const headerTitle = cgid === "All" ? "Conference Standings" : getConferenceName(cgid);
   const headerLogo = cgid === "All" ? null : confLogoFor(cgid);
 
-  /* -------------------------------------------------- */
-  /* Render                                             */
-  /* -------------------------------------------------- */
   const Table = ({ rows, emptyText }) => (
     <table className="table">
       <thead>
@@ -528,13 +521,12 @@ export default function ConferenceStandings() {
 
   return (
     <div>
-      {/* Header + filters (match other pages via .hrow) */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>
         <h2 style={{ margin: 0 }}>
           {cgid === "All" ? (
             "Conference Standings"
           ) : (
-            <ConfHeader name={headerTitle} logoUrl={headerLogo} size={22} />
+            <ConfHeader name={headerTitle} logoUrl={headerLogo} size={44} />
           )}
         </h2>
 
@@ -568,7 +560,6 @@ export default function ConferenceStandings() {
         </div>
       </div>
 
-      {/* All view: cards per conference (like Team.jsx All seasons) */}
       {cgid === "All" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {availableConfs.map((confId) => {
@@ -579,7 +570,7 @@ export default function ConferenceStandings() {
             return (
               <div key={confId} className="card" style={{ padding: 14 }}>
                 <h3 style={{ marginTop: 0, marginBottom: 10 }}>
-                  <ConfHeader name={confName} logoUrl={confLogo} size={22} />
+                  <ConfHeader name={confName} logoUrl={confLogo} size={44} />
                 </h3>
 
                 <Table rows={rows} emptyText="No conference games found for this season." />
