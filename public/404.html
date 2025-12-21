@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Redirecting...</title>
     <script>
-      // GitHub Pages SPA redirect:
-      // Preserve the path and query, and send to /?p=...
-      var l = window.location;
-      var redirect = l.origin + l.pathname.replace(/\/[^\/]*$/, "/") + "?p=" + encodeURIComponent(l.pathname + l.search + l.hash);
-      window.location.replace(redirect);
+      // GitHub Pages SPA fallback (robust for nested routes):
+      // Save the full URL, then redirect to the app root.
+      sessionStorage.setItem("redirect", window.location.href);
+      window.location.replace("https://talon42.github.io/ncaa-next-dynasty-tracker/");
     </script>
   </head>
   <body></body>

@@ -7,8 +7,30 @@
   </head>
   <body>
     <script>
-      // If we came from 404.html redirect, restore the original path.
+      // GitHub Pages SPA fallback:
+      // 1) Support the older ?p=... redirect style (if present)
+      // 2) Support the robust sessionStorage redirect style (recommended)
       (function () {
+        // (A) sessionStorage-based redirect (most reliable for deep routes)
+        var redirect = sessionStorage.getItem("redirect");
+        if (redirect) {
+          sessionStorage.removeItem("redirect");
+          try {
+            var url = new URL(redirect);
+            if (url.origin === window.location.origin) {
+              window.history.replaceState(
+                null,
+                "",
+                url.pathname + url.search + url.hash
+              );
+              return;
+            }
+          } catch (e) {
+            // ignore and fall through
+          }
+        }
+
+        // (B) legacy query-param redirect (?p=...)
         var params = new URLSearchParams(window.location.search);
         var p = params.get("p");
         if (p) {
@@ -18,6 +40,7 @@
         }
       })();
     </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
