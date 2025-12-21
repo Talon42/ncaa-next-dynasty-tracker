@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
 import Team from "./pages/Team";
+import TeamsIndex from "./pages/TeamsIndex";
 import {
   createDynasty,
   deleteDynasty,
@@ -36,6 +37,7 @@ function CreateDynastySplash({ onCreate }) {
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -116,6 +118,8 @@ export default function App() {
     }
   }
 
+  const isTeamsRoute = location.pathname === "/teams";
+
   return (
     <div className="shell">
       <div className="shellGrid">
@@ -124,10 +128,16 @@ export default function App() {
             <h1>NCAA Next Dynasty Tracker</h1>
           </div>
 
-          <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
+          <div
+            className="sideSection"
+            style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}
+          >
             <div className="sideTitleRow">
               <div className="sideTitle">Dynasties</div>
-              <button className="toggleBtn" onClick={() => setDynastyOpen((v) => !v)}>
+              <button
+                className="toggleBtn"
+                onClick={() => setDynastyOpen((v) => !v)}
+              >
                 {dynastyOpen ? "Collapse" : "Expand"}
               </button>
             </div>
@@ -163,7 +173,11 @@ export default function App() {
                       <button
                         className="primary"
                         onClick={() => navigate("/import")}
-                        style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
+                        style={{
+                          width: "100%",
+                          marginTop: 6,
+                          marginBottom: 6,
+                        }}
                         disabled={!activeId}
                       >
                         + Upload New Season
@@ -187,6 +201,27 @@ export default function App() {
               </>
             ) : null}
           </div>
+
+          {/* Browse section (outside Dynasties collapsible) */}
+          <div className="sideSection">
+            <div className="sideTitleRow">
+              <div className="sideTitle">Browse</div>
+            </div>
+
+            <div className="sideNav">
+              <a
+                href="#"
+                className={isTeamsRoute ? "active" : ""}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/teams");
+                }}
+                title="Browse all teams"
+              >
+                <span>Teams</span>
+              </a>
+            </div>
+          </div>
         </aside>
 
         <main className="main">
@@ -197,6 +232,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/team/:tgid" element={<Team />} />
+                <Route path="/teams" element={<TeamsIndex />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
               </Routes>
@@ -227,9 +263,15 @@ export default function App() {
               />
             </label>
 
-            {newErr && <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>}
+            {newErr && (
+              <p className="kicker" style={{ color: "#ff9b9b" }}>
+                {newErr}
+              </p>
+            )}
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
               <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
               <button className="primary" onClick={onCreateDynasty}>
                 Create Dynasty
@@ -248,7 +290,10 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => setShowDynastyActions(false)}>Cancel</button>
-            <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
+            <button
+              className="primary"
+              onClick={() => loadDynasty(selectedDynasty.id)}
+            >
               Load
             </button>
             <button className="danger" onClick={askDeleteDynasty}>
@@ -265,7 +310,8 @@ export default function App() {
             Delete dynasty <b>{selectedDynasty.name}</b>?
           </p>
           <p className="kicker">
-            This permanently deletes all seasons, teams, and games for this dynasty.
+            This permanently deletes all seasons, teams, and games for this
+            dynasty.
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
