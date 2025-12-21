@@ -51,6 +51,36 @@ function OutcomeBadge({ outcome }) {
   );
 }
 
+/**
+ * Prestige: show ONLY filled stars (no empties)
+ * TMPR is expected 1..6
+ */
+function PrestigeStars({ value }) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+
+  const clamped = Math.max(1, Math.min(6, Math.trunc(n)));
+  if (clamped <= 0) return null;
+
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        marginTop: -6,
+        marginBottom: 10,
+        fontSize: 18,
+        letterSpacing: 2,
+        opacity: 0.95,
+        userSelect: "none",
+      }}
+      title={`Prestige: ${clamped}/6`}
+      aria-label={`Prestige ${clamped} out of 6`}
+    >
+      {"★".repeat(clamped)}
+    </div>
+  );
+}
+
 export default function Team() {
   const { tgid } = useParams();
   const teamTgid = String(tgid ?? "");
@@ -62,6 +92,9 @@ export default function Team() {
 
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
+
+  // ✅ NEW: latest-season prestige (TMPR)
+  const [teamPrestige, setTeamPrestige] = useState(null);
 
   // When a specific season is selected
   const [rows, setRows] = useState([]);
@@ -106,6 +139,7 @@ export default function Team() {
       setSeasonSections([]);
       setTeamName("");
       setTeamLogo(FALLBACK_LOGO);
+      setTeamPrestige(null);
       setSeasonRecordByYear(new Map());
       return;
     }
@@ -127,14 +161,20 @@ export default function Team() {
 
       // Prefer the most recent season's name for the header (if available)
       const latestYear = availableSeasons[0];
+
+      const latestRows = teamSeasonsAll.filter((t) => t.seasonYear === latestYear);
+      const latestTeamRow = latestRows.find((t) => String(t.tgid) === teamTgid);
+
       const latestNameMap = new Map(
-        teamSeasonsAll
-          .filter((t) => t.seasonYear === latestYear)
-          .map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
+        latestRows.map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
       );
 
       setTeamName(latestNameMap.get(teamTgid) || `TGID ${teamTgid}`);
       setTeamLogo(logoFor(teamTgid));
+
+      // ✅ NEW: set prestige from latest season team row (TMPR)
+      // Stored as `tmpr` on teamSeasons rows (recommended). If missing, prestige won't show.
+      setTeamPrestige(latestTeamRow?.tmpr ?? null);
 
       const computeRecordForSeason = (year) => {
         const teamGames = gamesAll
@@ -283,7 +323,10 @@ export default function Team() {
       </div>
 
       {/* Centered team name */}
-      <h2 style={{ marginTop: 0, marginBottom: 10, textAlign: "center" }}>{teamName}</h2>
+      <h2 style={{ marginTop: 0, marginBottom: 6, textAlign: "center" }}>{teamName}</h2>
+
+      {/* ✅ NEW: prestige under team name (latest season only) */}
+      <PrestigeStars value={teamPrestige} />
 
       {/* Back link + Season filter row */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>

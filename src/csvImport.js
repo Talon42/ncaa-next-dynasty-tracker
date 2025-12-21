@@ -57,17 +57,21 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const schdRows = parseCsvText(schdText);
 
   // Contract (confirmed headers)
-  requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA"], "TEAM");
+  requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
 
-  const teamSeasons = teamRows.map((r) => ({
-    dynastyId,
-    seasonYear: year,
-    tgid: normId(r.TGID),
-    cgid: normId(r.CGID), // conference id (season snapshot; supports realignment)
-    tdna: String(r.TDNA ?? "").trim(),
-    tmna: String(r.TMNA ?? "").trim(),
-  }));
+const teamSeasons = teamRows.map((r) => ({
+  dynastyId,
+  seasonYear: year,
+  tgid: normId(r.TGID),
+  cgid: normId(r.CGID), // conference id (season snapshot; supports realignment)
+  tdna: String(r.TDNA ?? "").trim(),
+  tmna: String(r.TMNA ?? "").trim(),
+  tmpr: (() => {
+    const n = Number(String(r.TMPR ?? "").trim());
+    return Number.isFinite(n) ? n : null;
+  })(),
+}));
 
   const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
 
