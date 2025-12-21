@@ -22,6 +22,7 @@ const STAT_DEFS = [
   { key: "tsoy", label: "Tot Off", fullLabel: "Total Offense", group: "Offense" },
   { key: "tsop", label: "Pass Yds", fullLabel: "Passing Yards", group: "Offense" },
   { key: "tsor", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Offense" },
+  { key: "offPtsPerGame", label: "Pts/Gm", fullLabel: "Points Scored Per Game", group: "Offense" },
   { key: "tspt", label: "Pass TD", fullLabel: "Passing TD", group: "Offense" },
   { key: "tsrt", label: "Rush TD", fullLabel: "Rushing TD", group: "Offense" },
   { key: "ts1d", label: "1D", fullLabel: "1st Downs", group: "Offense" },
@@ -224,6 +225,7 @@ export default function TeamStats() {
       // Points Allowed per game (derived from SCHD -> db.games)
       // For each game with scores, a team's points allowed is the opponent's score.
       const ptsAllowedByTgid = new Map();
+      const ptsScoredByTgid = new Map();
       const gamesPlayedByTgid = new Map();
 
       for (const g of games) {
@@ -233,13 +235,15 @@ export default function TeamStats() {
         const as = g.awayScore;
 
         // Only count games with both scores present
-        if (hs === null || hs === undefined || as === null || as === undefined) continue;
+        if (hs == null || as == null) continue;
 
         // home team allowed away score
+        ptsScoredByTgid.set(ht, (ptsScoredByTgid.get(ht) ?? 0) + Number(hs));
         ptsAllowedByTgid.set(ht, (ptsAllowedByTgid.get(ht) ?? 0) + Number(as));
         gamesPlayedByTgid.set(ht, (gamesPlayedByTgid.get(ht) ?? 0) + 1);
 
         // away team allowed home score
+        ptsScoredByTgid.set(at, (ptsScoredByTgid.get(at) ?? 0) + Number(as));
         ptsAllowedByTgid.set(at, (ptsAllowedByTgid.get(at) ?? 0) + Number(hs));
         gamesPlayedByTgid.set(at, (gamesPlayedByTgid.get(at) ?? 0) + 1);
       }
@@ -263,6 +267,10 @@ export default function TeamStats() {
         const gp = gamesPlayedByTgid.get(tgid);
         const defPtsPerGame = 
           gp ? Math.round((pa / gp) * 10) / 10 : null;
+
+        const ps = ptsScoredByTgid.get(tgid);
+        const offPtsPerGame =
+          gp ? Math.round((ps / gp) * 10) / 10 : null;
         return {
           ...s,
           __lc: lc,
@@ -270,6 +278,7 @@ export default function TeamStats() {
           logoUrl: teamLogoFor(tgid),
           defTotYds,
           defPtsPerGame,
+          offPtsPerGame,
         };
       });
 
@@ -330,7 +339,7 @@ export default function TeamStats() {
   return (
     <div>
       <div className="hrow">
-        <h2>Team Stats</h2>
+        <h2>Team Stats - {tab}</h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -394,7 +403,6 @@ export default function TeamStats() {
         <div className="muted">No stats rows found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-          <h3 className="statsGroupTitle">{tab}</h3>
 
           <div
             className="statsTableWrap"
