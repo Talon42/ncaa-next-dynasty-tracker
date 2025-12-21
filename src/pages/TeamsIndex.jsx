@@ -33,7 +33,7 @@ function TeamCell({ name, logoUrl }) {
 export default function TeamsIndex() {
   const [dynastyId, setDynastyId] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
-  const [confBlocks, setConfBlocks] = useState([]); // [{ confName, teams: [{tgid, name, logoUrl}] }]
+  const [confBlocks, setConfBlocks] = useState([]); // [{ confName, teams: [...] }]
 
   useEffect(() => {
     (async () => {
@@ -71,7 +71,8 @@ export default function TeamsIndex() {
       const logoFor = (id) =>
         overrideByTgid.get(String(id)) || baseLogoByTgid.get(String(id)) || FALLBACK_LOGO;
 
-      const byConf = new Map(); // confName -> teams[]
+      const byConf = new Map();
+
       for (const t of teamSeasons) {
         const tgid = String(t.tgid);
         const name = `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
@@ -102,47 +103,41 @@ export default function TeamsIndex() {
   if (!hasDynasty) {
     return (
       <div>
-        <h2>Teams</h2>
         <p className="kicker">No dynasty loaded. Select a dynasty from the sidebar.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="hrow">
-        <div>
-          <h2>Teams</h2>
-        {!seasonYear ? <p className="kicker">No seasons uploaded yet.</p> : null}
-        </div>
-      </div>
+    <div className="teamsPage">
+      {!seasonYear ? <p className="kicker">No seasons uploaded yet.</p> : null}
 
       {!hasTeams ? (
         <p className="kicker">
           No teams found yet. Import a season via <b>Upload New Season</b>.
         </p>
       ) : (
-<div className="confGrid">
-  {confBlocks.map((c) => (
-    <div key={c.confName} className="confCard">
-      <div className="confTitle">{c.confName}</div>
-      <div className="confTeams">
-        {c.teams.map((t) => (
-          <Link
-            key={t.tgid}
-            to={`/team/${t.tgid}`}
-            style={{ color: "inherit", textDecoration: "none" }}
-            title="View team page"
-          >
-            <div className="confTeamRow">
-              <TeamCell name={t.name} logoUrl={t.logoUrl} />
+        <div className="confGrid">
+          {confBlocks.map((c) => (
+            <div key={c.confName} className="confCard">
+              <div className="confTitle">{c.confName}</div>
+              <div className="confTeams">
+                {c.teams.map((t) => (
+                  <Link
+                    key={t.tgid}
+                    to={`/team/${t.tgid}`}
+                    style={{ color: "inherit", textDecoration: "none" }}
+                    title="View team page"
+                  >
+                    <div className="confTeamRow">
+                      <TeamCell name={t.name} logoUrl={t.logoUrl} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  ))}
-</div>
+          ))}
+        </div>
       )}
     </div>
   );
