@@ -35,12 +35,45 @@ export default function TeamsIndex() {
   const [seasonYear, setSeasonYear] = useState(null);
   const [confBlocks, setConfBlocks] = useState([]); // [{ confName, teams: [...] }]
 
+  const [confLogoByName, setConfLogoByName] = useState(new Map());
+
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
       setDynastyId(id);
     })();
   }, []);
+
+  useEffect(() => {
+  (async () => {
+    try {
+      const res = await fetch("/logos/conference_logos.csv", { cache: "no-store" });
+      if (!res.ok) return;
+
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+
+      // Expected header: Conference,URL
+      const map = new Map();
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const [confName, url] = line.split(",");
+        if (!confName || !url) continue;
+
+        map.set(confName.trim(), url.trim());
+      }
+
+      setConfLogoByName(map);
+    } catch {
+      // Silent failure by design
+      setConfLogoByName(new Map());
+    }
+  })();
+}, []);
+
 
   useEffect(() => {
     if (!dynastyId) {
@@ -120,7 +153,25 @@ export default function TeamsIndex() {
         <div className="confGrid">
           {confBlocks.map((c) => (
             <div key={c.confName} className="confCard">
-              <div className="confTitle">{c.confName}</div>
+            <div
+            className="confTitle"
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+            }}
+            >
+            {confLogoByName.get(c.confName) ? (
+                <img
+                src={confLogoByName.get(c.confName)}
+                alt=""
+                style={{ width: 20, height: 20, objectFit: "contain" }}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                />
+            ) : null}
+            <span>{c.confName}</span>
+            </div>
               <div className="confTeams">
                 {c.teams.map((t) => (
                   <Link
