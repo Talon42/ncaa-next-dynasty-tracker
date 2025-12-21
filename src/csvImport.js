@@ -45,37 +45,42 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     if (t) byType[t] = f;
   }
 
-// Mandatory set for now (and will remain mandatory)
-const requiredTypes = ["TEAM", "SCHD", "TSSE"];
-const missingTypes = requiredTypes.filter((t) => !byType[t]);
-if (missingTypes.length) {
-  throw new Error(`Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, and TSSE.`);
-}
+  // Mandatory set for now (and will remain mandatory)
+  const requiredTypes = ["TEAM", "SCHD", "TSSE"];
+  const missingTypes = requiredTypes.filter((t) => !byType[t]);
+  if (missingTypes.length) {
+    throw new Error(
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, and TSSE.`
+    );
+  }
 
-  const [teamText, schdText, tsseText] = await Promise.all([byType.TEAM.text(), byType.SCHD.text(), byType.TSSE.text()]);
+  const [teamText, schdText, tsseText] = await Promise.all([
+    byType.TEAM.text(),
+    byType.SCHD.text(),
+    byType.TSSE.text(),
+  ]);
+
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
   const tsseRows = parseCsvText(tsseText);
-
 
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
   requireColumns(tsseRows, ["TGID"], "TSSE");
 
-
-const teamSeasons = teamRows.map((r) => ({
-  dynastyId,
-  seasonYear: year,
-  tgid: normId(r.TGID),
-  cgid: normId(r.CGID), // conference id (season snapshot; supports realignment)
-  tdna: String(r.TDNA ?? "").trim(),
-  tmna: String(r.TMNA ?? "").trim(),
-  tmpr: (() => {
-    const n = Number(String(r.TMPR ?? "").trim());
-    return Number.isFinite(n) ? n : null;
-  })(),
-}));
+  const teamSeasons = teamRows.map((r) => ({
+    dynastyId,
+    seasonYear: year,
+    tgid: normId(r.TGID),
+    cgid: normId(r.CGID), // conference id (season snapshot; supports realignment)
+    tdna: String(r.TDNA ?? "").trim(),
+    tmna: String(r.TMNA ?? "").trim(),
+    tmpr: (() => {
+      const n = Number(String(r.TMPR ?? "").trim());
+      return Number.isFinite(n) ? n : null;
+    })(),
+  }));
 
   const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
 
@@ -96,38 +101,51 @@ const teamSeasons = teamRows.map((r) => ({
   });
 
   function toNumberOrNull(v) {
-  const n = Number(String(v ?? "").trim());
-  return Number.isFinite(n) ? n : null;
-}
-
-const teamStats = tsseRows.map((r) => {
-  const tgid = normId(r.TGID);
-
-  // Copy every TSSE column except TGID into a stats object
-  const stats = {};
-  for (const [k, v] of Object.entries(r)) {
-    if (k === "TGID") continue;
-    const key = String(k).trim().toLowerCase();
-    if (!key) continue;
-
-    // Prefer numbers when possible, otherwise store trimmed string or null
-    const num = toNumberOrNull(v);
-    if (num !== null) stats[key] = num;
-    else {
-      const s = String(v ?? "").trim();
-      stats[key] = s ? s : null;
-    }
+    const n = Number(String(v ?? "").trim());
+    return Number.isFinite(n) ? n : null;
   }
 
-  return {
-    dynastyId,
-    seasonYear: year,
-    tgid,
-    ...stats,
-  };
-});
+  const teamStats = tsseRows.map((r) => {
+    const tgid = normId(r.TGID);
 
-    await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.teamStats, db.dynasties, async () => {
+    // Copy every TSSE column except TGID into a stats object
+    const stats = {};
+
+    for (const [k, v] of Object.entries(r)) {
+      if (k === "TGID") continue;
+
+      const rawKey = String(k ?? "").trim();
+      if (!rawKey) continue;
+
+      const lowerKey = rawKey.toLowerCase();
+
+      // Parse value (same logic you already have)
+      const num = toNumberOrNull(v);
+      let parsed;
+      if (num !== null) parsed = num;
+      else {
+        const s = String(v ?? "").trim();
+        parsed = s ? s : null;
+      }
+
+      // Store original header key (preserves case-sensitive keys like tsTy)
+      stats[rawKey] = parsed;
+
+      // Also store lowercase alias (supports your UI lookups and normalization)
+      if (lowerKey !== rawKey) {
+        stats[lowerKey] = parsed;
+      }
+    }
+
+    return {
+      dynastyId,
+      seasonYear: year,
+      tgid,
+      ...stats,
+    };
+  });
+
+  await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.teamStats, db.dynasties, async () => {
     // Overwrite ONLY this season year
     await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
     await db.games.where({ dynastyId, seasonYear: year }).delete();

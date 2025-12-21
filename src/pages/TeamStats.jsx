@@ -15,43 +15,40 @@ const FALLBACK_TEAM_LOGO =
  * - TSSE includes "tspd" (not present in the definitions reference); we show it as Passing TD.
  */
 const STAT_DEFS = [
-  // Offense (from your definitions + TSSE sample)
+  // Offense (requested order)
+  { key: "tsTy", label: "Tot Yds", fullLabel: "Total Yards", group: "Offense" },
+  { key: "tsoy", label: "Tot Off", fullLabel: "Total Offense", group: "Offense" },
+  { key: "tsop", label: "Pass Yds", fullLabel: "Passing Yards", group: "Offense" },
+  { key: "tsor", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Offense" },
+  { key: "tspt", label: "Pass TD", fullLabel: "Passing TD", group: "Offense" },
+  { key: "tsrt", label: "Rush TD", fullLabel: "Rushing TD", group: "Offense" },
   { key: "ts1d", label: "1D", fullLabel: "1st Downs", group: "Offense" },
-  { key: "tsga", label: "TO", fullLabel: "Turnovers", group: "Offense" },
   { key: "tssa", label: "SACK", fullLabel: "Sacks", group: "Offense" },
   { key: "tspi", label: "INT", fullLabel: "Interceptions", group: "Offense" },
-  { key: "tsfl", label: "FUM", fullLabel: "Fumbles Lost", group: "Offense" },
-  { key: "tsop", label: "Pass Yds", fullLabel: "Passing Yards", group: "Offense" },
-  { key: "tspd", label: "Pass TD", fullLabel: "Passing TD", group: "Offense" }, // present in TSSE sample
-  { key: "tsor", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Offense" },
-  { key: "tsrt", label: "Rush TD", fullLabel: "Rushing TD", group: "Offense" },
-  { key: "tsty", label: "Tot Yds", fullLabel: "Total Yards", group: "Offense" },
-  { key: "tsoy", label: "Tot Off", fullLabel: "Total Offense", group: "Offense" },
 
-  // Defense (from your definitions + TSSE sample)
-  { key: "tsta", label: "TO", fullLabel: "Turnovers", group: "Defense" },
-  { key: "tssk", label: "SACK", fullLabel: "Sacks", group: "Defense" },
-  { key: "tsdi", label: "INT", fullLabel: "Interceptions", group: "Defense" },
-  { key: "tsfr", label: "FUM", fullLabel: "Fumbles Recovered", group: "Defense" },
+  // Defense (requested order)
+  // NOTE: TSSE uses the same "tsTy/tsPy/tsRy" style headers. We read case-insensitively via __lc.
+  { key: "defTotYds", label: "Tot Yds", fullLabel: "Total Yards Allowed", group: "Defense" },
   { key: "tsdp", label: "Pass Yds", fullLabel: "Passing Yards", group: "Defense" },
   { key: "tsdy", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Defense" },
-  { key: "tspt", label: "PA", fullLabel: "Points Allowed", group: "Defense" }, // TSSE sample uses mixed-case tsPt
+  { key: "tssk", label: "SACK", fullLabel: "Sacks", group: "Defense" },
+  { key: "tsdi", label: "INT", fullLabel: "Interceptions", group: "Defense" },
 
-  // Efficiency (from your definitions + TSSE sample)
-  { key: "ts2a", label: "2PA", fullLabel: "2 Point Attempts", group: "Efficiency" },
-  { key: "ts2c", label: "2PC", fullLabel: "2 Point Conversions", group: "Efficiency" },
-  { key: "ts3d", label: "3DA", fullLabel: "3rd Down Attempts", group: "Efficiency" },
+  // Efficiency (requested order)
   { key: "ts3c", label: "3DC", fullLabel: "3rd Down Conversions", group: "Efficiency" },
-  { key: "ts4d", label: "4DA", fullLabel: "4th Down Attempts", group: "Efficiency" },
+  { key: "ts3d", label: "3DA", fullLabel: "3rd Down Attempts", group: "Efficiency" },
   { key: "ts4c", label: "4DC", fullLabel: "4th Down Conversions", group: "Efficiency" },
-  { key: "tspe", label: "PEN", fullLabel: "Penalties", group: "Efficiency" },
-  { key: "tspy", label: "Pen Yds", fullLabel: "Penalty Yards", group: "Efficiency" }, // TSSE sample uses mixed-case tsPy
+  { key: "ts4d", label: "4DA", fullLabel: "4th Down Attempts", group: "Efficiency" },
   { key: "tsoz", label: "RZ Att", fullLabel: "Offensive RZ Attempts", group: "Efficiency" },
-  { key: "tsof", label: "RZ FG", fullLabel: "Offensive RZ FG", group: "Efficiency" },
   { key: "tsot", label: "RZ TD", fullLabel: "Offensive RZ TD", group: "Efficiency" },
+  { key: "tsof", label: "RZ FG", fullLabel: "Offensive RZ FG", group: "Efficiency" },
   { key: "tsdr", label: "RZ Att", fullLabel: "Defensive RZ Attempts", group: "Efficiency" },
-  { key: "tsdf", label: "RZ FG", fullLabel: "Defensive RZ FG", group: "Efficiency" },
   { key: "tsdt", label: "RZ TD", fullLabel: "Defensive RZ TD", group: "Efficiency" },
+  { key: "tsdf", label: "RZ FG", fullLabel: "Defensive RZ FG", group: "Efficiency" },
+  { key: "ts2c", label: "2PC", fullLabel: "2 Point Conversions", group: "Efficiency" },
+  { key: "ts2a", label: "2PA", fullLabel: "2 Point Attempts", group: "Efficiency" },
+  { key: "tspe", label: "PEN", fullLabel: "Penalties", group: "Efficiency" },
+  { key: "tspy", label: "Pen Yds", fullLabel: "Penalty Yards", group: "Efficiency" },
 ];
 
 const TAB_ORDER = ["Offense", "Defense", "Efficiency"];
@@ -63,6 +60,23 @@ function toComparable(v) {
   if (Number.isFinite(n)) return n;
   const s = String(v).trim();
   return s ? s.toLowerCase() : null;
+}
+
+function getVal(row, key) {
+  if (!row) return null;
+
+  // If the stat key includes uppercase, treat it as case-sensitive and do NOT fallback.
+  if (/[A-Z]/.test(String(key))) {
+    const v = row[key];
+    return v !== undefined && v !== null ? v : null;
+  }
+
+  const direct = row[key];
+  if (direct !== undefined && direct !== null) return direct;
+
+  const lk = String(key).toLowerCase();
+  const v = row.__lc?.[lk];
+  return v !== undefined && v !== null ? v : null;
 }
 
 function TeamCell({ name, logoUrl }) {
@@ -211,11 +225,17 @@ export default function TeamStats() {
 
         const tgid = String(s.tgid);
 
+        // Defensive Total Yards Allowed is not a TSSE column; derive it as Pass Yds Allowed + Rush Yds Allowed
+        const defPass = Number(s.tsdp ?? lc["tsdp"] ?? 0);
+        const defRush = Number(s.tsdy ?? lc["tsdy"] ?? 0);
+        const defTotYds = Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
+
         return {
           ...s,
           __lc: lc,
           teamName: nameByTgid.get(tgid) ?? tgid,
           logoUrl: teamLogoFor(tgid),
+          defTotYds,
         };
       });
 
@@ -237,8 +257,8 @@ export default function TeamStats() {
     const arr = [...rows];
 
     arr.sort((a, b) => {
-      const av = key === "teamName" ? a.teamName : (a[key] ?? a.__lc?.[String(key).toLowerCase()]);
-      const bv = key === "teamName" ? b.teamName : (b[key] ?? b.__lc?.[String(key).toLowerCase()]);
+      const av = key === "teamName" ? a.teamName : getVal(a, key);
+      const bv = key === "teamName" ? b.teamName : getVal(b, key);
 
       const ca = toComparable(av);
       const cb = toComparable(bv);
@@ -262,7 +282,7 @@ export default function TeamStats() {
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
       setSortKey(nextKey);
-      setSortDir("asc");
+      setSortDir("desc");
       return;
     }
     setSortDir((curDir) => (curDir === "asc" ? "desc" : "asc"));
@@ -358,7 +378,7 @@ export default function TeamStats() {
                 <tr>
                   <th
                     onClick={() => clickSort("teamName")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                    style={{ width: 190, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap", paddingRight: 10 }}
                     title="Sort"
                   >
                     Team{sortIndicator("teamName")}
@@ -380,7 +400,7 @@ export default function TeamStats() {
               <tbody>
                 {sortedRows.map((r) => (
                   <tr key={r.tgid}>
-                    <td>
+                    <td style={{ paddingRight: 10 }}>
                       <Link
                         to={`/team/${r.tgid}`}
                         style={{ color: "inherit", textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}
@@ -391,7 +411,7 @@ export default function TeamStats() {
                     </td>
 
                     {colsForTab.map((c) => (
-                      <td key={c.key} style={{ whiteSpace: "nowrap" }}>{r[c.key] ?? r.__lc?.[c.key] ?? ""}</td>
+                      <td key={c.key} style={{ whiteSpace: "nowrap" }}>{getVal(r, c.key) ?? ""}</td>
                     ))}
                   </tr>
                 ))}
