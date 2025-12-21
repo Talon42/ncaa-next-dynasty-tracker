@@ -4,7 +4,9 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
 import Team from "./pages/Team";
+import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
+
 import {
   createDynasty,
   deleteDynasty,
@@ -158,6 +160,16 @@ export default function App() {
               >
                 <span>Teams</span>
               </a>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/standings");
+                }}
+                title="Conference Standings"
+              >
+                <span>Conference Standings</span>
+              </a>
             </div>
           </div>
 
@@ -236,6 +248,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/teams" element={<TeamsIndex />} />
                 <Route path="/team/:tgid" element={<Team />} />
+                <Route path="/standings" element={<ConferenceStandings />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
               </Routes>
