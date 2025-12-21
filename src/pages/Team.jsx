@@ -69,6 +69,9 @@ export default function Team() {
   // When "All" seasons is selected
   const [seasonSections, setSeasonSections] = useState([]);
 
+  // Season records (wins/losses/ties) for display in headers
+  const [seasonRecordByYear, setSeasonRecordByYear] = useState(new Map());
+
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
@@ -103,6 +106,7 @@ export default function Team() {
       setSeasonSections([]);
       setTeamName("");
       setTeamLogo(FALLBACK_LOGO);
+      setSeasonRecordByYear(new Map());
       return;
     }
 
@@ -131,6 +135,30 @@ export default function Team() {
 
       setTeamName(latestNameMap.get(teamTgid) || `TGID ${teamTgid}`);
       setTeamLogo(logoFor(teamTgid));
+
+      const computeRecordForSeason = (year) => {
+        const teamGames = gamesAll
+          .filter((g) => g.seasonYear === year)
+          .filter((g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid);
+
+        let w = 0,
+          l = 0,
+          t = 0;
+        for (const g of teamGames) {
+          const hasScore = g.homeScore != null && g.awayScore != null;
+          if (!hasScore) continue;
+
+          const isHome = String(g.homeTgid) === teamTgid;
+          const teamScore = isHome ? g.homeScore : g.awayScore;
+          const oppScore = isHome ? g.awayScore : g.homeScore;
+
+          if (teamScore > oppScore) w += 1;
+          else if (teamScore < oppScore) l += 1;
+          else t += 1;
+        }
+
+        return { w, l, t };
+      };
 
       const makeRowsForSeason = (year) => {
         const nameByTgid = new Map(
@@ -173,6 +201,13 @@ export default function Team() {
           });
       };
 
+      // Build record map for all available seasons (for headers)
+      const recMap = new Map();
+      for (const y of availableSeasons) {
+        recMap.set(y, computeRecordForSeason(y));
+      }
+      setSeasonRecordByYear(recMap);
+
       if (seasonYear === "All") {
         setRows([]);
         setSeasonSections(
@@ -191,6 +226,13 @@ export default function Team() {
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
+
+  const recordTextForYear = (year) => {
+    const rec = seasonRecordByYear.get(year);
+    if (!rec) return "";
+    const base = `${rec.w}-${rec.l}`;
+    return rec.t > 0 ? `${base}-${rec.t}` : base;
+  };
 
   if (!dynastyId) {
     return (
@@ -284,7 +326,9 @@ export default function Team() {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {seasonSections.map((sec) => (
             <div key={sec.seasonYear} className="card" style={{ padding: 14 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 10 }}>{sec.seasonYear}</h3>
+              <h3 style={{ marginTop: 0, marginBottom: 10 }}>
+                {sec.seasonYear} ({recordTextForYear(sec.seasonYear)})
+              </h3>
 
               <table className="table">
                 <thead>
@@ -299,6 +343,7 @@ export default function Team() {
                     <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
                       <td>{r.week}</td>
                       <td>
+                        {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span
                             style={{
@@ -350,6 +395,7 @@ export default function Team() {
               <tr key={`${r.week}-${idx}`}>
                 <td>{r.week}</td>
                 <td>
+                  {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span
                       style={{
