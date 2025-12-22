@@ -47,7 +47,7 @@ export default function TeamsIndex() {
   useEffect(() => {
   (async () => {
     try {
-      const res = await fetch("/logos/conference_logos.csv", { cache: "no-store" });
+      const res = await fetch(`${import.meta.env.BASE_URL}logos/conference_logos.csv`, { cache: "no-store" });
       if (!res.ok) return;
 
       const text = await res.text();
