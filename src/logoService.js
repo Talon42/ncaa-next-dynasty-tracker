@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import { db } from "./db";
 
 const CSV_PATH = `${import.meta.env.BASE_URL}logos/fbs_logos.csv`;
+const CONF_CSV_PATH = `${import.meta.env.BASE_URL}logos/conference_logos.csv`;
 const CSV_HASH_KEY = "logosCsvHash";
 
 /** Normalize a team display name to a stable key */
@@ -26,6 +27,68 @@ export function normalizeGithubUrl(url) {
   }
 
   return u;
+}
+
+/** Normalize conference id/name keys for lookup */
+export function normalizeConfKey(s) {
+  return String(s ?? "").trim().toLowerCase();
+}
+
+let _confLogoMapCache = null; // Map
+let _confLogoMapPromise = null;
+
+/**
+ * Load conference_logos.csv from /public/logos and return a Map of lookup keys -> url.
+ * - Keys include both CGID values and conference names (lowercased).
+ * - URLs are normalized (GitHub blob -> raw) to work reliably in <img>.
+ * - Results are memoized in-memory for the session.
+ */
+export async function loadConferenceLogoMap() {
+  if (_confLogoMapCache) return _confLogoMapCache;
+  if (_confLogoMapPromise) return _confLogoMapPromise;
+
+  _confLogoMapPromise = (async () => {
+    let text = "";
+    try {
+      const res = await fetch(CONF_CSV_PATH, { cache: "no-store" });
+      if (!res.ok) return new Map();
+      text = await res.text();
+    } catch {
+      return new Map();
+    }
+
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const rows = parsed.data || [];
+
+    const map = new Map();
+    for (const r of rows) {
+      const urlRaw = r.URL ?? r.Url ?? r.url ?? r.Logo ?? r.logo ?? r.logoUrl ?? r.LogoUrl ?? "";
+      const url = normalizeGithubUrl(urlRaw);
+      if (!url) continue;
+
+      const cgidVal = r.CGID ?? r.cgid ?? r.ConfId ?? r.confId ?? r.ID ?? r.id ?? "";
+      const nameVal =
+        r.Conference ??
+        r.conference ??
+        r.CNAM ??
+        r.CNAME ??
+        r.Name ??
+        r.name ??
+        r.Conf ??
+        r.conf ??
+        "";
+
+      if (String(cgidVal).trim()) map.set(normalizeConfKey(cgidVal), url);
+      if (String(nameVal).trim()) map.set(normalizeConfKey(nameVal), url);
+    }
+
+    _confLogoMapCache = map;
+    return map;
+  })();
+
+  const result = await _confLogoMapPromise;
+  _confLogoMapPromise = null;
+  return result;
 }
 
 /** Simple deterministic hash for "did the CSV change?" */

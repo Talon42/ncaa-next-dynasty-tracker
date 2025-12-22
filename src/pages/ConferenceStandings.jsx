@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
+import { loadConferenceLogoMap, normalizeConfKey } from "../logoService";
 
 const FALLBACK_TEAM_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -63,20 +64,6 @@ function ConfHeader({ name, logoUrl, size = 44 }) {
   );
 }
 
-/**
- * Helpers for reading /public/logos/conference_logos.csv
- */
-function normalizeKey(s) {
-  return String(s ?? "").trim().toLowerCase();
-}
-
-function pickField(row, candidates) {
-  for (const c of candidates) {
-    if (row && Object.prototype.hasOwnProperty.call(row, c)) return row[c];
-  }
-  return undefined;
-}
-
 export default function ConferenceStandings() {
   const location = useLocation();
 
@@ -125,66 +112,22 @@ export default function ConferenceStandings() {
   }, []);
 
   /* -------------------------------------------------- */
-  /* Load conference logos CSV (static)                  */
-  /* -------------------------------------------------- */
-  useEffect(() => {
-    let alive = true;
+/* Load conference logos (static)                      */
+/* -------------------------------------------------- */
+useEffect(() => {
+  let alive = true;
 
-    (async () => {
-      try {
-        const res = await fetch(`${import.meta.env.BASE_URL}logos/conference_logos.csv`, { cache: "no-store" });
-        if (!res.ok) return;
-        const text = await res.text();
+  (async () => {
+    const map = await loadConferenceLogoMap();
+    if (!alive) return;
+    setConfLogoByKey(map);
+  })();
 
-        // Simple CSV parsing (assumes no embedded commas in fields; OK for controlled CSV)
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        if (lines.length < 2) return;
+  return () => {
+    alive = false;
+  };
+}, []);
 
-        const header = lines[0].split(",").map((h) => h.trim());
-        const rows = lines.slice(1).map((line) => {
-          const parts = line.split(",");
-          const obj = {};
-          for (let i = 0; i < header.length; i++) obj[header[i]] = (parts[i] ?? "").trim();
-          return obj;
-        });
-
-        const map = new Map();
-        for (const r of rows) {
-          const url =
-            pickField(r, ["URL", "Url", "url", "Logo", "logo", "logoUrl", "LogoUrl"]) ?? "";
-          if (!url) continue;
-
-          const cgidVal = pickField(r, ["CGID", "cgid", "ConfId", "confId", "ID", "id"]);
-          const nameVal = pickField(r, [
-            "Conference",
-            "conference",
-            "CNAM",
-            "CNAME",
-            "Name",
-            "name",
-            "Conf",
-            "conf",
-          ]);
-
-          if (cgidVal != null && String(cgidVal).trim() !== "") {
-            map.set(normalizeKey(String(cgidVal)), url);
-          }
-          if (nameVal != null && String(nameVal).trim() !== "") {
-            map.set(normalizeKey(String(nameVal)), url);
-          }
-        }
-
-        if (!alive) return;
-        setConfLogoByKey(map);
-      } catch {
-        // stay silent
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const teamLogoFor = (id) =>
     overrideByTgid.get(String(id)) || logoByTgid.get(String(id)) || FALLBACK_TEAM_LOGO;
@@ -192,8 +135,8 @@ export default function ConferenceStandings() {
   const confLogoFor = (confId) => {
     const confName = getConferenceName(confId);
     return (
-      confLogoByKey.get(normalizeKey(String(confId))) ||
-      confLogoByKey.get(normalizeKey(confName)) ||
+      confLogoByKey.get(normalizeConfKey(String(confId))) ||
+      confLogoByKey.get(normalizeConfKey(confName)) ||
       FALLBACK_CONF_LOGO
     );
   };
