@@ -53,6 +53,54 @@ db.version(4).stores({
   teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
 });
 
+// v5 (performance indexes)
+db.version(5).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+
+  // Add indexes to fetch a team's games without scanning the whole dynasty
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+});
+
+// v6 (rebuild indexes) — same schema as v5
+// NOTE: If you previously deployed a corrupted schema, v7 below forces a rebuild with the corrected schema.
+db.version(6).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+});
+
+
+// v7 (force rebuild with corrected schema) — same schema as v6
+db.version(7).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+});
+
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -77,18 +125,18 @@ export async function setActiveDynastyId(idOrNull) {
 export async function createDynasty({ name, startYear }) {
   const yr = Number(startYear);
   if (!name?.trim()) throw new Error("Dynasty name is required.");
-  if (!Number.isFinite(yr)) throw new Error("Start year must be a number.");
+  if (!Number.isFinite(yr)) throw new Error("Start year is invalid.");
 
-  const d = {
-    id: crypto.randomUUID(),
+  const id = crypto.randomUUID();
+  await db.dynasties.add({
+    id,
     name: name.trim(),
     startYear: yr,
     currentYear: yr,
-  };
+  });
 
-  await db.dynasties.put(d);
-  await setActiveDynastyId(d.id);
-  return d;
+  await setActiveDynastyId(id);
+  return id;
 }
 
 export async function getDynasty(id) {
@@ -96,19 +144,22 @@ export async function getDynasty(id) {
   return db.dynasties.get(id);
 }
 
-export async function deleteDynasty(dynastyId) {
-  await db.transaction("rw", db.dynasties, db.teams, db.teamSeasons, db.games, db.settings, db.teamLogos, db.logoOverrides, db.teamStats, async () => {
-    await db.teams.where({ dynastyId }).delete();
-    await db.teamSeasons.where({ dynastyId }).delete();
-    await db.games.where({ dynastyId }).delete();
-    await db.teamStats.where({ dynastyId }).delete();
-    await db.teamLogos.where({ dynastyId }).delete();
-    await db.logoOverrides.where({ dynastyId }).delete();
-    await db.dynasties.delete(dynastyId);
+export async function deleteDynasty(id) {
+  // Delete dynasty itself
+  await db.dynasties.delete(id);
 
-    const active = await db.settings.get(ACTIVE_KEY);
-    if (active?.value === dynastyId) {
-      await db.settings.put({ key: ACTIVE_KEY, value: null });
-    }
-  });
+  // Delete all related records
+  await Promise.all([
+    db.teams.where("dynastyId").equals(id).delete(),
+    db.teamSeasons.where("dynastyId").equals(id).delete(),
+    db.games.where("dynastyId").equals(id).delete(),
+    db.teamStats.where("dynastyId").equals(id).delete(),
+    db.teamLogos.where("dynastyId").equals(id).delete(),
+    db.logoOverrides.where("dynastyId").equals(id).delete(),
+  ]);
+
+  const active = await getActiveDynastyId();
+  if (active === id) {
+    await setActiveDynastyId(null);
+  }
 }

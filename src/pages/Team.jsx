@@ -5,6 +5,50 @@ import { db, getActiveDynastyId } from "../db";
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 
+function normalizeTgid(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : String(v);
+}
+
+async function fetchTeamGamesAllSeasons(dynastyId, teamTgid) {
+  const tgidKey = normalizeTgid(teamTgid);
+  const tgidNum = Number(tgidKey);
+  const keys = [tgidKey];
+  if (Number.isFinite(tgidNum)) keys.push(tgidNum);
+
+  const uniq = new Map();
+  const addAll = (rows) => {
+    for (const g of rows) {
+      const k = `${g.seasonYear}|${g.week}|${g.homeTgid}|${g.awayTgid}`;
+      if (!uniq.has(k)) uniq.set(k, g);
+    }
+  };
+
+  // Fast path: use indexes (works when homeTgid/awayTgid are consistently typed)
+  try {
+    for (const k of keys) {
+      const [home, away] = await Promise.all([
+        db.games.where("[dynastyId+homeTgid]").equals([dynastyId, k]).toArray(),
+        db.games.where("[dynastyId+awayTgid]").equals([dynastyId, k]).toArray(),
+      ]);
+      addAll(home);
+      addAll(away);
+    }
+
+    const fast = Array.from(uniq.values());
+    if (fast.length > 0) return fast;
+  } catch {
+    // If indexes don't exist yet (or schema mismatch), fall back to a scan below.
+  }
+
+  // Safe fallback: scan dynasty games then filter in-memory (slower, but prevents blank schedules)
+  const all = await db.games.where({ dynastyId }).toArray();
+  const match = all.filter(
+    (g) => normalizeTgid(g.homeTgid) === tgidKey || normalizeTgid(g.awayTgid) === tgidKey
+  );
+  return match;
+}
+
 function TeamCell({ name, logoUrl }) {
   const [src, setSrc] = useState(logoUrl || FALLBACK_LOGO);
 
@@ -88,6 +132,7 @@ export default function Team() {
   const [dynastyId, setDynastyId] = useState(null);
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
+  const [teamGamesAll, setTeamGamesAll] = useState([]);
   const [seasonYear, setSeasonYear] = useState("All");
 
   const [teamName, setTeamName] = useState("");
@@ -112,25 +157,65 @@ export default function Team() {
     })();
   }, []);
 
-  // Seasons where this team appears (based on games)
-  useEffect(() => {
-    if (!dynastyId || !teamTgid) {
-      setAvailableSeasons([]);
-      setSeasonYear("All");
-      return;
+  // Seasons where this team appears (based on games) — optimized: query just this team via indexes
+useEffect(() => {
+  if (!dynastyId || !teamTgid) {
+    setAvailableSeasons([]);
+    setSeasonYear("All");
+    setTeamGamesAll([]);
+    setSeasonRecordByYear(new Map());
+    return;
+  }
+
+  let alive = true;
+
+  (async () => {
+    const games = await fetchTeamGamesAllSeasons(dynastyId, teamTgid);
+    if (!alive) return;
+
+    // Sort once for deterministic behavior (season desc, week asc)
+    games.sort((a, b) => {
+      const sy = Number(b.seasonYear) - Number(a.seasonYear);
+      if (sy) return sy;
+      return Number(a.week ?? 0) - Number(b.week ?? 0);
+    });
+
+    setTeamGamesAll(games);
+
+    const years = Array.from(
+      new Set(games.map((g) => Number(g.seasonYear)).filter((n) => Number.isFinite(n)))
+    ).sort((a, b) => b - a);
+
+    setAvailableSeasons(years);
+    setSeasonYear("All"); // default to All
+
+    // Precompute season records for headers
+    const rec = new Map();
+    for (const g of games) {
+      const y = Number(g.seasonYear);
+      if (!Number.isFinite(y)) continue;
+
+      const hs = g.homeScore;
+      const as = g.awayScore;
+      if (hs == null || as == null) continue;
+
+      const isHome = String(g.homeTgid) === String(teamTgid);
+      const ptsFor = isHome ? Number(hs) : Number(as);
+      const ptsAgainst = isHome ? Number(as) : Number(hs);
+
+      const cur = rec.get(y) || { w: 0, l: 0, t: 0 };
+      if (ptsFor > ptsAgainst) cur.w += 1;
+      else if (ptsFor < ptsAgainst) cur.l += 1;
+      else cur.t += 1;
+      rec.set(y, cur);
     }
+    setSeasonRecordByYear(rec);
+  })();
 
-    (async () => {
-      const allGames = await db.games.where({ dynastyId }).toArray();
-      const teamGames = allGames.filter(
-        (g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid
-      );
-
-      const years = Array.from(new Set(teamGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
-      setAvailableSeasons(years);
-      setSeasonYear("All"); // default to All
-    })();
-  }, [dynastyId, teamTgid]);
+  return () => {
+    alive = false;
+  };
+}, [dynastyId, teamTgid]);
 
   // Load header + rows/sections (supports Season = All)
   useEffect(() => {
@@ -146,8 +231,7 @@ export default function Team() {
 
     (async () => {
       // Pull all needed data once (local-first, small enough for now)
-      const [gamesAll, teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
-        db.games.where({ dynastyId }).toArray(),
+      const [teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
         db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
@@ -177,7 +261,7 @@ export default function Team() {
       setTeamPrestige(latestTeamRow?.tmpr ?? null);
 
       const computeRecordForSeason = (year) => {
-        const teamGames = gamesAll
+        const teamGames = teamGamesAll
           .filter((g) => g.seasonYear === year)
           .filter((g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid);
 
@@ -207,7 +291,7 @@ export default function Team() {
             .map((t) => [String(t.tgid), `${t.tdna} ${t.tmna}`.trim()])
         );
 
-        const teamGames = gamesAll
+        const teamGames = teamGamesAll
           .filter((g) => g.seasonYear === year)
           .filter((g) => String(g.homeTgid) === teamTgid || String(g.awayTgid) === teamTgid);
 
