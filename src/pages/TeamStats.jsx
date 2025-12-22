@@ -12,9 +12,8 @@ const FALLBACK_TEAM_LOGO =
  *
  * Notes:
  * - Offense Total Yards is TSSE column "tsTy" (case sensitive)
- * - Passing TD is TSSE column "tspt" per your CSV
  * - Defensive Total Yards is NOT a TSSE column; it is derived as tsdp + tsdy
- * - Pts/Gm is derived from SCHD -> db.games (opponent score / games played with scores)
+ * - Pts/Gm (Off/Def) are derived from SCHD -> db.games (scored/allowed per games with scores)
  */
 const STAT_DEFS = [
   // Offense (requested order)
@@ -61,8 +60,10 @@ const TAB_ORDER = ["Offense", "Defense", "Efficiency"];
 function toComparable(v) {
   if (v === null || v === undefined) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
+
   const n = Number(String(v).trim());
   if (Number.isFinite(n)) return n;
+
   const s = String(v).trim();
   return s ? s.toLowerCase() : null;
 }
@@ -108,23 +109,38 @@ function TeamCell({ name, logoUrl }) {
   );
 }
 
+function round1(n) {
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 10) / 10;
+}
+
 export default function TeamStats() {
   const [dynastyId, setDynastyId] = useState(null);
-  const [seasonYear, setSeasonYear] = useState(null);
+
   const [availableYears, setAvailableYears] = useState([]);
+  const [seasonYear, setSeasonYear] = useState(null);
+
   const [tab, setTab] = useState("Offense");
 
-  const [rows, setRows] = useState([]); // { tgid, teamName, logoUrl, __lc, ...stats }
   const [loading, setLoading] = useState(true);
 
-  const [sortKey, setSortKey] = useState("teamName");
-  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
+  // Raw DB rows for the current season (kept separate so logo map updates do NOT force DB re-reads)
+  const [teamSeasons, setTeamSeasons] = useState([]);
+  const [teamStats, setTeamStats] = useState([]);
+  const [games, setGames] = useState([]);
 
+  // Logos
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
 
-  const teamLogoFor = (id) =>
-    overrideByTgid.get(String(id)) || logoByTgid.get(String(id)) || FALLBACK_TEAM_LOGO;
+  // Sorting
+  const [sortKey, setSortKey] = useState("teamName");
+  const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
+
+  const teamLogoFor = useMemo(() => {
+    return (id) =>
+      overrideByTgid.get(String(id)) || logoByTgid.get(String(id)) || FALLBACK_TEAM_LOGO;
+  }, [overrideByTgid, logoByTgid]);
 
   // Load active dynasty + available seasons (from teamStats)
   useEffect(() => {
@@ -138,26 +154,21 @@ export default function TeamStats() {
       if (!id) {
         setAvailableYears([]);
         setSeasonYear(null);
+        setLoading(false);
         return;
       }
 
+      // This is a one-time scan per load; we only need distinct season years.
       const statsRows = await db.teamStats.where({ dynastyId: id }).toArray();
       if (!alive) return;
 
-      // newest -> oldest
       const years = Array.from(
         new Set(statsRows.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n)))
       ).sort((a, b) => b - a);
 
       setAvailableYears(years);
-
-      // Default to latest season if none selected (latest is first because of DESC sort)
-      if (years.length) {
-        const latest = years[0];
-        setSeasonYear((cur) => (cur == null ? latest : cur));
-      } else {
-        setSeasonYear(null);
-      }
+      setSeasonYear((cur) => (cur == null ? years[0] ?? null : cur));
+      setLoading(false);
     })();
 
     return () => {
@@ -165,7 +176,7 @@ export default function TeamStats() {
     };
   }, []);
 
-  // Load team logos for this dynasty (same tables used elsewhere)
+  // Load team logos for this dynasty
   useEffect(() => {
     if (!dynastyId) {
       setLogoByTgid(new Map());
@@ -192,20 +203,22 @@ export default function TeamStats() {
     };
   }, [dynastyId]);
 
-  // Load team names + stats for the selected season
+  // Load season rows (ONLY when dynastyId/seasonYear changes)
   useEffect(() => {
     let alive = true;
 
     (async () => {
       if (!dynastyId || !seasonYear) {
-        setRows([]);
+        setTeamSeasons([]);
+        setTeamStats([]);
+        setGames([]);
         setLoading(false);
         return;
       }
 
       setLoading(true);
 
-      const [teamSeasons, teamStats, games] = await Promise.all([
+      const [ts, st, gm] = await Promise.all([
         db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
         db.teamStats.where({ dynastyId, seasonYear }).toArray(),
         db.games.where({ dynastyId, seasonYear }).toArray(),
@@ -213,91 +226,95 @@ export default function TeamStats() {
 
       if (!alive) return;
 
-      const nameByTgid = new Map(
-        teamSeasons.map((t) => {
-          const tdna = String(t.tdna ?? "").trim();
-          const tmna = String(t.tmna ?? "").trim();
-          const teamName = `${tdna}${tdna && tmna ? " " : ""}${tmna}`.trim() || t.tgid;
-          return [String(t.tgid), teamName];
-        })
-      );
-
-      // Points Allowed per game (derived from SCHD -> db.games)
-      // For each game with scores, a team's points allowed is the opponent's score.
-      const ptsAllowedByTgid = new Map();
-      const ptsScoredByTgid = new Map();
-      const gamesPlayedByTgid = new Map();
-
-      for (const g of games) {
-        const ht = String(g.homeTgid ?? "");
-        const at = String(g.awayTgid ?? "");
-        const hs = g.homeScore;
-        const as = g.awayScore;
-
-        // Only count games with both scores present
-        if (hs == null || as == null) continue;
-
-        // home team allowed away score
-        ptsScoredByTgid.set(ht, (ptsScoredByTgid.get(ht) ?? 0) + Number(hs));
-        ptsAllowedByTgid.set(ht, (ptsAllowedByTgid.get(ht) ?? 0) + Number(as));
-        gamesPlayedByTgid.set(ht, (gamesPlayedByTgid.get(ht) ?? 0) + 1);
-
-        // away team allowed home score
-        ptsScoredByTgid.set(at, (ptsScoredByTgid.get(at) ?? 0) + Number(as));
-        ptsAllowedByTgid.set(at, (ptsAllowedByTgid.get(at) ?? 0) + Number(hs));
-        gamesPlayedByTgid.set(at, (gamesPlayedByTgid.get(at) ?? 0) + 1);
-      }
-
-      // Build a lowercase lookup map so we can read older imports with mixed-case TSSE keys
-      const merged = teamStats.map((s) => {
-        const lc = {};
-        for (const [k, v] of Object.entries(s)) {
-          lc[String(k).toLowerCase()] = v;
-        }
-
-        const tgid = String(s.tgid);
-
-        // Defensive Total Yards Allowed is not a TSSE column; derive it as Pass Yds Allowed + Rush Yds Allowed
-        const defPass = Number(s.tsdp ?? lc["tsdp"] ?? 0);
-        const defRush = Number(s.tsdy ?? lc["tsdy"] ?? 0);
-        const defTotYds =
-          Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
-
-        const pa = ptsAllowedByTgid.get(tgid);
-        const gp = gamesPlayedByTgid.get(tgid);
-        const defPtsPerGame = 
-          gp ? Math.round((pa / gp) * 10) / 10 : null;
-
-        const ps = ptsScoredByTgid.get(tgid);
-        const offPtsPerGame =
-          gp ? Math.round((ps / gp) * 10) / 10 : null;
-        return {
-          ...s,
-          __lc: lc,
-          teamName: nameByTgid.get(tgid) ?? tgid,
-          logoUrl: teamLogoFor(tgid),
-          defTotYds,
-          defPtsPerGame,
-          offPtsPerGame,
-        };
-      });
-
-      setRows(merged);
+      setTeamSeasons(ts);
+      setTeamStats(st);
+      setGames(gm);
       setLoading(false);
     })();
 
     return () => {
       alive = false;
     };
-  }, [dynastyId, seasonYear, logoByTgid, overrideByTgid]);
+  }, [dynastyId, seasonYear]);
 
   const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
+
+  const nameByTgid = useMemo(() => {
+    const map = new Map();
+    for (const t of teamSeasons) {
+      const tdna = String(t.tdna ?? "").trim();
+      const tmna = String(t.tmna ?? "").trim();
+      const teamName = `${tdna}${tdna && tmna ? " " : ""}${tmna}`.trim() || String(t.tgid);
+      map.set(String(t.tgid), teamName);
+    }
+    return map;
+  }, [teamSeasons]);
+
+  const ptsMaps = useMemo(() => {
+    const ptsAllowedByTgid = new Map();
+    const ptsScoredByTgid = new Map();
+    const gamesPlayedByTgid = new Map();
+
+    for (const g of games) {
+      const ht = String(g.homeTgid ?? "");
+      const at = String(g.awayTgid ?? "");
+      const hs = g.homeScore;
+      const as = g.awayScore;
+
+      if (hs == null || as == null) continue;
+
+      ptsScoredByTgid.set(ht, (ptsScoredByTgid.get(ht) ?? 0) + Number(hs));
+      ptsAllowedByTgid.set(ht, (ptsAllowedByTgid.get(ht) ?? 0) + Number(as));
+      gamesPlayedByTgid.set(ht, (gamesPlayedByTgid.get(ht) ?? 0) + 1);
+
+      ptsScoredByTgid.set(at, (ptsScoredByTgid.get(at) ?? 0) + Number(as));
+      ptsAllowedByTgid.set(at, (ptsAllowedByTgid.get(at) ?? 0) + Number(hs));
+      gamesPlayedByTgid.set(at, (gamesPlayedByTgid.get(at) ?? 0) + 1);
+    }
+
+    return { ptsAllowedByTgid, ptsScoredByTgid, gamesPlayedByTgid };
+  }, [games]);
+
+  const mergedRows = useMemo(() => {
+    const { ptsAllowedByTgid, ptsScoredByTgid, gamesPlayedByTgid } = ptsMaps;
+
+    return teamStats.map((s) => {
+      // Build a lowercase lookup map so we can read older imports with mixed-case TSSE keys
+      const lc = {};
+      for (const [k, v] of Object.entries(s)) {
+        lc[String(k).toLowerCase()] = v;
+      }
+
+      const tgid = String(s.tgid);
+
+      const defPass = Number(s.tsdp ?? lc["tsdp"] ?? 0);
+      const defRush = Number(s.tsdy ?? lc["tsdy"] ?? 0);
+      const defTotYds = Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
+
+      const gp = gamesPlayedByTgid.get(tgid) ?? 0;
+      const pa = ptsAllowedByTgid.get(tgid) ?? 0;
+      const ps = ptsScoredByTgid.get(tgid) ?? 0;
+
+      const defPtsPerGame = gp ? round1(pa / gp) : null;
+      const offPtsPerGame = gp ? round1(ps / gp) : null;
+
+      return {
+        ...s,
+        __lc: lc,
+        teamName: nameByTgid.get(tgid) ?? tgid,
+        logoUrl: teamLogoFor(tgid),
+        defTotYds,
+        defPtsPerGame,
+        offPtsPerGame,
+      };
+    });
+  }, [teamStats, nameByTgid, teamLogoFor, ptsMaps]);
 
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
     const key = sortKey;
 
-    const arr = [...rows];
+    const arr = [...mergedRows];
 
     arr.sort((a, b) => {
       const av = key === "teamName" ? a.teamName : getVal(a, key);
@@ -319,13 +336,13 @@ export default function TeamStats() {
     });
 
     return arr;
-  }, [rows, sortKey, sortDir]);
+  }, [mergedRows, sortKey, sortDir]);
 
   // deterministic toggle: click same header toggles asc/desc
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
       setSortKey(nextKey);
-      setSortDir("desc");
+      setSortDir("desc"); // first click DESC
       return;
     }
     setSortDir((curDir) => (curDir === "asc" ? "desc" : "asc"));
@@ -335,6 +352,8 @@ export default function TeamStats() {
     if (sortKey !== key) return "";
     return sortDir === "asc" ? " ▲" : " ▼";
   }
+
+  const hasAnyYears = availableYears.length > 0;
 
   return (
     <div>
@@ -349,9 +368,9 @@ export default function TeamStats() {
             <select
               value={seasonYear ?? ""}
               onChange={(e) => setSeasonYear(Number(e.target.value))}
-              disabled={!availableYears.length}
+              disabled={!hasAnyYears}
             >
-              {availableYears.length === 0 ? (
+              {!hasAnyYears ? (
                 <option value="">No stats imported</option>
               ) : (
                 availableYears.map((y) => (
@@ -370,7 +389,8 @@ export default function TeamStats() {
                 className="toggleBtn"
                 onClick={() => {
                   setTab(t);
-                  // Keep sorting stable: if current sortKey isn't on this tab, fall back to Team
+
+                  // If current sortKey isn't on this tab, fall back to Team
                   const allowedKeys = new Set([
                     "teamName",
                     ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
@@ -395,15 +415,14 @@ export default function TeamStats() {
 
       {loading ? (
         <div className="muted">Loading…</div>
-      ) : availableYears.length === 0 ? (
+      ) : !hasAnyYears ? (
         <div className="muted">
           No Team Stats imported yet. Import a season with TEAM.csv, SCHD.csv, and TSSE.csv.
         </div>
-      ) : rows.length === 0 ? (
+      ) : mergedRows.length === 0 ? (
         <div className="muted">No stats rows found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-
           <div
             className="statsTableWrap"
             style={{
