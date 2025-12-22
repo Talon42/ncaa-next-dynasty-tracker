@@ -177,10 +177,6 @@ export default function ImportSeason() {
         </div>
       </div>
 
-      <p className="kicker" style={{ marginTop: 0 }}>
-       Required (Phase 1): upload files ending in <b>TEAM.csv</b>, <b>SCHD.csv</b>, and <b>TSSE.csv</b>. Only the last 4 characters before .csv are used to detect type.
-      </p>
-
       {dynastyId ? (
         <div style={{ marginBottom: 10 }}>
           <b>Existing seasons:</b> {existingYearsLabel}
