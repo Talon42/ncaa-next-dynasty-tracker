@@ -342,49 +342,81 @@ export default function Postseason() {
       ) : tab === "bracket" ? (
         <div className="postseasonBracket">
           {["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"].map((round) => (
-            <div key={round} className="bracketCol">
-              <h3 style={{ marginTop: 0 }}>{round}</h3>
-              {playoffCols[round].length === 0 ? (
-                <div className="kicker">No games found.</div>
-              ) : (
-                playoffCols[round].map((g, idx) => (
-                  <div key={`${round}-${idx}`} className="bracketCard">
+            <div
+              key={round}
+              className={[
+                "bracketCol",
+                round === "National Championship" ? "bracketColFinal" : "",
+                round === "CFP - Semifinals" ? "bracketColCenter" : "",
+                round === "National Championship" ? "bracketColCenter" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <h3 className="bracketRoundTitle">{round}</h3>
+              <div className="bracketColBody">
+                {playoffCols[round].length === 0 ? (
+                  <div className="bracketCard bracketCardEmpty">
                     <div className="bracketMeta">
-                      {g.bowlLogoUrl ? (
-                        <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                      ) : null}
-                      <span>{g.bowlName}</span>
+                      <span className="kicker">No game for this round</span>
                     </div>
-
-                    <div className="bracketMatch">
-                      <Link
-                        to={`/team/${g.homeTgid}`}
-                        style={{ color: "inherit", textDecoration: "none", display: "inline-block", minWidth: 0 }}
-                        title="View team page"
-                      >
-                        <div className="bracketTeam">
-                          <img src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                          <span>{g.homeName}</span>
-                        </div>
-                      </Link>
-                      <span className="bracketScore">{g.homeScore ?? "-"}</span>
-                    </div>
-                    <div className="bracketMatch">
-                      <Link
-                        to={`/team/${g.awayTgid}`}
-                        style={{ color: "inherit", textDecoration: "none", display: "inline-block", minWidth: 0 }}
-                        title="View team page"
-                      >
-                        <div className="bracketTeam">
-                          <img src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                          <span>{g.awayName}</span>
-                        </div>
-                      </Link>
-                      <span className="bracketScore">{g.awayScore ?? "-"}</span>
-                    </div>
+                    <div className="bracketMatch bracketMatchEmpty" />
+                    <div className="bracketMatch bracketMatchEmpty" />
                   </div>
-                ))
-              )}
+                ) : (
+                  playoffCols[round].map((g, idx) => {
+                    const hs = g.homeScore;
+                    const as = g.awayScore;
+                    const hasScore = hs != null && as != null;
+                    const homeWins = hasScore && Number(hs) > Number(as);
+                    const awayWins = hasScore && Number(as) > Number(hs);
+                    const isFinal = round === "National Championship";
+
+                    return (
+                      <div
+                        key={`${round}-${idx}`}
+                        className={`bracketCard ${isFinal ? "bracketCardFinal" : ""}`}
+                      >
+                        <div className="bracketMeta">
+                          {g.bowlLogoUrl ? (
+                            <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          ) : null}
+                          <span>{g.bowlName}</span>
+                        </div>
+
+                        <div className={`bracketMatch ${homeWins ? "isWinner" : awayWins ? "isLoser" : ""}`}>
+                          <Link to={`/team/${g.homeTgid}`} className="bracketTeamLink" title="View team page">
+                            <div className="bracketTeam">
+                              <img src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                              <span className="bracketTeamName">{g.homeName}</span>
+                              {isFinal && homeWins ? <span className="bracketPill">Champion</span> : null}
+                            </div>
+                          </Link>
+                          <span
+                            className={`bracketScore ${homeWins ? "scoreWinner" : awayWins ? "scoreLoser" : ""}`}
+                          >
+                            {g.homeScore ?? "-"}
+                          </span>
+                        </div>
+                        <div className={`bracketMatch ${awayWins ? "isWinner" : homeWins ? "isLoser" : ""}`}>
+                          <Link to={`/team/${g.awayTgid}`} className="bracketTeamLink" title="View team page">
+                            <div className="bracketTeam">
+                              <img src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                              <span className="bracketTeamName">{g.awayName}</span>
+                              {isFinal && awayWins ? <span className="bracketPill">Champion</span> : null}
+                            </div>
+                          </Link>
+                          <span
+                            className={`bracketScore ${awayWins ? "scoreWinner" : homeWins ? "scoreLoser" : ""}`}
+                          >
+                            {g.awayScore ?? "-"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           ))}
         </div>

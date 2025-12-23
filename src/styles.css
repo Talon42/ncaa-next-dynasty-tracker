@@ -440,11 +440,49 @@ button:disabled {
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 6px;
+  min-height: 560px;
+  align-items: flex-start;
 }
 
 .bracketCol {
   min-width: 230px;
   flex: 0 0 230px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.bracketColBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bracketColCenter {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.bracketColCenter .bracketColBody {
+  flex: 0;
+  justify-content: center;
+}
+
+.bracketColFinal {
+  background: rgba(211, 0, 0, 0.06);
+  border-color: rgba(211, 0, 0, 0.22);
+  box-shadow: 0 12px 40px rgba(211, 0, 0, 0.10);
+}
+
+.bracketRoundTitle {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+  text-align: center;
 }
 
 .bracketCard {
@@ -453,6 +491,24 @@ button:disabled {
   padding: 10px;
   background: rgba(255, 255, 255, 0.02);
   margin-bottom: 12px;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  position: relative;
+}
+
+.bracketCard:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateY(-1px);
+}
+
+.bracketCardFinal {
+  border-color: rgba(211, 0, 0, 0.35);
+  background: rgba(211, 0, 0, 0.06);
+  box-shadow: 0 12px 38px rgba(211, 0, 0, 0.14);
+}
+
+.bracketCardEmpty {
+  opacity: 0.75;
 }
 
 .bracketMeta {
@@ -462,6 +518,7 @@ button:disabled {
   color: var(--muted);
   font-size: 12px;
   margin-bottom: 8px;
+  justify-content: center;
 }
 
 .bracketMeta img {
@@ -475,7 +532,35 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 4px 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+.bracketMatch + .bracketMatch {
+  margin-top: 6px;
+}
+
+.bracketMatch.isWinner {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bracketMatch.isLoser {
+  opacity: 0.78;
+}
+
+.bracketMatchEmpty {
+  height: 34px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.bracketTeamLink {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  min-width: 0;
+  flex: 1;
 }
 
 .bracketTeam {
@@ -483,6 +568,11 @@ button:disabled {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.bracketTeamName {
+  white-space: normal;
 }
 
 .bracketTeam img {
@@ -495,6 +585,83 @@ button:disabled {
   font-weight: 800;
   min-width: 20px;
   text-align: right;
+}
+
+@media (max-width: 1400px) {
+  .postseasonBracket {
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .bracketCol {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .bracketRoundTitle {
+    font-size: 14px;
+  }
+
+  .bracketMeta {
+    font-size: 11px;
+  }
+
+  .bracketTeam {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .bracketTeam img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bracketScore {
+    min-width: 16px;
+    font-size: 11px;
+  }
+
+  .bracketTeamName {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .bracketPill {
+    display: none;
+  }
+}
+
+.scoreWinner {
+  color: var(--text);
+}
+
+.scoreLoser {
+  color: var(--muted);
+}
+
+.bracketPill {
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  background: rgba(211, 0, 0, 0.85);
+  border: 1px solid rgba(211, 0, 0, 0.55);
+  flex: 0 0 auto;
+}
+
+/* Pass 2: subtle bracket connectors */
+@media (min-width: 700px) {
+  .bracketCol:not(.bracketColFinal) .bracketCard::after {
+    content: "";
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    width: 14px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+  }
 }
 
 .champBadge {
