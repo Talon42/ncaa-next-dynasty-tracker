@@ -322,25 +322,6 @@ export default function App() {
 
             {dynastyOpen ? (
               <>
-                <button
-                  className="sidebarBtn"
-                  onClick={() => setShowNewDynasty(true)}
-                  style={{ width: "100%", marginBottom: 10 }}
-                >
-                  + New Dynasty
-                </button>
-
-                <button
-                  className="sidebarBtn"
-                  onClick={() => {
-                    resetImportState();
-                    setShowBackupModal(true);
-                  }}
-                  style={{ width: "100%", marginBottom: 10 }}
-                >
-                  Import / Export
-                </button>
-
                 <div className="sideNav">
                   {activeDynasty ? (
                     <>
@@ -362,15 +343,6 @@ export default function App() {
                         <span>{activeDynasty.name}</span>
                         <span className="badge active">Active</span>
                       </a>
-
-                      <button
-                        className="primary"
-                        onClick={() => setShowImportSeason(true)}
-                        style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
-                        disabled={!activeId}
-                      >
-                        + Upload New Season
-                      </button>
                     </>
                   ) : null}
 
@@ -386,6 +358,38 @@ export default function App() {
                       <span>{d.name}</span>
                     </a>
                   ))}
+                </div>
+
+                <div className="sidebarActionStack">
+                  {activeDynasty ? (
+                    <button
+                      className="primary"
+                      onClick={() => setShowImportSeason(true)}
+                      style={{ width: "100%" }}
+                      disabled={!activeId}
+                    >
+                      + Upload New Season
+                    </button>
+                  ) : null}
+
+                  <button
+                    className="sidebarBtn"
+                    onClick={() => setShowNewDynasty(true)}
+                    style={{ width: "100%" }}
+                  >
+                    + New Dynasty
+                  </button>
+
+                  <button
+                    className="sidebarBtn"
+                    onClick={() => {
+                      resetImportState();
+                      setShowBackupModal(true);
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    Import / Export
+                  </button>
                 </div>
               </>
             ) : null}
