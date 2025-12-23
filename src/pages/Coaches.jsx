@@ -35,6 +35,8 @@ export default function Coaches() {
   const [dynastyId, setDynastyId] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
   const [rows, setRows] = useState([]);
+  const [sortKey, setSortKey] = useState("teamName");
+  const [sortDir, setSortDir] = useState("asc");
 
   useEffect(() => {
     (async () => {
@@ -46,7 +48,11 @@ export default function Coaches() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const season = params.get("season");
+    const sort = params.get("sort");
+    const dir = params.get("dir");
     if (season) setSeasonYear(Number(season));
+    if (sort) setSortKey(sort);
+    if (dir === "asc" || dir === "desc") setSortDir(dir);
   }, [location.search]);
 
   useEffect(() => {
@@ -92,22 +98,19 @@ export default function Coaches() {
 
       const mapped = coaches.map((c) => {
         const tgid = String(c.tgid ?? "");
+        const isNotHired = tgid === "511";
         return {
           ccid: String(c.ccid ?? ""),
           name: `${String(c.firstName ?? "").trim()} ${String(c.lastName ?? "").trim()}`.trim(),
           tgid,
-          teamName: teamNameByTgid.get(tgid) || `TGID ${tgid}`,
+          teamName: isNotHired ? "Not Hired" : teamNameByTgid.get(tgid) || `TGID ${tgid}`,
           teamLogo: logoFor(tgid),
           isUser: c.isUser ? "User" : "CPU",
+          isUserValue: c.isUser ? 1 : 0,
           prestige: c.hcPrestige,
           approval: c.approval,
+          isNotHired,
         };
-      });
-
-      mapped.sort((a, b) => {
-        const team = a.teamName.localeCompare(b.teamName);
-        if (team !== 0) return team;
-        return a.name.localeCompare(b.name);
       });
 
       setRows(mapped);
@@ -118,8 +121,83 @@ export default function Coaches() {
     if (!dynastyId || seasonYear == null) return;
     const params = new URLSearchParams(location.search);
     params.set("season", String(seasonYear));
+    params.set("sort", sortKey);
+    params.set("dir", sortDir);
     navigate({ pathname: "/coaches", search: `?${params.toString()}` }, { replace: true });
-  }, [dynastyId, seasonYear, navigate, location.search]);
+  }, [dynastyId, seasonYear, sortKey, sortDir, navigate, location.search]);
+
+  function toComparable(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+
+    const n = Number(String(v).trim());
+    if (Number.isFinite(n)) return n;
+
+    const s = String(v).trim();
+    return s ? s.toLowerCase() : null;
+  }
+
+  const sortedRows = useMemo(() => {
+    const dir = sortDir === "desc" ? -1 : 1;
+    const key = sortKey;
+    const arr = [...rows];
+
+    arr.sort((a, b) => {
+      const av =
+        key === "coachName"
+          ? a.name
+          : key === "teamName"
+            ? a.teamName
+            : key === "isUser"
+              ? a.isUserValue
+              : key === "prestige"
+                ? a.prestige
+                : key === "approval"
+                  ? a.approval
+                  : a.name;
+      const bv =
+        key === "coachName"
+          ? b.name
+          : key === "teamName"
+            ? b.teamName
+            : key === "isUser"
+              ? b.isUserValue
+              : key === "prestige"
+                ? b.prestige
+                : key === "approval"
+                  ? b.approval
+                  : b.name;
+
+      const ca = toComparable(av);
+      const cb = toComparable(bv);
+
+      if (ca === null && cb === null) return 0;
+      if (ca === null) return 1;
+      if (cb === null) return -1;
+
+      if (typeof ca === "number" && typeof cb === "number") {
+        return (ca - cb) * dir;
+      }
+
+      return String(ca).localeCompare(String(cb)) * dir;
+    });
+
+    return arr;
+  }, [rows, sortKey, sortDir]);
+
+  function clickSort(nextKey) {
+    if (sortKey !== nextKey) {
+      setSortKey(nextKey);
+      setSortDir("desc");
+      return;
+    }
+    setSortDir((curDir) => (curDir === "asc" ? "desc" : "asc"));
+  }
+
+  function sortIndicator(key) {
+    if (sortKey !== key) return "";
+    return sortDir === "asc" ? " ▴" : " ▾";
+  }
 
   if (!dynastyId) {
     return (
@@ -141,15 +219,45 @@ export default function Coaches() {
         <table className="table">
           <thead>
             <tr>
-              <th>Coach</th>
-              <th>Team</th>
-              <th style={{ width: 110 }}>User</th>
-              <th style={{ width: 110 }}>Prestige</th>
-              <th style={{ width: 110 }}>Approval</th>
+              <th
+                onClick={() => clickSort("coachName")}
+                style={{ cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Coach{sortIndicator("coachName")}
+              </th>
+              <th
+                onClick={() => clickSort("teamName")}
+                style={{ cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Team{sortIndicator("teamName")}
+              </th>
+              <th
+                onClick={() => clickSort("isUser")}
+                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                User{sortIndicator("isUser")}
+              </th>
+              <th
+                onClick={() => clickSort("prestige")}
+                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Prestige{sortIndicator("prestige")}
+              </th>
+              <th
+                onClick={() => clickSort("approval")}
+                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Approval{sortIndicator("approval")}
+              </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {sortedRows.map((r) => (
               <tr key={`${r.ccid}-${r.tgid}`}>
                 <td>
                   <Link to={`/coach/${r.ccid}`} style={{ color: "inherit", textDecoration: "none" }}>
@@ -157,9 +265,13 @@ export default function Coaches() {
                   </Link>
                 </td>
                 <td>
-                  <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                  {r.isNotHired ? (
                     <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
-                  </Link>
+                  ) : (
+                    <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                      <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
+                    </Link>
+                  )}
                 </td>
                 <td>{r.isUser}</td>
                 <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
