@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 
 const FALLBACK_TEAM_LOGO =
@@ -115,6 +115,8 @@ function round1(n) {
 }
 
 export default function TeamStats() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [dynastyId, setDynastyId] = useState(null);
 
   const [availableYears, setAvailableYears] = useState([]);
@@ -136,6 +138,22 @@ export default function TeamStats() {
   // Sorting
   const [sortKey, setSortKey] = useState("teamName");
   const [sortDir, setSortDir] = useState("asc"); // "asc" | "desc"
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const season = params.get("season");
+    const tabParam = params.get("tab");
+    const sort = params.get("sort");
+    const dir = params.get("dir");
+
+    if (season != null) {
+      const n = Number(season);
+      if (Number.isFinite(n)) setSeasonYear(n);
+    }
+    if (tabParam && TAB_ORDER.includes(tabParam)) setTab(tabParam);
+    if (sort) setSortKey(sort);
+    if (dir === "asc" || dir === "desc") setSortDir(dir);
+  }, [location.search]);
 
   const teamLogoFor = useMemo(() => {
     return (id) =>
@@ -175,6 +193,16 @@ export default function TeamStats() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!dynastyId || seasonYear == null) return;
+    const params = new URLSearchParams(location.search);
+    params.set("season", String(seasonYear));
+    params.set("tab", tab);
+    params.set("sort", sortKey);
+    params.set("dir", sortDir);
+    navigate({ pathname: "/team-stats", search: `?${params.toString()}` }, { replace: true });
+  }, [dynastyId, seasonYear, tab, sortKey, sortDir, navigate, location.search]);
 
   // Load team logos for this dynasty
   useEffect(() => {

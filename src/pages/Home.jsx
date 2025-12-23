@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 
 const FALLBACK_LOGO =
@@ -30,6 +30,8 @@ function TeamCell({ name, logoUrl }) {
 }
 
 export default function Home() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [dynastyId, setDynastyId] = useState(null);
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
@@ -46,6 +48,22 @@ export default function Home() {
       setDynastyId(id);
     })();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const season = params.get("season");
+    const week = params.get("week");
+    if (season != null) setSeasonYear(season);
+    if (week != null) setWeekFilter(week);
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!dynastyId) return;
+    const params = new URLSearchParams(location.search);
+    if (seasonYear !== "") params.set("season", seasonYear);
+    if (weekFilter) params.set("week", weekFilter);
+    navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
+  }, [dynastyId, seasonYear, weekFilter, navigate, location.search]);
 
   useEffect(() => {
     if (!dynastyId) {

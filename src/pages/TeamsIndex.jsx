@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { loadConferenceLogoMap, normalizeConfKey } from "../logoService";
@@ -32,6 +32,8 @@ function TeamCell({ name, logoUrl }) {
 }
 
 export default function TeamsIndex() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [dynastyId, setDynastyId] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
   const [confBlocks, setConfBlocks] = useState([]); // [{ confName, teams: [...] }]
@@ -44,6 +46,12 @@ export default function TeamsIndex() {
       setDynastyId(id);
     })();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const season = params.get("season");
+    if (season) setSeasonYear(Number(season));
+  }, [location.search]);
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +79,7 @@ export default function TeamsIndex() {
       const all = await db.teamSeasons.where({ dynastyId }).toArray();
       const years = Array.from(new Set(all.map((t) => t.seasonYear))).sort((a, b) => b - a);
       const latest = years[0] ?? null;
-      setSeasonYear(latest);
+      setSeasonYear((cur) => (cur == null ? latest : cur));
 
       if (!latest) {
         setConfBlocks([]);
@@ -114,6 +122,13 @@ export default function TeamsIndex() {
       setConfBlocks(blocks);
     })();
   }, [dynastyId]);
+
+  useEffect(() => {
+    if (!dynastyId || seasonYear == null) return;
+    const params = new URLSearchParams(location.search);
+    params.set("season", String(seasonYear));
+    navigate({ pathname: "/teams", search: `?${params.toString()}` }, { replace: true });
+  }, [dynastyId, seasonYear, navigate, location.search]);
 
   const hasDynasty = !!dynastyId;
   const hasTeams = confBlocks.length > 0;

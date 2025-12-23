@@ -1,6 +1,6 @@
 // src/pages/ConferenceStandings.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { loadConferenceLogoMap, normalizeConfKey } from "../logoService";
@@ -66,6 +66,7 @@ function ConfHeader({ name, logoUrl, size = 44 }) {
 
 export default function ConferenceStandings() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [dynastyId, setDynastyId] = useState(null);
 
@@ -89,13 +90,13 @@ export default function ConferenceStandings() {
   const [standings, setStandings] = useState([]); // rows for single selected conf
   const [standingsByConf, setStandingsByConf] = useState(new Map()); // confId -> rows (for All)
 
-  // ✅ When navigating to /standings?conf=All (sidebar), force All
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const conf = params.get("conf");
-    if (conf === "All") setCgid("All");
+    const seasonParam = params.get("season");
+    if (conf) setCgid(conf);
+    if (seasonParam) setSeason(seasonParam);
   }, [location.search]);
-
   /* -------------------------------------------------- */
   /* Active dynasty                                     */
   /* -------------------------------------------------- */
@@ -172,6 +173,14 @@ useEffect(() => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dynastyId]);
+
+  useEffect(() => {
+    if (!dynastyId || !season) return;
+    const params = new URLSearchParams(location.search);
+    params.set("season", season);
+    params.set("conf", cgid);
+    navigate({ pathname: "/standings", search: `?${params.toString()}` }, { replace: true });
+  }, [dynastyId, season, cgid, navigate, location.search]);
 
   /* -------------------------------------------------- */
   /* Load team snapshot for selected season              */
@@ -527,3 +536,4 @@ useEffect(() => {
     </div>
   );
 }
+

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { loadPostseasonLogoMap } from "../logoService";
 
@@ -76,6 +76,8 @@ function playoffRoundForGame(game) {
 }
 
 export default function Postseason() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [dynastyId, setDynastyId] = useState(null);
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
@@ -95,6 +97,21 @@ export default function Postseason() {
       setDynastyId(id);
     })();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = String(params.get("tab") || "").trim();
+    if (q === "confChamp" || q === "bowls" || q === "bracket") {
+      setTab(q);
+    }
+  }, [location.search]);
+
+  function setTabAndUrl(nextTab) {
+    setTab(nextTab);
+    const params = new URLSearchParams(location.search);
+    params.set("tab", nextTab);
+    navigate({ pathname: "/postseason", search: `?${params.toString()}` }, { replace: false });
+  }
 
   useEffect(() => {
     let alive = true;
@@ -261,7 +278,7 @@ export default function Postseason() {
           <div className="postseasonTabs">
             <button
               className="toggleBtn"
-              onClick={() => setTab("confChamp")}
+              onClick={() => setTabAndUrl("confChamp")}
               style={{
                 fontWeight: tab === "confChamp" ? 800 : 600,
                 opacity: 1,
@@ -275,7 +292,7 @@ export default function Postseason() {
             </button>
             <button
               className="toggleBtn"
-              onClick={() => setTab("bowls")}
+              onClick={() => setTabAndUrl("bowls")}
               style={{
                 fontWeight: tab === "bowls" ? 800 : 600,
                 opacity: 1,
@@ -289,7 +306,7 @@ export default function Postseason() {
             </button>
             <button
               className="toggleBtn"
-              onClick={() => setTab("bracket")}
+              onClick={() => setTabAndUrl("bracket")}
               style={{
                 fontWeight: tab === "bracket" ? 800 : 600,
                 opacity: 1,
@@ -340,17 +357,29 @@ export default function Postseason() {
                     </div>
 
                     <div className="bracketMatch">
-                      <div className="bracketTeam">
-                        <img src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                        <span>{g.homeName}</span>
-                      </div>
+                      <Link
+                        to={`/team/${g.homeTgid}`}
+                        style={{ color: "inherit", textDecoration: "none", display: "inline-block", minWidth: 0 }}
+                        title="View team page"
+                      >
+                        <div className="bracketTeam">
+                          <img src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          <span>{g.homeName}</span>
+                        </div>
+                      </Link>
                       <span className="bracketScore">{g.homeScore ?? "-"}</span>
                     </div>
                     <div className="bracketMatch">
-                      <div className="bracketTeam">
-                        <img src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                        <span>{g.awayName}</span>
-                      </div>
+                      <Link
+                        to={`/team/${g.awayTgid}`}
+                        style={{ color: "inherit", textDecoration: "none", display: "inline-block", minWidth: 0 }}
+                        title="View team page"
+                      >
+                        <div className="bracketTeam">
+                          <img src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          <span>{g.awayName}</span>
+                        </div>
+                      </Link>
                       <span className="bracketScore">{g.awayScore ?? "-"}</span>
                     </div>
                   </div>
