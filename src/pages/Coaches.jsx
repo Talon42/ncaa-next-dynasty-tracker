@@ -110,6 +110,14 @@ export default function Coaches() {
         const hasLosses = Number.isFinite(losses);
         const total = hasWins && hasLosses ? wins + losses : null;
         const winPct = total != null && total > 0 ? wins / total : null;
+
+        const bowlWins = Number(c.bowlWins);
+        const bowlLosses = Number(c.bowlLosses);
+        const hasBowlWins = Number.isFinite(bowlWins);
+        const hasBowlLosses = Number.isFinite(bowlLosses);
+        const bowlTotal = hasBowlWins && hasBowlLosses ? bowlWins + bowlLosses : null;
+        const bowlWinPct =
+          bowlTotal != null && bowlTotal > 0 ? bowlWins / bowlTotal : null;
         return {
           ccid: String(c.ccid ?? ""),
           name: `${String(c.firstName ?? "").trim()} ${String(c.lastName ?? "").trim()}`.trim(),
@@ -123,6 +131,9 @@ export default function Coaches() {
           careerWins: hasWins ? wins : null,
           careerLosses: hasLosses ? losses : null,
           winPct,
+          bowlWins: hasBowlWins ? bowlWins : null,
+          bowlLosses: hasBowlLosses ? bowlLosses : null,
+          bowlWinPct,
         };
       });
 
@@ -183,13 +194,17 @@ export default function Coaches() {
             ? a.teamName
             : key === "record"
               ? a.careerWins
-              : key === "winPct"
-                ? a.winPct
-                : key === "prestige"
-                  ? a.prestige
-                  : key === "approval"
-                    ? a.approval
-                    : a.name;
+            : key === "winPct"
+              ? a.winPct
+            : key === "bowlRecord"
+              ? a.bowlWins
+              : key === "bowlWinPct"
+                ? a.bowlWinPct
+            : key === "prestige"
+              ? a.prestige
+            : key === "approval"
+              ? a.approval
+            : a.name;
       const bv =
         key === "coachName"
           ? b.name
@@ -197,13 +212,17 @@ export default function Coaches() {
             ? b.teamName
             : key === "record"
               ? b.careerWins
-              : key === "winPct"
-                ? b.winPct
-                : key === "prestige"
-                  ? b.prestige
-                  : key === "approval"
-                    ? b.approval
-                    : b.name;
+            : key === "winPct"
+              ? b.winPct
+            : key === "bowlRecord"
+              ? b.bowlWins
+              : key === "bowlWinPct"
+                ? b.bowlWinPct
+            : key === "prestige"
+              ? b.prestige
+            : key === "approval"
+              ? b.approval
+            : b.name;
 
       const ca = toComparable(av);
       const cb = toComparable(bv);
@@ -254,6 +273,11 @@ export default function Coaches() {
     if (!Number.isFinite(value)) return "-";
     const raw = value.toFixed(3);
     return raw.startsWith("0") ? raw.slice(1) : raw;
+  }
+
+  function bowlRecordLabel(wins, losses) {
+    if (!Number.isFinite(wins) || !Number.isFinite(losses)) return "-";
+    return `(${wins}-${losses})`;
   }
 
   if (!dynastyId) {
@@ -343,6 +367,20 @@ export default function Coaches() {
                 Win%{sortIndicator("winPct")}
               </th>
               <th
+                onClick={() => clickSort("bowlRecord")}
+                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Bowl Record{sortIndicator("bowlRecord")}
+              </th>
+              <th
+                onClick={() => clickSort("bowlWinPct")}
+                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Bowl Win%{sortIndicator("bowlWinPct")}
+              </th>
+              <th
                 onClick={() => clickSort("prestige")}
                 style={{ width: 110, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
@@ -377,6 +415,8 @@ export default function Coaches() {
                 </td>
                 <td>{recordLabel(r.careerWins, r.careerLosses)}</td>
                 <td>{winPctLabel(r.winPct)}</td>
+                <td>{bowlRecordLabel(r.bowlWins, r.bowlLosses)}</td>
+                <td>{winPctLabel(r.bowlWinPct)}</td>
                 <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
                 <td>
                   {(() => {
