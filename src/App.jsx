@@ -27,10 +27,10 @@ import {
   validateBackupPayload,
 } from "./backup";
 
-function Modal({ title, children }) {
+function Modal({ title, children, maxWidth = 560 }) {
   return (
     <div className="modalOverlay">
-      <div className="card" style={{ width: "100%", maxWidth: 560 }}>
+      <div className="card" style={{ width: "100%", maxWidth }}>
         <h2 style={{ margin: 0, marginBottom: 8, textAlign: "center" }}>{title}</h2>
         <div style={{ marginTop: 4 }}>{children}</div>
       </div>
@@ -588,7 +588,7 @@ export default function App() {
 
       {/* New Dynasty Modal */}
       {showNewDynasty && (
-        <Modal title="Create New Dynasty">
+        <Modal title="Create New Dynasty" maxWidth={420}>
           <div className="importModal">
             <label className="importField">
               <span>Dynasty Name</span>
@@ -624,7 +624,7 @@ export default function App() {
 
       {/* Upload Season Modal */}
       {showImportSeason && (
-        <Modal title="Upload New Season">
+        <Modal title="Upload New Season" maxWidth={420}>
           <ImportSeason
             inline
             hideCancel={!hasAnySeasons}

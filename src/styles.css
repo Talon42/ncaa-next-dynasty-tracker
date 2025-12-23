@@ -457,6 +457,10 @@ button:disabled {
   text-align: center;
 }
 
+.importFileButton {
+  width: 50%;
+}
+
 .fileButton:hover {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
@@ -470,7 +474,7 @@ button:disabled {
 .importModal {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 18px;
   align-items: center;
   text-align: center;
   width: 100%;

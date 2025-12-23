@@ -386,10 +386,6 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
           </button>
         </div>
 
-        <div className="kicker" style={{ marginTop: -12 }}>
-          Existing seasons: {existingYearsLabel}
-        </div>
-
         {mode === "single" ? (
           <label className="importField">
             <span>Season Year</span>
@@ -414,7 +410,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
               disabled={busy}
               style={{ display: "none" }}
             />
-            <label htmlFor="importFiles" className="fileButton">
+            <label htmlFor="importFiles" className="fileButton importFileButton">
               {files.length ? `Choose Files (${files.length})` : "Choose Files"}
             </label>
 
@@ -455,7 +451,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
               disabled={busy}
               style={{ display: "none" }}
             />
-            <label htmlFor="importFolders" className="fileButton">
+            <label htmlFor="importFolders" className="fileButton importFileButton">
               {bulkFiles.length
                 ? `Choose Folder (${bulkParsed.seasons.length} season${bulkParsed.seasons.length === 1 ? "" : "s"})`
                 : "Choose Folder"}
