@@ -421,6 +421,14 @@ useEffect(() => {
     return rec.t > 0 ? `${base}-${rec.t}` : base;
   };
 
+  const lastPostseasonWinFor = (rows) => {
+    const wins = rows
+      .filter((r) => r.bowlName && r.outcome === "W")
+      .slice()
+      .sort((a, b) => Number(a.week) - Number(b.week));
+    return wins[wins.length - 1] || null;
+  };
+
   if (!dynastyId) {
     return (
       <div>
@@ -516,9 +524,22 @@ useEffect(() => {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           {seasonSections.map((sec) => (
             <div key={sec.seasonYear} className="card" style={{ padding: 14 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 10 }}>
-                {sec.seasonYear} ({recordTextForYear(sec.seasonYear)})
-              </h3>
+              {(() => {
+                const champ = lastPostseasonWinFor(sec.rows);
+                return (
+                  <h3 style={{ marginTop: 0, marginBottom: 10 }}>
+                    {sec.seasonYear} ({recordTextForYear(sec.seasonYear)})
+                    {champ ? (
+                      <span className="champBadge">
+                        {champ.bowlLogoUrl ? (
+                          <img src={champ.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ) : null}
+                        {champ.bowlName}
+                      </span>
+                    ) : null}
+                  </h3>
+                );
+              })()}
 
               <table className="table">
                 <thead>

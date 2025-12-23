@@ -337,6 +337,22 @@ button:disabled {
   object-fit: contain;
 }
 
+.champBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: inherit;
+}
+
+.champBadge img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+}
+
 .hrow {
   display: flex;
   align-items: center;
