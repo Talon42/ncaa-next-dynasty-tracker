@@ -174,6 +174,7 @@ export default function Coach() {
 
         return {
           seasonYear: r.seasonYear,
+          tgid,
           teamName,
           teamLogo: logoFor(tgid),
           record: `(${recordParts[0]}-${recordParts[1]})`,
@@ -248,19 +249,24 @@ export default function Coach() {
             <tr key={`${r.seasonYear}-${r.teamName}`}>
               <td>{r.seasonYear}</td>
               <td>
-                <div className="teamCell">
-                  <img
-                    className="teamLogo"
-                    src={r.teamLogo}
-                    alt=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      if (e.currentTarget.src !== FALLBACK_LOGO) e.currentTarget.src = FALLBACK_LOGO;
-                    }}
-                  />
-                  <span>{r.teamName}</span>
-                </div>
+                <Link
+                  to={`/team/${r.tgid}?season=${encodeURIComponent(String(r.seasonYear))}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  <div className="teamCell">
+                    <img
+                      className="teamLogo"
+                      src={r.teamLogo}
+                      alt=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        if (e.currentTarget.src !== FALLBACK_LOGO) e.currentTarget.src = FALLBACK_LOGO;
+                      }}
+                    />
+                    <span>{r.teamName}</span>
+                  </div>
+                </Link>
               </td>
               <td>{r.record}</td>
               <td>

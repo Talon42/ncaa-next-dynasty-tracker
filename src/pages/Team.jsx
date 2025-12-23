@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { readSeasonFilter, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
@@ -134,6 +134,7 @@ function PrestigeStars({ value }) {
 
 export default function Team() {
   const { tgid } = useParams();
+  const location = useLocation();
   const teamTgid = String(tgid ?? "");
 
   const [dynastyId, setDynastyId] = useState(null);
@@ -207,11 +208,19 @@ useEffect(() => {
     ).sort((a, b) => b - a);
 
     setAvailableSeasons(years);
-    const saved = readSeasonFilter();
-    if (saved && years.includes(Number(saved))) {
-      setSeasonYear(String(saved));
+    const params = new URLSearchParams(location.search);
+    const paramSeasonRaw = params.get("season");
+    const paramSeason = paramSeasonRaw ? Number(paramSeasonRaw) : null;
+    if (paramSeason != null && Number.isFinite(paramSeason) && years.includes(paramSeason)) {
+      setSeasonYear(String(paramSeason));
+      writeSeasonFilter(String(paramSeason));
     } else {
-      setSeasonYear("All"); // default to All
+      const saved = readSeasonFilter();
+      if (saved && years.includes(Number(saved))) {
+        setSeasonYear(String(saved));
+      } else {
+        setSeasonYear("All"); // default to All
+      }
     }
 
     // Precompute season records for headers
@@ -240,7 +249,7 @@ useEffect(() => {
   return () => {
     alive = false;
   };
-  }, [dynastyId, teamTgid]);
+  }, [dynastyId, teamTgid, location.search]);
 
   useEffect(() => {
     writeSeasonFilter(seasonYear);

@@ -157,7 +157,9 @@ export default function Coaches() {
                   </Link>
                 </td>
                 <td>
-                  <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
+                  <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                    <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
+                  </Link>
                 </td>
                 <td>{r.isUser}</td>
                 <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
