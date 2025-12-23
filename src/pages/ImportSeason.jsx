@@ -3,6 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId, getDynasty } from "../db";
 import { importSeasonBatch, seasonExists } from "../csvImport";
 
+const REQUIRED_TYPES = ["TEAM", "SCHD", "TSSE", "BOWL"];
+
+function getTypeFromName(fileName) {
+  const m = String(fileName ?? "").match(/([A-Za-z0-9]{4})\.csv$/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+function findSeasonYearFromPath(relativePath) {
+  const parts = String(relativePath ?? "")
+    .split("/")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  for (const p of parts) {
+    if (!/^\d{4}$/.test(p)) continue;
+    const year = Number(p);
+    if (Number.isFinite(year)) return year;
+  }
+
+  return null;
+}
+
 function Modal({ title, children, onCancel, onConfirm, confirmText }) {
   return (
     <div
@@ -50,8 +72,10 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
 
   const [dynastyId, setDynastyId] = useState(null);
   const [dynastyName, setDynastyName] = useState("");
+  const [mode, setMode] = useState("single"); // single | bulk
   const [seasonYear, setSeasonYear] = useState(2025);
   const [files, setFiles] = useState([]);
+  const [bulkFiles, setBulkFiles] = useState([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -61,6 +85,10 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [pendingYear, setPendingYear] = useState(null);
   const [pendingFiles, setPendingFiles] = useState([]);
+
+  const [showBulkOverwriteModal, setShowBulkOverwriteModal] = useState(false);
+  const [pendingBulkSeasons, setPendingBulkSeasons] = useState([]);
+  const [pendingBulkOverwriteYears, setPendingBulkOverwriteYears] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -81,6 +109,10 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
   useEffect(() => {
     (async () => {
       try {
+        if (mode !== "single") {
+          setWillOverwrite(false);
+          return;
+        }
         if (!dynastyId) return;
         const yearNum = Number(seasonYear);
         if (!Number.isFinite(yearNum)) {
@@ -93,13 +125,52 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         setWillOverwrite(false);
       }
     })();
-  }, [dynastyId, seasonYear]);
+  }, [dynastyId, seasonYear, mode]);
 
   const existingYearsLabel = useMemo(() => (existingYears.length ? existingYears.join(", ") : "None yet"), [existingYears]);
 
   function onPickFiles(e) {
     setFiles(Array.from(e.target.files || []));
   }
+
+  function onPickBulkFolders(e) {
+    setBulkFiles(Array.from(e.target.files || []));
+  }
+
+  const bulkParsed = useMemo(() => {
+    const invalid = [];
+    const byYear = new Map();
+
+    for (const f of bulkFiles) {
+      if (!String(f?.name ?? "").toLowerCase().endsWith(".csv")) continue;
+
+      const rel = f?.webkitRelativePath || f?.relativePath || f?.name;
+      const year = findSeasonYearFromPath(rel);
+      if (!year) {
+        invalid.push(f);
+        continue;
+      }
+
+      const cur = byYear.get(year) || [];
+      cur.push(f);
+      byYear.set(year, cur);
+    }
+
+    const seasons = Array.from(byYear.entries())
+      .map(([year, seasonFiles]) => {
+        const seen = new Set();
+        for (const f of seasonFiles) {
+          const t = getTypeFromName(f.name);
+          if (t) seen.add(t);
+        }
+        const missingTypes = REQUIRED_TYPES.filter((t) => !seen.has(t));
+        const fileNames = seasonFiles.map((f) => f.name).sort((a, b) => a.localeCompare(b));
+        return { year, files: seasonFiles, missingTypes, fileNames };
+      })
+      .sort((a, b) => a.year - b.year);
+
+    return { seasons, invalid };
+  }, [bulkFiles]);
 
   async function refreshExistingYears() {
     const allGames = await db.games.where({ dynastyId }).toArray();
@@ -128,11 +199,80 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     }
   }
 
+  async function runBulkImport(seasonsToImport) {
+    setStatus("");
+    setBusy(true);
+    try {
+      const results = [];
+      for (let i = 0; i < seasonsToImport.length; i++) {
+        const s = seasonsToImport[i];
+        setStatus(`Importing ${s.year} (${i + 1}/${seasonsToImport.length})...`);
+        // eslint-disable-next-line no-await-in-loop
+        const r = await importSeasonBatch({ dynastyId, seasonYear: s.year, files: s.files });
+        results.push(r);
+      }
+
+      await refreshExistingYears();
+      setStatus(
+        `Imported ${results.length} season${results.length === 1 ? "" : "s"}: ${results
+          .map((r) => r.seasonYear)
+          .join(", ")}`
+      );
+      setTimeout(() => {
+        if (onImported) {
+          onImported({ seasons: results });
+          return;
+        }
+        navigate(`/?ts=${Date.now()}`);
+      }, 400);
+    } catch (err) {
+      setStatus(err && err.message ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onImportClicked() {
     setStatus("");
 
     if (!dynastyId) {
       setStatus("No dynasty loaded. Select a dynasty from the sidebar.");
+      return;
+    }
+
+    if (mode === "bulk") {
+      const seasonsToImport = bulkParsed.seasons;
+
+      if (!seasonsToImport.length) {
+        setStatus("Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL CSVs.");
+        return;
+      }
+
+      const bad = seasonsToImport.filter((s) => s.missingTypes.length);
+      if (bad.length) {
+        setStatus(
+          `Missing required CSV(s) for: ${bad
+            .map((s) => `${s.year} (${s.missingTypes.join(", ")})`)
+            .join("; ")}. Required: TEAM, SCHD, TSSE, and BOWL.`
+        );
+        return;
+      }
+
+      const overwriteYears = [];
+      for (const s of seasonsToImport) {
+        // eslint-disable-next-line no-await-in-loop
+        const exists = await seasonExists({ dynastyId, seasonYear: s.year });
+        if (exists) overwriteYears.push(s.year);
+      }
+
+      if (overwriteYears.length) {
+        setPendingBulkSeasons(seasonsToImport);
+        setPendingBulkOverwriteYears(overwriteYears);
+        setShowBulkOverwriteModal(true);
+        return;
+      }
+
+      await runBulkImport(seasonsToImport);
       return;
     }
 
@@ -142,7 +282,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
       return;
     }
     if (!files.length) {
-    setStatus("Please select TEAM.csv, SCHD.csv, TSSE.csv, and BOWL.csv.");
+      setStatus("Please select TEAM.csv, SCHD.csv, TSSE.csv, and BOWL.csv.");
       return;
     }
 
@@ -174,6 +314,22 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     await runImport(yearNum, filesToUse);
   }
 
+  function cancelBulkOverwrite() {
+    setShowBulkOverwriteModal(false);
+    setPendingBulkSeasons([]);
+    setPendingBulkOverwriteYears([]);
+    setStatus("Cancelled bulk overwrite.");
+  }
+
+  async function confirmBulkOverwrite() {
+    const seasonsToImport = pendingBulkSeasons;
+    setShowBulkOverwriteModal(false);
+    setPendingBulkSeasons([]);
+    setPendingBulkOverwriteYears([]);
+    if (!seasonsToImport?.length) return;
+    await runBulkImport(seasonsToImport);
+  }
+
   return (
     <div>
       {!inline ? (
@@ -189,55 +345,137 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         </div>
       ) : null}
 
-      {willOverwrite ? (
+      {mode === "single" && willOverwrite ? (
         <div style={{ padding: 10, border: "1px solid #caa", marginBottom: 12 }}>
-          <b>Overwrite warning:</b> Season <b>{seasonYear}</b> already exists. Importing will delete and replace that season’s data.
+          <b>Overwrite warning:</b> Season <b>{seasonYear}</b> already exists. Importing will delete and replace that season&apos;s data.
         </div>
       ) : null}
 
       <div className="importModal">
-        <label className="importField">
-          <span>Season Year</span>
-          <input
-            type="number"
-            value={seasonYear}
-            onChange={(e) => setSeasonYear(e.target.value)}
+        <div style={{ display: "flex", width: "100%", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <button
+            className={mode === "single" ? "primary" : ""}
+            onClick={() => {
+              setMode("single");
+              setStatus("");
+            }}
             disabled={busy}
-          />
-        </label>
+          >
+            Single Season
+          </button>
+          <button
+            className={mode === "bulk" ? "primary" : ""}
+            onClick={() => {
+              setMode("bulk");
+              setStatus("");
+            }}
+            disabled={busy}
+          >
+            Bulk Seasons
+          </button>
+        </div>
 
-        <label className="importField">
-          <span>CSV Files</span>
-          <input
-            id="importFiles"
-            type="file"
-            accept=".csv,text/csv"
-            multiple
-            onChange={onPickFiles}
-            disabled={busy}
-            style={{ display: "none" }}
-          />
-          <label htmlFor="importFiles" className="fileButton">
-            {files.length ? `Choose Files (${files.length})` : "Choose Files"}
+        <div className="kicker" style={{ marginTop: -12 }}>
+          Existing seasons: {existingYearsLabel}
+        </div>
+
+        {mode === "single" ? (
+          <label className="importField">
+            <span>Season Year</span>
+            <input
+              type="number"
+              value={seasonYear}
+              onChange={(e) => setSeasonYear(e.target.value)}
+              disabled={busy}
+            />
           </label>
+        ) : null}
 
-          <div className="importFilesMeta">
-            {files.length ? (
-              <>
-                <div className="kicker">Selected: {files.length} file{files.length === 1 ? "" : "s"}</div>
-                <div className="importFilesList">
-                  {files.map((f) => (
-                    <div key={f.name} className="importFileName">
-                      {f.name}
+        {mode === "single" ? (
+          <label className="importField">
+            <span>CSV Files</span>
+            <input
+              id="importFiles"
+              type="file"
+              accept=".csv,text/csv"
+              multiple
+              onChange={onPickFiles}
+              disabled={busy}
+              style={{ display: "none" }}
+            />
+            <label htmlFor="importFiles" className="fileButton">
+              {files.length ? `Choose Files (${files.length})` : "Choose Files"}
+            </label>
+
+            <div className="importFilesMeta">
+              {files.length ? (
+                <>
+                  <div className="kicker">Selected: {files.length} file{files.length === 1 ? "" : "s"}</div>
+                  <div className="importFilesList">
+                    {files.map((f) => (
+                      <div key={f.name} className="importFileName">
+                        {f.name}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="kicker">No files selected yet.</div>
+              )}
+            </div>
+          </label>
+        ) : (
+          <label className="importField">
+            <span>Seasons Folder</span>
+            <div className="kicker" style={{ marginTop: -6 }}>
+              Select the parent folder that contains your year folders (e.g., <b>2025</b>, <b>2026</b>). Files can be nested; the app searches for a 4-digit year in each path.
+            </div>
+            <input
+              id="importFolders"
+              type="file"
+              accept=".csv,text/csv"
+              // @ts-ignore - non-standard attributes supported by Chromium-based browsers
+              webkitdirectory=""
+              // @ts-ignore
+              directory=""
+              // @ts-ignore
+              mozdirectory=""
+              onChange={onPickBulkFolders}
+              disabled={busy}
+              style={{ display: "none" }}
+            />
+            <label htmlFor="importFolders" className="fileButton">
+              {bulkFiles.length
+                ? `Choose Folder (${bulkParsed.seasons.length} season${bulkParsed.seasons.length === 1 ? "" : "s"})`
+                : "Choose Folder"}
+            </label>
+
+            <div className="importFilesMeta">
+              {bulkParsed.seasons.length ? (
+                <>
+                  <div className="kicker">
+                    Detected: {bulkParsed.seasons.length} season{bulkParsed.seasons.length === 1 ? "" : "s"} ({bulkParsed.seasons.map((s) => s.year).join(", ")})
+                  </div>
+                  <div className="importFilesList">
+                    {bulkParsed.seasons.map((s) => (
+                      <div key={s.year} className="importFileName">
+                        <b>{s.year}</b> — {s.fileNames.join(", ")}
+                        {s.missingTypes.length ? ` (missing: ${s.missingTypes.join(", ")})` : ""}
+                      </div>
+                    ))}
+                  </div>
+                  {bulkParsed.invalid.length ? (
+                    <div className="kicker" style={{ marginTop: 8, color: "#ff9b9b" }}>
+                      {bulkParsed.invalid.length} file{bulkParsed.invalid.length === 1 ? "" : "s"} ignored (couldn&apos;t find a 4-digit year folder in the path).
                     </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="kicker">No files selected yet.</div>
-            )}
-          </div>
-        </label>
+                  ) : null}
+                </>
+              ) : (
+                <div className="kicker">No folders selected yet.</div>
+              )}
+            </div>
+          </label>
+        )}
 
         <div className="importActions">
           {!hideCancel ? (
@@ -256,7 +494,13 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
           ) : null}
 
           <button className="primary" onClick={onImportClicked} disabled={busy}>
-            {busy ? "Importing..." : willOverwrite ? "Overwrite Season" : "Import Season"}
+            {busy
+              ? "Importing..."
+              : mode === "bulk"
+                ? "Import Seasons"
+                : willOverwrite
+                  ? "Overwrite Season"
+                  : "Import Season"}
           </button>
         </div>
       </div>
@@ -274,6 +518,18 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
           </p>
           <p>
             This will <b>DELETE</b> and <b>REPLACE</b> all stored records for that season year (TEAM + SCHD, and future required CSVs).
+          </p>
+          <p style={{ marginBottom: 0 }}>Continue?</p>
+        </Modal>
+      ) : null}
+
+      {showBulkOverwriteModal ? (
+        <Modal title="Overwrite Seasons?" onCancel={cancelBulkOverwrite} onConfirm={confirmBulkOverwrite} confirmText="Yes, overwrite">
+          <p style={{ marginTop: 0 }}>
+            These seasons already exist: <b>{pendingBulkOverwriteYears.join(", ")}</b>
+          </p>
+          <p>
+            Bulk import will <b>DELETE</b> and <b>REPLACE</b> all stored records for each of those season years.
           </p>
           <p style={{ marginBottom: 0 }}>Continue?</p>
         </Modal>

@@ -76,9 +76,19 @@ export default function Home() {
       const allGames = await db.games.where({ dynastyId }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
-      setSeasonYear(years[0] ?? "");
+
+      const params = new URLSearchParams(location.search);
+      const paramSeason = params.get("season");
+      const paramYearNum = paramSeason ? Number(paramSeason) : null;
+      const hasParamYear = paramYearNum != null && Number.isFinite(paramYearNum);
+      const shouldDefault = hasParamYear
+        ? !years.includes(paramYearNum)
+        : seasonYear === "" || !years.includes(Number(seasonYear));
+      if (shouldDefault) {
+        setSeasonYear(years[0] ?? "");
+      }
     })();
-  }, [dynastyId, location.search]);
+  }, [dynastyId, location.search, seasonYear]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
