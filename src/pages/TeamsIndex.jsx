@@ -46,34 +46,18 @@ export default function TeamsIndex() {
   }, []);
 
   useEffect(() => {
-  (async () => {
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}logos/conference_logos.csv`, { cache: "no-store" });
-      if (!res.ok) return;
+    let alive = true;
 
-      const text = await res.text();
-      const lines = text.split(/\r?\n/).filter(Boolean);
-
-      // Expected header: Conference,URL
-      const map = new Map();
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        const [confName, url] = line.split(",");
-        if (!confName || !url) continue;
-
-        map.set(confName.trim(), url.trim());
-      }
-
+    (async () => {
+      const map = await loadConferenceLogoMap();
+      if (!alive) return;
       setConfLogoByName(map);
-    } catch {
-      // Silent failure by design
-      setConfLogoByName(new Map());
-    }
-  })();
-}, []);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -162,9 +146,9 @@ export default function TeamsIndex() {
                 gap: 8,
             }}
             >
-            {confLogoByName.get(c.confName) ? (
+            {confLogoByName.get(normalizeConfKey(c.confName)) ? (
                 <img
-                src={confLogoByName.get(c.confName)}
+                src={confLogoByName.get(normalizeConfKey(c.confName))}
                 alt=""
                 style={{ width: 20, height: 20, objectFit: "contain" }}
                 loading="lazy"

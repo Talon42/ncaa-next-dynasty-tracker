@@ -3,6 +3,7 @@ import { db } from "./db";
 
 const CSV_PATH = `${import.meta.env.BASE_URL}logos/fbs_logos.csv`;
 const CONF_CSV_PATH = `${import.meta.env.BASE_URL}logos/conference_logos.csv`;
+const LOGO_INDEX_PATH = `${import.meta.env.BASE_URL}logos/index.json`;
 const CSV_HASH_KEY = "logosCsvHash";
 
 /** Normalize a team display name to a stable key */
@@ -34,6 +35,53 @@ export function normalizeConfKey(s) {
   return String(s ?? "").trim().toLowerCase();
 }
 
+function withBaseUrl(path) {
+  const raw = String(path ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const base = import.meta.env.BASE_URL || "/";
+  const baseNorm = base.endsWith("/") ? base : `${base}/`;
+  const clean = raw.replace(/^\/+/, "");
+  return `${baseNorm}${clean}`;
+}
+
+async function loadLogoSources() {
+  const fallback = {
+    team: [CSV_PATH],
+    conference: [CONF_CSV_PATH],
+  };
+
+  try {
+    const res = await fetch(LOGO_INDEX_PATH, { cache: "no-store" });
+    if (!res.ok) return fallback;
+
+    const json = await res.json();
+    const sources = Array.isArray(json?.sources) ? json.sources : [];
+
+    const team = [];
+    const conference = [];
+
+    for (const s of sources) {
+      const type = String(s?.type ?? "").trim().toLowerCase();
+      const path = withBaseUrl(s?.path);
+      if (!type || !path) continue;
+
+      if (type === "team") team.push(path);
+      if (type === "conference") conference.push(path);
+    }
+
+    if (!team.length && !conference.length) return fallback;
+
+    return {
+      team: team.length ? team : fallback.team,
+      conference: conference.length ? conference : fallback.conference,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 let _confLogoMapCache = null; // Map
 let _confLogoMapPromise = null;
 
@@ -48,38 +96,44 @@ export async function loadConferenceLogoMap() {
   if (_confLogoMapPromise) return _confLogoMapPromise;
 
   _confLogoMapPromise = (async () => {
-    let text = "";
-    try {
-      const res = await fetch(CONF_CSV_PATH, { cache: "no-store" });
-      if (!res.ok) return new Map();
-      text = await res.text();
-    } catch {
-      return new Map();
-    }
-
-    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-    const rows = parsed.data || [];
+    const { conference } = await loadLogoSources();
+    if (!conference.length) return new Map();
 
     const map = new Map();
-    for (const r of rows) {
-      const urlRaw = r.URL ?? r.Url ?? r.url ?? r.Logo ?? r.logo ?? r.logoUrl ?? r.LogoUrl ?? "";
-      const url = normalizeGithubUrl(urlRaw);
-      if (!url) continue;
 
-      const cgidVal = r.CGID ?? r.cgid ?? r.ConfId ?? r.confId ?? r.ID ?? r.id ?? "";
-      const nameVal =
-        r.Conference ??
-        r.conference ??
-        r.CNAM ??
-        r.CNAME ??
-        r.Name ??
-        r.name ??
-        r.Conf ??
-        r.conf ??
-        "";
+    for (const src of conference) {
+      let text = "";
+      try {
+        const res = await fetch(src, { cache: "no-store" });
+        if (!res.ok) continue;
+        text = await res.text();
+      } catch {
+        continue;
+      }
 
-      if (String(cgidVal).trim()) map.set(normalizeConfKey(cgidVal), url);
-      if (String(nameVal).trim()) map.set(normalizeConfKey(nameVal), url);
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const rows = parsed.data || [];
+
+      for (const r of rows) {
+        const urlRaw = r.URL ?? r.Url ?? r.url ?? r.Logo ?? r.logo ?? r.logoUrl ?? r.LogoUrl ?? "";
+        const url = normalizeGithubUrl(urlRaw);
+        if (!url) continue;
+
+        const cgidVal = r.CGID ?? r.cgid ?? r.ConfId ?? r.confId ?? r.ID ?? r.id ?? "";
+        const nameVal =
+          r.Conference ??
+          r.conference ??
+          r.CNAM ??
+          r.CNAME ??
+          r.Name ??
+          r.name ??
+          r.Conf ??
+          r.conf ??
+          "";
+
+        if (String(cgidVal).trim()) map.set(normalizeConfKey(cgidVal), url);
+        if (String(nameVal).trim()) map.set(normalizeConfKey(nameVal), url);
+      }
     }
 
     _confLogoMapCache = map;
@@ -166,16 +220,34 @@ function expandAliasKeys(displayName) {
  * - content hash differs from last time
  */
 export async function ensureBundledLogoBaseLoaded() {
-  let text = "";
-  try {
-    const res = await fetch(CSV_PATH, { cache: "no-store" });
-    if (!res.ok) return { loaded: false, reason: `CSV not found (${res.status})` };
-    text = await res.text();
-  } catch (e) {
-    return { loaded: false, reason: e?.message || String(e) };
+  const { team } = await loadLogoSources();
+  if (!team.length) return { loaded: false, reason: "No team logo sources configured" };
+
+  const results = await Promise.all(
+    team.map(async (src) => {
+      try {
+        const res = await fetch(src, { cache: "no-store" });
+        if (!res.ok) return { src, ok: false, text: "", status: res.status };
+        const text = await res.text();
+        return { src, ok: true, text };
+      } catch (e) {
+        return { src, ok: false, text: "", error: e?.message || String(e) };
+      }
+    })
+  );
+
+  const okSources = results.filter((r) => r.ok);
+  if (!okSources.length) {
+    const first = results[0];
+    const reason =
+      first?.status != null
+        ? `CSV not found (${first.status})`
+        : first?.error || "Unable to load team logo CSVs";
+    return { loaded: false, reason };
   }
 
-  const newHash = hashString(text);
+  const hashInput = okSources.map((r) => `${r.src}\n${r.text}`).join("\n");
+  const newHash = hashString(hashInput);
   const prev = await db.settings.get(CSV_HASH_KEY);
   const prevHash = prev?.value ?? null;
 
@@ -183,23 +255,26 @@ export async function ensureBundledLogoBaseLoaded() {
     return { loaded: true, changed: false, count: await db.logoBaseByName.count() };
   }
 
-  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-  if (parsed.errors?.length) {
-    return { loaded: false, reason: parsed.errors[0]?.message || "CSV parse error" };
-  }
-
-  const rows = parsed.data || [];
   const records = [];
 
-  for (const r of rows) {
-    const team = r.Team ?? r.team ?? r.TEAM ?? "";
-    const url = r.URL ?? r.url ?? r.Url ?? "";
+  for (const src of okSources) {
+    const parsed = Papa.parse(src.text, { header: true, skipEmptyLines: true });
+    if (parsed.errors?.length) {
+      return { loaded: false, reason: parsed.errors[0]?.message || "CSV parse error" };
+    }
 
-    const nameKey = toNameKey(team);
-    const normUrl = normalizeGithubUrl(url);
+    const rows = parsed.data || [];
 
-    if (!nameKey || !normUrl) continue;
-    records.push({ nameKey, url: normUrl });
+    for (const r of rows) {
+      const team = r.Team ?? r.team ?? r.TEAM ?? "";
+      const url = r.URL ?? r.url ?? r.Url ?? "";
+
+      const nameKey = toNameKey(team);
+      const normUrl = normalizeGithubUrl(url);
+
+      if (!nameKey || !normUrl) continue;
+      records.push({ nameKey, url: normUrl });
+    }
   }
 
   await db.transaction("rw", db.logoBaseByName, db.settings, async () => {

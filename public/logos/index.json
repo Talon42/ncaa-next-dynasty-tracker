@@ -1,0 +1,6 @@
+{
+  "sources": [
+    { "type": "team", "path": "logos/fbs_logos.csv" },
+    { "type": "conference", "path": "logos/conference_logos.csv" }
+  ]
+}
