@@ -73,6 +73,7 @@ a { color: inherit; }
   top: 0;
   z-index: 1200;
   width: 100%;
+  --header-control-h: 36px;
 }
 
 .mobileTitle {
@@ -95,6 +96,12 @@ a { color: inherit; }
   gap: 8px;
 }
 
+.headerGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .headerMenu {
   position: relative;
 }
@@ -103,11 +110,14 @@ a { color: inherit; }
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 8px 10px;
+  height: var(--header-control-h);
+  padding: 0 10px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .headerPanel {
@@ -130,11 +140,38 @@ a { color: inherit; }
   overflow: auto;
 }
 
-.headerMenu.open .headerPanel,
-.headerMenu:hover .headerPanel {
+.headerMenu.open .headerPanel {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+}
+
+.headerAddSeason {
+  background: var(--red);
+  border-color: rgba(211, 0, 0, 0.9);
+  color: white;
+  border-radius: 10px;
+  width: var(--header-control-h);
+  height: var(--header-control-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
+}
+
+.headerAddSeasonIcon {
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(-3px);
+}
+
+.headerAddSeason:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Sidebar */
@@ -895,7 +932,27 @@ button:disabled {
 /* Responsive (kept harmless) */
 @media (max-width: 1400px) {
   .shell { padding: 0 0 32px; }
-  .shellGrid { grid-template-columns: 1fr; margin-top: 12px; }
+  .shellGrid { grid-template-columns: 1fr; margin-top: 17px; }
+  body { font-size: 18px; }
+  .kicker { font-size: 17px; }
+  .mobileHeader { font-size: 1rem; }
+  .headerTrigger { font-size: 15px; }
+  .teamLogo {
+    width: calc(20px * 1.2);
+    height: calc(20px * 1.2);
+  }
+  .postseasonMeta img {
+    width: calc(16px * 1.2);
+    height: calc(16px * 1.2);
+  }
+  .bracketMeta img {
+    width: calc(14px * 1.2);
+    height: calc(14px * 1.2);
+  }
+  .bracketTeam img {
+    width: calc(18px * 1.2);
+    height: calc(18px * 1.2);
+  }
   .mobileHeader { display: flex; }
   .sidebar { display: none; }
   .postseasonTabs { flex-wrap: wrap; }
@@ -1045,7 +1102,7 @@ button:disabled {
 
 @media (max-width: 1400px) {
   .table {
-    font-size: 12px;
+    font-size: 18px;
   }
 
   .table thead th,
@@ -1054,7 +1111,7 @@ button:disabled {
   }
 
   .table thead th {
-    font-size: 11px;
+    font-size: 16px;
     letter-spacing: 0.2px;
   }
 

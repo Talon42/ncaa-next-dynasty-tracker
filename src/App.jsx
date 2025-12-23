@@ -260,8 +260,6 @@ export default function App() {
         <div className="headerMenus">
           <div
             className={`headerMenu ${openHeaderPanel === "nav" ? "open" : ""}`}
-            onMouseEnter={() => setOpenHeaderPanel("nav")}
-            onMouseLeave={() => setOpenHeaderPanel(null)}
           >
             <button
               className="headerTrigger"
@@ -346,98 +344,93 @@ export default function App() {
             </div>
           </div>
 
-          <div
-            className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}
-            onMouseEnter={() => setOpenHeaderPanel("dynasties")}
-            onMouseLeave={() => setOpenHeaderPanel(null)}
-          >
-            <button
-              className="headerTrigger"
-              onClick={() => toggleHeaderPanel("dynasties")}
-              aria-expanded={openHeaderPanel === "dynasties"}
+          <div className="headerGroup">
+            <div
+              className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}
             >
-              Dynasties
-            </button>
-            <div className="headerPanel">
-              <div className="sideNav">
-                {activeDynasty ? (
-                  <a
-                    href="#"
-                    className="active"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpenHeaderPanel(null);
-                      if (dynasties.length === 1) {
-                        openDynastyActions(activeDynasty);
-                        return;
-                      }
-                      setShowDynastyActions(false);
-                      setSelectedDynasty(null);
-                      navigate("/");
-                    }}
-                    title="Go to Schedule / Results"
-                  >
-                    <span>{activeDynasty.name}</span>
-                    <span className="badge active">Active</span>
-                  </a>
-                ) : (
-                  <span className="kicker">No dynasty loaded</span>
-                )}
+              <button
+                className="headerTrigger"
+                onClick={() => toggleHeaderPanel("dynasties")}
+                aria-expanded={openHeaderPanel === "dynasties"}
+              >
+                Dynasties
+              </button>
+              <div className="headerPanel">
+                <div className="sideNav">
+                  {activeDynasty ? (
+                    <a
+                      href="#"
+                      className="active"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenHeaderPanel(null);
+                        if (dynasties.length === 1) {
+                          openDynastyActions(activeDynasty);
+                          return;
+                        }
+                        setShowDynastyActions(false);
+                        setSelectedDynasty(null);
+                        navigate("/");
+                      }}
+                      title="Go to Schedule / Results"
+                    >
+                      <span>{activeDynasty.name}</span>
+                      <span className="badge active">Active</span>
+                    </a>
+                  ) : (
+                    <span className="kicker">No dynasty loaded</span>
+                  )}
 
-                {otherDynasties.map((d) => (
-                  <a
-                    key={d.id}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpenHeaderPanel(null);
-                      openDynastyActions(d);
-                    }}
-                  >
-                    <span>{d.name}</span>
-                  </a>
-                ))}
-              </div>
+                  {otherDynasties.map((d) => (
+                    <a
+                      key={d.id}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenHeaderPanel(null);
+                        openDynastyActions(d);
+                      }}
+                    >
+                      <span>{d.name}</span>
+                    </a>
+                  ))}
+                </div>
 
-              <div className="sidebarActionStack">
-                {activeDynasty ? (
+                <div className="sidebarActionStack">
                   <button
-                    className="primary"
+                    className="sidebarBtn"
                     onClick={() => {
                       setOpenHeaderPanel(null);
-                      setShowImportSeason(true);
+                      setShowNewDynasty(true);
                     }}
                     style={{ width: "100%" }}
-                    disabled={!activeId}
                   >
-                    + Upload New Season
+                    + New Dynasty
                   </button>
-                ) : null}
 
-                <button
-                  className="sidebarBtn"
-                  onClick={() => {
-                    setOpenHeaderPanel(null);
-                    setShowNewDynasty(true);
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  + New Dynasty
-                </button>
-
-                <button
-                  className="sidebarBtn"
-                  onClick={() => {
-                    setOpenHeaderPanel(null);
-                    resetImportState();
-                    setShowBackupModal(true);
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  Import / Export
-                </button>
+                  <button
+                    className="sidebarBtn"
+                    onClick={() => {
+                      setOpenHeaderPanel(null);
+                      resetImportState();
+                      setShowBackupModal(true);
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    Import / Export
+                  </button>
+                </div>
               </div>
             </div>
+            <button
+              className="headerAddSeason"
+              onClick={() => setShowImportSeason(true)}
+              title="Upload New Season"
+              aria-label="Upload New Season"
+              disabled={!activeId}
+            >
+              <span className="headerAddSeasonIcon">+</span>
+            </button>
           </div>
         </div>
       </div>
