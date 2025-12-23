@@ -269,8 +269,8 @@ export default function Home() {
           <tbody>
             {rows.map((r, idx) => (
               <tr key={`${r.week}-${idx}`}>
-                <td>{r.week}</td>
-                <td>
+                <td data-label="Week">{r.week}</td>
+                <td data-label="Home">
                   <Link
                     to={`/team/${r.homeTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
@@ -279,8 +279,8 @@ export default function Home() {
                     <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
                   </Link>
                 </td>
-                <td>{r.result}</td>
-                <td>
+                <td data-label="Result">{r.result}</td>
+                <td data-label="Away">
                   <Link
                     to={`/team/${r.awayTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}

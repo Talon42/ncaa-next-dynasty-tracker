@@ -544,8 +544,8 @@ useEffect(() => {
                 <tbody>
                   {sec.rows.map((r, idx) => (
                     <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
-                      <td>{r.week}</td>
-                      <td>
+                      <td data-label="Week">{r.week}</td>
+                      <td data-label="Opponent">
                         {r.bowlName ? (
                           <div className="postseasonMeta">
                             {r.bowlLogoUrl ? (
@@ -581,7 +581,7 @@ useEffect(() => {
                           </Link>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Result">
                         <OutcomeBadge outcome={r.outcome} />
                         {r.result}
                       </td>
@@ -604,8 +604,8 @@ useEffect(() => {
           <tbody>
             {rows.map((r, idx) => (
               <tr key={`${r.week}-${idx}`}>
-                <td>{r.week}</td>
-                <td>
+                <td data-label="Week">{r.week}</td>
+                <td data-label="Opponent">
                   {r.bowlName ? (
                     <div className="postseasonMeta">
                       {r.bowlLogoUrl ? (
@@ -641,7 +641,7 @@ useEffect(() => {
                     </Link>
                   </div>
                 </td>
-                <td>
+                <td data-label="Result">
                   <OutcomeBadge outcome={r.outcome} />
                   {r.result}
                 </td>

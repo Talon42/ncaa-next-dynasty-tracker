@@ -283,8 +283,8 @@ export default function Coach() {
         <tbody>
           {seasonRows.map((r) => (
             <tr key={`${r.seasonYear}-${r.teamName}`}>
-              <td>{r.seasonYear}</td>
-              <td>
+              <td data-label="Year">{r.seasonYear}</td>
+              <td data-label="Team">
                 <Link
                   to={`/team/${r.tgid}?season=${encodeURIComponent(String(r.seasonYear))}`}
                   style={{ color: "inherit", textDecoration: "none" }}
@@ -304,8 +304,8 @@ export default function Coach() {
                   </div>
                 </Link>
               </td>
-              <td>{r.record}</td>
-              <td>
+              <td data-label="Record">{r.record}</td>
+              <td data-label="Postseason">
                 {r.postseason.length ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {r.postseason.map((p, idx) => (

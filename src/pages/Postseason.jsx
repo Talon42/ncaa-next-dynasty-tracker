@@ -484,7 +484,7 @@ export default function Postseason() {
             <tbody>
               {filtered.map((r, idx) => (
                 <tr key={`${r.week}-${idx}`}>
-                  <td>
+                  <td data-label="Bowl">
                     <div className="postseasonBowlCell">
                       {r.bowlLogoUrl ? (
                         <img
@@ -504,7 +504,7 @@ export default function Postseason() {
                       </Link>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Team">
                     <Link
                       to={`/team/${r.leftTgid}`}
                       style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
@@ -513,8 +513,8 @@ export default function Postseason() {
                       <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
                     </Link>
                   </td>
-                  <td>{r.result}</td>
-                  <td>
+                  <td data-label="Result">{r.result}</td>
+                  <td data-label="Team">
                     <Link
                       to={`/team/${r.rightTgid}`}
                       style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}

@@ -443,7 +443,7 @@ useEffect(() => {
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr>
+          <tr className="tableEmptyRow">
             <td colSpan={6} className="kicker" style={{ padding: "12px" }}>
               {emptyText}
             </td>
@@ -451,7 +451,7 @@ useEffect(() => {
         ) : (
           rows.map((r) => (
             <tr key={r.id}>
-              <td>
+              <td data-label="Team">
                 <Link
                   to={`/team/${r.id}`}
                   style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
@@ -460,17 +460,17 @@ useEffect(() => {
                   <TeamCell name={r.name} logoUrl={r.logoUrl} />
                 </Link>
               </td>
-              <td>
+              <td data-label="Overall">
                 {r.OverallW}-{r.OverallL}
                 {r.OverallT ? `-${r.OverallT}` : ""}
               </td>
-              <td>
+              <td data-label="Conf">
                 {r.ConfW}-{r.ConfL}
                 {r.ConfT ? `-${r.ConfT}` : ""}
               </td>
-              <td>{r.PF}</td>
-              <td>{r.PA}</td>
-              <td>{r.Diff}</td>
+              <td data-label="PF">{r.PF}</td>
+              <td data-label="PA">{r.PA}</td>
+              <td data-label="Diff">{r.Diff}</td>
             </tr>
           ))
         )}

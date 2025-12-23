@@ -464,18 +464,8 @@ export default function TeamStats() {
         <div className="muted">No stats rows found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-          <div
-            className="statsTableWrap"
-            style={{
-              width: "100%",
-              maxWidth: "100%",
-              overflowX: "auto",
-              overflowY: "hidden",
-              WebkitOverflowScrolling: "touch",
-              paddingBottom: 6,
-            }}
-          >
-            <table className="table" style={{ width: "max-content", minWidth: "100%", overflow: "visible" }}>
+          <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
+            <table className="table">
               <thead>
                 <tr>
                   <th
@@ -508,14 +498,13 @@ export default function TeamStats() {
               <tbody>
                 {sortedRows.map((r) => (
                   <tr key={r.tgid}>
-                    <td style={{ paddingRight: 10 }}>
+                    <td data-label="Team" style={{ paddingRight: 10 }}>
                       <Link
                         to={`/team/${r.tgid}`}
                         style={{
                           color: "inherit",
                           textDecoration: "none",
                           display: "inline-block",
-                          whiteSpace: "nowrap",
                         }}
                         title="View team page"
                       >
@@ -524,7 +513,7 @@ export default function TeamStats() {
                     </td>
 
                     {colsForTab.map((c) => (
-                      <td key={c.key} style={{ whiteSpace: "nowrap" }}>
+                      <td key={c.key} data-label={c.fullLabel || c.label}>
                         {getVal(r, c.key) ?? ""}
                       </td>
                     ))}

@@ -216,8 +216,8 @@ export default function BowlResults() {
           <tbody>
             {rows.map((r, idx) => (
               <tr key={`${r.seasonYear}-${r.week}-${idx}`}>
-                <td>{r.seasonYear}</td>
-                <td>
+                <td data-label="Season">{r.seasonYear}</td>
+                <td data-label="Team">
                   <Link
                     to={`/team/${r.homeTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
@@ -226,8 +226,8 @@ export default function BowlResults() {
                     <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
                   </Link>
                 </td>
-                <td>{r.result}</td>
-                <td>
+                <td data-label="Result">{r.result}</td>
+                <td data-label="Team">
                   <Link
                     to={`/team/${r.awayTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}

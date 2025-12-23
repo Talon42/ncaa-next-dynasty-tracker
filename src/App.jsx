@@ -85,6 +85,7 @@ export default function App() {
   const [importStatus, setImportStatus] = useState("");
   const [importBusy, setImportBusy] = useState(false);
   const [importFileName, setImportFileName] = useState("");
+  const [openHeaderPanel, setOpenHeaderPanel] = useState(null);
 
   async function refresh() {
     const list = await listDynasties();
@@ -106,6 +107,10 @@ export default function App() {
     }
     setShowNewDynasty(false);
   }, [dynasties.length]);
+
+  useEffect(() => {
+    setOpenHeaderPanel(null);
+  }, [location.pathname, location.search]);
 
   const activeDynasty = useMemo(
     () => dynasties.find((d) => d.id === activeId) || null,
@@ -244,8 +249,198 @@ export default function App() {
     }
   }
 
+  function toggleHeaderPanel(name) {
+    setOpenHeaderPanel((cur) => (cur === name ? null : name));
+  }
+
   return (
     <div className="shell">
+      <div className="mobileHeader">
+        <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
+        <div className="headerMenus">
+          <div
+            className={`headerMenu ${openHeaderPanel === "nav" ? "open" : ""}`}
+            onMouseEnter={() => setOpenHeaderPanel("nav")}
+            onMouseLeave={() => setOpenHeaderPanel(null)}
+          >
+            <button
+              className="headerTrigger"
+              onClick={() => toggleHeaderPanel("nav")}
+              aria-expanded={openHeaderPanel === "nav"}
+            >
+              Navigation
+            </button>
+            <div className="headerPanel">
+              <div className="sideNav">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/");
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Schedule / Results"
+                >
+                  <span>Schedule / Results</span>
+                </a>
+
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/teams");
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Teams"
+                >
+                  <span>Teams</span>
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/team-stats");
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Team Stats"
+                >
+                  <span>Team Stats</span>
+                </a>
+
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/coaches");
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Coaches"
+                >
+                  <span>Coaches</span>
+                </a>
+
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/postseason");
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Postseason"
+                >
+                  <span>Postseason</span>
+                </a>
+
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/standings?conf=All&ts=${Date.now()}`);
+                    setOpenHeaderPanel(null);
+                  }}
+                  title="Conference Standings"
+                >
+                  <span>Conference Standings</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}
+            onMouseEnter={() => setOpenHeaderPanel("dynasties")}
+            onMouseLeave={() => setOpenHeaderPanel(null)}
+          >
+            <button
+              className="headerTrigger"
+              onClick={() => toggleHeaderPanel("dynasties")}
+              aria-expanded={openHeaderPanel === "dynasties"}
+            >
+              Dynasties
+            </button>
+            <div className="headerPanel">
+              <div className="sideNav">
+                {activeDynasty ? (
+                  <a
+                    href="#"
+                    className="active"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenHeaderPanel(null);
+                      if (dynasties.length === 1) {
+                        openDynastyActions(activeDynasty);
+                        return;
+                      }
+                      setShowDynastyActions(false);
+                      setSelectedDynasty(null);
+                      navigate("/");
+                    }}
+                    title="Go to Schedule / Results"
+                  >
+                    <span>{activeDynasty.name}</span>
+                    <span className="badge active">Active</span>
+                  </a>
+                ) : (
+                  <span className="kicker">No dynasty loaded</span>
+                )}
+
+                {otherDynasties.map((d) => (
+                  <a
+                    key={d.id}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenHeaderPanel(null);
+                      openDynastyActions(d);
+                    }}
+                  >
+                    <span>{d.name}</span>
+                  </a>
+                ))}
+              </div>
+
+              <div className="sidebarActionStack">
+                {activeDynasty ? (
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      setOpenHeaderPanel(null);
+                      setShowImportSeason(true);
+                    }}
+                    style={{ width: "100%" }}
+                    disabled={!activeId}
+                  >
+                    + Upload New Season
+                  </button>
+                ) : null}
+
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
+                    setOpenHeaderPanel(null);
+                    setShowNewDynasty(true);
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  + New Dynasty
+                </button>
+
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
+                    setOpenHeaderPanel(null);
+                    resetImportState();
+                    setShowBackupModal(true);
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  Import / Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="shellGrid">
         <aside className="sidebar">
           <div className="brandRow" style={{ marginBottom: 10 }}>

@@ -399,12 +399,12 @@ export default function Coaches() {
           <tbody>
             {sortedRows.map((r) => (
               <tr key={`${r.ccid}-${r.tgid}`}>
-                <td>
+                <td data-label="Coach">
                   <Link to={`/coach/${r.ccid}`} style={{ color: "inherit", textDecoration: "none" }}>
                     {r.name || `Coach ${r.ccid}`}
                   </Link>
                 </td>
-                <td>
+                <td data-label="Team">
                   {r.isNotHired ? (
                     <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
                   ) : (
@@ -413,12 +413,12 @@ export default function Coaches() {
                     </Link>
                   )}
                 </td>
-                <td>{recordLabel(r.careerWins, r.careerLosses)}</td>
-                <td>{winPctLabel(r.winPct)}</td>
-                <td>{bowlRecordLabel(r.bowlWins, r.bowlLosses)}</td>
-                <td>{winPctLabel(r.bowlWinPct)}</td>
-                <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
-                <td>
+                <td data-label="Record">{recordLabel(r.careerWins, r.careerLosses)}</td>
+                <td data-label="Win%">{winPctLabel(r.winPct)}</td>
+                <td data-label="Bowl Record">{bowlRecordLabel(r.bowlWins, r.bowlLosses)}</td>
+                <td data-label="Bowl Win%">{winPctLabel(r.bowlWinPct)}</td>
+                <td data-label="Prestige">{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
+                <td data-label="Approval">
                   {(() => {
                     const meta = approvalLabel(r.approval);
                     return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
