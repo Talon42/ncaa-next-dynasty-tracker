@@ -29,5 +29,6 @@
 ## Verification
 - Run the dev server after significant changes
 - Assume no automated tests exist; rely on runtime verification
+- kill the dev server proccess connection so it can be used by the user
 - Clearly state how to verify the change is correct (what pages/actions to check)
 - List all files changed and the reason for each

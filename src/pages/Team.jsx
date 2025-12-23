@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 
@@ -231,10 +231,11 @@ useEffect(() => {
 
     (async () => {
       // Pull all needed data once (local-first, small enough for now)
-      const [teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
+      const [teamSeasonsAll, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
         db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
+        db.bowlGames.where({ dynastyId }).toArray(),
       ]);
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
@@ -242,6 +243,18 @@ useEffect(() => {
 
       const logoFor = (id) =>
         overrideByTgid.get(String(id)) || baseLogoByTgid.get(String(id)) || FALLBACK_LOGO;
+
+      const bowlByKey = new Map();
+      for (const r of bowlRows) {
+        if (r.seasonYear == null || r.sewn == null || r.sgnm == null) continue;
+        if (!String(r.bnme ?? "").trim()) continue;
+        bowlByKey.set(`${r.seasonYear}|${r.sewn}|${r.sgnm}`, String(r.bnme).trim());
+      }
+
+      const bowlNameFor = (seasonYearValue, sewnValue, sgnmValue) => {
+        if (seasonYearValue == null || sewnValue == null || sgnmValue == null) return "";
+        return bowlByKey.get(`${seasonYearValue}|${sewnValue}|${sgnmValue}`) || "";
+      };
 
       // Prefer the most recent season's name for the header (if available)
       const latestYear = availableSeasons[0];
@@ -301,6 +314,7 @@ useEffect(() => {
           .map((g) => {
             const isHome = String(g.homeTgid) === teamTgid;
             const oppTgid = String(isHome ? g.awayTgid : g.homeTgid);
+            const bowlName = bowlNameFor(year, Number(g.week), g.sgnm);
 
             const hasScore = g.homeScore != null && g.awayScore != null;
             const teamScore = hasScore ? (isHome ? g.homeScore : g.awayScore) : null;
@@ -319,6 +333,7 @@ useEffect(() => {
               oppTgid,
               oppName: nameByTgid.get(oppTgid) || `TGID ${oppTgid}`,
               oppLogo: logoFor(oppTgid),
+              bowlName,
               outcome,
               result: hasScore ? `${g.homeScore} - ${g.awayScore}` : "—",
             };
@@ -467,41 +482,50 @@ useEffect(() => {
                 </thead>
                 <tbody>
                   {sec.rows.map((r, idx) => (
-                    <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
-                      <td>{r.week}</td>
-                      <td>
-                        {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span
-                            style={{
-                              width: 22,
-                              textAlign: "center",
-                              fontWeight: 800,
-                              opacity: 0.9,
-                            }}
-                            title={r.isHome ? "Home game" : "Away game"}
-                          >
-                            {r.isHome ? "vs" : "@"}
-                          </span>
+                    <Fragment key={`${sec.seasonYear}-${r.week}-${idx}`}>
+                      {r.bowlName ? (
+                        <tr>
+                          <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
+                            {r.bowlName}
+                          </td>
+                        </tr>
+                      ) : null}
+                      <tr>
+                        <td>{r.week}</td>
+                        <td>
+                          {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span
+                              style={{
+                                width: 22,
+                                textAlign: "center",
+                                fontWeight: 800,
+                                opacity: 0.9,
+                              }}
+                              title={r.isHome ? "Home game" : "Away game"}
+                            >
+                              {r.isHome ? "vs" : "@"}
+                            </span>
 
-                          <Link
-                            to={`/team/${r.oppTgid}`}
-                            style={{
-                              color: "inherit",
-                              textDecoration: "none",
-                              display: "inline-block",
-                            }}
-                            title="View opponent team page"
-                          >
-                            <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                          </Link>
-                        </div>
-                      </td>
-                      <td>
-                        <OutcomeBadge outcome={r.outcome} />
-                        {r.result}
-                      </td>
-                    </tr>
+                            <Link
+                              to={`/team/${r.oppTgid}`}
+                              style={{
+                                color: "inherit",
+                                textDecoration: "none",
+                                display: "inline-block",
+                              }}
+                              title="View opponent team page"
+                            >
+                              <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                            </Link>
+                          </div>
+                        </td>
+                        <td>
+                          <OutcomeBadge outcome={r.outcome} />
+                          {r.result}
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -519,41 +543,50 @@ useEffect(() => {
           </thead>
           <tbody>
             {rows.map((r, idx) => (
-              <tr key={`${r.week}-${idx}`}>
-                <td>{r.week}</td>
-                <td>
-                  {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      style={{
-                        width: 22,
-                        textAlign: "center",
-                        fontWeight: 800,
-                        opacity: 0.9,
-                      }}
-                      title={r.isHome ? "Home game" : "Away game"}
-                    >
-                      {r.isHome ? "vs" : "@"}
-                    </span>
+              <Fragment key={`${r.week}-${idx}`}>
+                {r.bowlName ? (
+                  <tr>
+                    <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
+                      {r.bowlName}
+                    </td>
+                  </tr>
+                ) : null}
+                <tr>
+                  <td>{r.week}</td>
+                  <td>
+                    {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span
+                        style={{
+                          width: 22,
+                          textAlign: "center",
+                          fontWeight: 800,
+                          opacity: 0.9,
+                        }}
+                        title={r.isHome ? "Home game" : "Away game"}
+                      >
+                        {r.isHome ? "vs" : "@"}
+                      </span>
 
-                    <Link
-                      to={`/team/${r.oppTgid}`}
-                      style={{
-                        color: "inherit",
-                        textDecoration: "none",
-                        display: "inline-block",
-                      }}
-                      title="View opponent team page"
-                    >
-                      <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                    </Link>
-                  </div>
-                </td>
-                <td>
-                  <OutcomeBadge outcome={r.outcome} />
-                  {r.result}
-                </td>
-              </tr>
+                      <Link
+                        to={`/team/${r.oppTgid}`}
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          display: "inline-block",
+                        }}
+                        title="View opponent team page"
+                      >
+                        <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                      </Link>
+                    </div>
+                  </td>
+                  <td>
+                    <OutcomeBadge outcome={r.outcome} />
+                    {r.result}
+                  </td>
+                </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>
