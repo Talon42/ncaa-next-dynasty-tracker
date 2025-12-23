@@ -258,180 +258,144 @@ export default function App() {
       <div className="mobileHeader">
         <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
         <div className="headerMenus">
-          <div
-            className={`headerMenu ${openHeaderPanel === "nav" ? "open" : ""}`}
-          >
+          <div className="headerNavGroup">
+            <div className="headerNavButtons">
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate("/coaches")}
+                title="Coaches"
+              >
+                Coaches
+              </button>
+
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate(`/standings?conf=All&ts=${Date.now()}`)}
+                title="Conference Standings"
+              >
+                Conference Standings
+              </button>
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate("/postseason")}
+                title="Postseason"
+              >
+                Postseason
+              </button>
+
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate("/")}
+                title="Schedule / Results"
+              >
+                Schedule / Results
+              </button>
+
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate("/team-stats")}
+                title="Team Stats"
+              >
+                Team Stats
+              </button>
+
+              <button
+                className="headerNavBtn"
+                onClick={() => navigate("/teams")}
+                title="Teams"
+              >
+                Teams
+              </button>
+            </div>
+          </div>
+
+          <div className="headerDivider" role="presentation" />
+
+          <div className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}>
             <button
               className="headerTrigger"
-              onClick={() => toggleHeaderPanel("nav")}
-              aria-expanded={openHeaderPanel === "nav"}
+              onClick={() => toggleHeaderPanel("dynasties")}
+              aria-expanded={openHeaderPanel === "dynasties"}
             >
-              Navigation
+              Dynasties
             </button>
             <div className="headerPanel">
               <div className="sideNav">
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/");
-                    setOpenHeaderPanel(null);
-                  }}
-                  title="Schedule / Results"
-                >
-                  <span>Schedule / Results</span>
-                </a>
+                {activeDynasty ? (
+                  <a
+                    href="#"
+                    className="active"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenHeaderPanel(null);
+                      if (dynasties.length === 1) {
+                        openDynastyActions(activeDynasty);
+                        return;
+                      }
+                      setShowDynastyActions(false);
+                      setSelectedDynasty(null);
+                      navigate("/");
+                    }}
+                    title="Go to Schedule / Results"
+                  >
+                    <span>{activeDynasty.name}</span>
+                    <span className="badge active">Active</span>
+                  </a>
+                ) : (
+                  <span className="kicker">No dynasty loaded</span>
+                )}
 
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/teams");
-                    setOpenHeaderPanel(null);
-                  }}
-                  title="Teams"
-                >
-                  <span>Teams</span>
-                </a>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/team-stats");
-                    setOpenHeaderPanel(null);
-                  }}
-                  title="Team Stats"
-                >
-                  <span>Team Stats</span>
-                </a>
+                {otherDynasties.map((d) => (
+                  <a
+                    key={d.id}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenHeaderPanel(null);
+                      openDynastyActions(d);
+                    }}
+                  >
+                    <span>{d.name}</span>
+                  </a>
+                ))}
+              </div>
 
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/coaches");
+              <div className="sidebarActionStack">
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
                     setOpenHeaderPanel(null);
+                    setShowNewDynasty(true);
                   }}
-                  title="Coaches"
+                  style={{ width: "100%" }}
                 >
-                  <span>Coaches</span>
-                </a>
+                  + New Dynasty
+                </button>
 
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/postseason");
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
                     setOpenHeaderPanel(null);
+                    resetImportState();
+                    setShowBackupModal(true);
                   }}
-                  title="Postseason"
+                  style={{ width: "100%" }}
                 >
-                  <span>Postseason</span>
-                </a>
-
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/standings?conf=All&ts=${Date.now()}`);
-                    setOpenHeaderPanel(null);
-                  }}
-                  title="Conference Standings"
-                >
-                  <span>Conference Standings</span>
-                </a>
+                  Import / Export
+                </button>
               </div>
             </div>
           </div>
 
-          <div className="headerGroup">
-            <div
-              className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}
-            >
-              <button
-                className="headerTrigger"
-                onClick={() => toggleHeaderPanel("dynasties")}
-                aria-expanded={openHeaderPanel === "dynasties"}
-              >
-                Dynasties
-              </button>
-              <div className="headerPanel">
-                <div className="sideNav">
-                  {activeDynasty ? (
-                    <a
-                      href="#"
-                      className="active"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setOpenHeaderPanel(null);
-                        if (dynasties.length === 1) {
-                          openDynastyActions(activeDynasty);
-                          return;
-                        }
-                        setShowDynastyActions(false);
-                        setSelectedDynasty(null);
-                        navigate("/");
-                      }}
-                      title="Go to Schedule / Results"
-                    >
-                      <span>{activeDynasty.name}</span>
-                      <span className="badge active">Active</span>
-                    </a>
-                  ) : (
-                    <span className="kicker">No dynasty loaded</span>
-                  )}
-
-                  {otherDynasties.map((d) => (
-                    <a
-                      key={d.id}
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setOpenHeaderPanel(null);
-                        openDynastyActions(d);
-                      }}
-                    >
-                      <span>{d.name}</span>
-                    </a>
-                  ))}
-                </div>
-
-                <div className="sidebarActionStack">
-                  <button
-                    className="sidebarBtn"
-                    onClick={() => {
-                      setOpenHeaderPanel(null);
-                      setShowNewDynasty(true);
-                    }}
-                    style={{ width: "100%" }}
-                  >
-                    + New Dynasty
-                  </button>
-
-                  <button
-                    className="sidebarBtn"
-                    onClick={() => {
-                      setOpenHeaderPanel(null);
-                      resetImportState();
-                      setShowBackupModal(true);
-                    }}
-                    style={{ width: "100%" }}
-                  >
-                    Import / Export
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button
-              className="headerAddSeason"
-              onClick={() => setShowImportSeason(true)}
-              title="Upload New Season"
-              aria-label="Upload New Season"
-              disabled={!activeId}
-            >
-              <span className="headerAddSeasonIcon">+</span>
-            </button>
-          </div>
+          <button
+            className="headerAddSeason"
+            onClick={() => setShowImportSeason(true)}
+            title="Upload New Season"
+            aria-label="Upload New Season"
+            disabled={!activeId}
+          >
+            <span className="headerAddSeasonIcon">+</span>
+          </button>
         </div>
       </div>
       <div className="shellGrid">
