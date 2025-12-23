@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 
 const FALLBACK_TEAM_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -146,20 +147,10 @@ export default function TeamStats() {
     const sort = params.get("sort");
     const dir = params.get("dir");
 
-    if (season != null) {
-      const n = Number(season);
-      if (Number.isFinite(n)) {
-        setSeasonYear(n);
-        sessionStorage.setItem("seasonFilterYear", String(n));
-      } else {
-        const saved = sessionStorage.getItem("seasonFilterYear");
-        const savedNum = saved != null ? Number(saved) : null;
-        if (savedNum != null && Number.isFinite(savedNum)) setSeasonYear(savedNum);
-      }
-    } else {
-      const saved = sessionStorage.getItem("seasonFilterYear");
-      const savedNum = saved != null ? Number(saved) : null;
-      if (savedNum != null && Number.isFinite(savedNum)) setSeasonYear(savedNum);
+    const resolved = getSeasonFromParamOrSaved(season);
+    if (resolved != null) {
+      const n = Number(resolved);
+      if (Number.isFinite(n)) setSeasonYear(n);
     }
     if (tabParam && TAB_ORDER.includes(tabParam)) setTab(tabParam);
     if (sort) setSortKey(sort);
@@ -198,10 +189,10 @@ export default function TeamStats() {
       setAvailableYears(years);
       setSeasonYear((cur) => {
         if (cur != null) return cur;
-        const saved = sessionStorage.getItem("seasonFilterYear");
-        const savedNum = saved != null ? Number(saved) : null;
-        if (savedNum != null && Number.isFinite(savedNum) && years.includes(savedNum)) return savedNum;
-        return years[0] ?? null;
+        const picked = pickSeasonFromList({ availableSeasons: years });
+        if (picked == null) return years[0] ?? null;
+        const pickedNum = Number(picked);
+        return Number.isFinite(pickedNum) ? pickedNum : years[0] ?? null;
       });
       setLoading(false);
     })();
@@ -218,7 +209,7 @@ export default function TeamStats() {
     params.set("tab", tab);
     params.set("sort", sortKey);
     params.set("dir", sortDir);
-    sessionStorage.setItem("seasonFilterYear", String(seasonYear));
+    writeSeasonFilter(seasonYear);
     navigate({ pathname: "/team-stats", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, seasonYear, tab, sortKey, sortDir, navigate, location.search]);
 
@@ -413,7 +404,11 @@ export default function TeamStats() {
             </span>
             <select
               value={seasonYear ?? ""}
-              onChange={(e) => setSeasonYear(Number(e.target.value))}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setSeasonYear(next);
+                writeSeasonFilter(next);
+              }}
               disabled={!hasAnyYears}
             >
               {!hasAnyYears ? (

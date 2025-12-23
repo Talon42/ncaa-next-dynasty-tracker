@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
 
 const FALLBACK_LOGO =
@@ -136,19 +137,14 @@ export default function Postseason() {
       const allGames = await db.games.where({ dynastyId }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
-      const saved = sessionStorage.getItem("seasonFilterYear");
-      const savedNum = saved != null ? Number(saved) : null;
-      if (savedNum != null && Number.isFinite(savedNum) && years.includes(savedNum)) {
-        setSeasonYear(String(savedNum));
-      } else {
-        setSeasonYear(years[0] ?? "");
-      }
+      const picked = pickSeasonFromList({ currentSeason: seasonYear, availableSeasons: years });
+      if (picked != null) setSeasonYear(picked);
     })();
   }, [dynastyId]);
 
   useEffect(() => {
     if (seasonYear !== "") {
-      sessionStorage.setItem("seasonFilterYear", String(seasonYear));
+      writeSeasonFilter(seasonYear);
     }
   }, [seasonYear]);
 
@@ -334,7 +330,15 @@ export default function Postseason() {
 
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span>Season</span>
-            <select value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} disabled={!hasSeasons}>
+            <select
+              value={seasonYear}
+              onChange={(e) => {
+                const next = e.target.value;
+                setSeasonYear(next);
+                writeSeasonFilter(next);
+              }}
+              disabled={!hasSeasons}
+            >
               {!hasSeasons ? (
                 <option value="">No seasons uploaded</option>
               ) : (

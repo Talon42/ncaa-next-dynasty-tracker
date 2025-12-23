@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { getConferenceName } from "../conferences";
 import { loadConferenceLogoMap, normalizeConfKey } from "../logoService";
 
@@ -95,13 +96,8 @@ export default function ConferenceStandings() {
     const conf = params.get("conf");
     const seasonParam = params.get("season");
     if (conf) setCgid(conf);
-    if (seasonParam) {
-      setSeason(seasonParam);
-      sessionStorage.setItem("seasonFilterYear", String(seasonParam));
-    } else {
-      const saved = sessionStorage.getItem("seasonFilterYear");
-      if (saved != null) setSeason(saved);
-    }
+    const resolved = getSeasonFromParamOrSaved(seasonParam);
+    if (resolved != null) setSeason(resolved);
   }, [location.search]);
   /* -------------------------------------------------- */
   /* Active dynasty                                     */
@@ -171,10 +167,10 @@ useEffect(() => {
       if (!alive) return;
       setSeasons(list);
 
-      if (!season && list.length) {
-        const saved = sessionStorage.getItem("seasonFilterYear");
-        const savedValid = saved && list.some((s) => s.key === saved);
-        setSeason(savedValid ? saved : list[0].key);
+      if (list.length) {
+        const seasonKeys = list.map((s) => s.key);
+        const picked = pickSeasonFromList({ currentSeason: season, availableSeasons: seasonKeys });
+        if (picked && picked !== season) setSeason(picked);
       }
     })();
 
@@ -189,7 +185,7 @@ useEffect(() => {
     const params = new URLSearchParams(location.search);
     params.set("season", season);
     params.set("conf", cgid);
-    sessionStorage.setItem("seasonFilterYear", String(season));
+    writeSeasonFilter(season);
     navigate({ pathname: "/standings", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, season, cgid, navigate, location.search]);
 
@@ -496,7 +492,15 @@ useEffect(() => {
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span>Season</span>
-            <select value={season} onChange={(e) => setSeason(e.target.value)} disabled={!hasSeasons}>
+            <select
+              value={season}
+              onChange={(e) => {
+                const next = e.target.value;
+                setSeason(next);
+                writeSeasonFilter(next);
+              }}
+              disabled={!hasSeasons}
+            >
               {!hasSeasons ? (
                 <option value="">No seasons uploaded</option>
               ) : (

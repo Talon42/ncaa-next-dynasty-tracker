@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -54,14 +55,13 @@ export default function Home() {
     const params = new URLSearchParams(location.search);
     const season = params.get("season");
     const week = params.get("week");
-    const hasUploadFlag = Boolean(sessionStorage.getItem("seasonUploadComplete"));
+    const hasUploadFlag = Boolean(
+      sessionStorage.getItem("seasonUploadComplete") || sessionStorage.getItem("seasonUploadLatest")
+    );
 
-    if (!hasUploadFlag && season != null) {
-      setSeasonYear(season);
-      sessionStorage.setItem("seasonFilterYear", String(season));
-    } else if (!hasUploadFlag && season == null) {
-      const saved = sessionStorage.getItem("seasonFilterYear");
-      if (saved != null) setSeasonYear(saved);
+    if (!hasUploadFlag) {
+      const savedSeason = getSeasonFromParamOrSaved(season);
+      if (savedSeason != null) setSeasonYear(savedSeason);
     }
 
     if (week != null) setWeekFilter(week);
@@ -76,7 +76,7 @@ export default function Home() {
     const params = new URLSearchParams(location.search);
     if (seasonYear !== "") {
       params.set("season", seasonYear);
-      sessionStorage.setItem("seasonFilterYear", String(seasonYear));
+      writeSeasonFilter(seasonYear);
     }
     if (weekFilter) params.set("week", weekFilter);
     navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
@@ -106,16 +106,20 @@ export default function Home() {
       if (hasUploadLatest) {
         const nextSeason = String(uploadLatest);
         setSeasonYear(nextSeason);
+        writeSeasonFilter(nextSeason);
         const params = new URLSearchParams(location.search);
         params.set("season", nextSeason);
         navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
         sessionStorage.removeItem("seasonUploadLatest");
         sessionStorage.removeItem("seasonUploadComplete");
       } else if (hasUploadFlag || hasNewLatest) {
-        setSeasonYear(String(latest));
+        const nextSeason = latest != null ? String(latest) : "";
+        setSeasonYear(nextSeason);
+        writeSeasonFilter(nextSeason);
         sessionStorage.removeItem("seasonUploadComplete");
-      } else if (seasonYear === "" || !years.includes(Number(seasonYear))) {
-        setSeasonYear(latest != null ? String(latest) : "");
+      } else {
+        const picked = pickSeasonFromList({ currentSeason: seasonYear, availableSeasons: years });
+        if (picked != null && picked !== seasonYear) setSeasonYear(picked);
       }
 
       latestSeasonRef.current = latest;
@@ -210,7 +214,15 @@ export default function Home() {
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span>Season</span>
-            <select value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} disabled={!hasSeasons}>
+            <select
+              value={seasonYear}
+              onChange={(e) => {
+                const next = e.target.value;
+                setSeasonYear(next);
+                writeSeasonFilter(next);
+              }}
+              disabled={!hasSeasons}
+            >
               {!hasSeasons ? (
                 <option value="">No seasons uploaded</option>
               ) : (

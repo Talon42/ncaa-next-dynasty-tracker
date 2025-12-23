@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { readSeasonFilter, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
 
 const FALLBACK_LOGO =
@@ -201,7 +202,12 @@ useEffect(() => {
     ).sort((a, b) => b - a);
 
     setAvailableSeasons(years);
-    setSeasonYear("All"); // default to All
+    const saved = readSeasonFilter();
+    if (saved && years.includes(Number(saved))) {
+      setSeasonYear(String(saved));
+    } else {
+      setSeasonYear("All"); // default to All
+    }
 
     // Precompute season records for headers
     const rec = new Map();
@@ -229,7 +235,11 @@ useEffect(() => {
   return () => {
     alive = false;
   };
-}, [dynastyId, teamTgid]);
+  }, [dynastyId, teamTgid]);
+
+  useEffect(() => {
+    writeSeasonFilter(seasonYear);
+  }, [seasonYear]);
 
   // Load header + rows/sections (supports Season = All)
   useEffect(() => {
@@ -496,7 +506,11 @@ useEffect(() => {
             <span>Season</span>
             <select
               value={seasonYear}
-              onChange={(e) => setSeasonYear(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setSeasonYear(next);
+                writeSeasonFilter(next);
+              }}
               disabled={!hasSeasons}
             >
               {!hasSeasons ? (
