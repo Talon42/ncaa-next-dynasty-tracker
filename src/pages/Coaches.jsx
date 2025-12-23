@@ -199,6 +199,15 @@ export default function Coaches() {
     return sortDir === "asc" ? " ▴" : " ▾";
   }
 
+  function approvalLabel(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return { text: "-", color: "inherit" };
+    if (n <= 5) return { text: "Danger", color: "#c53b3b" };
+    if (n <= 25) return { text: "Hot Seat", color: "#d77b2f" };
+    if (n <= 49) return { text: "Warm", color: "#d8a118" };
+    return { text: "Secure", color: "#2f9b4f" };
+  }
+
   if (!dynastyId) {
     return (
       <div>
@@ -275,7 +284,12 @@ export default function Coaches() {
                 </td>
                 <td>{r.isUser}</td>
                 <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
-                <td>{Number.isFinite(Number(r.approval)) ? Number(r.approval) : "-"}</td>
+                <td>
+                  {(() => {
+                    const meta = approvalLabel(r.approval);
+                    return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
+                  })()}
+                </td>
               </tr>
             ))}
           </tbody>
