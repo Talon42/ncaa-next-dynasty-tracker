@@ -570,6 +570,16 @@ button:disabled {
   margin-right: auto;
 }
 
+@media (max-width: 1500px) {
+  .confGrid {
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    width: 100%;
+    gap: 12px;
+    padding: 0 6px;
+    box-sizing: border-box;
+  }
+}
+
 /* Equal-height conference cards (no scrollbars; blank space is fine) */
 .confCard {
   border: 1px solid var(--border);
