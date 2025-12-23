@@ -417,7 +417,7 @@ export default function TeamStats() {
         <div className="muted">Loading…</div>
       ) : !hasAnyYears ? (
         <div className="muted">
-          No Team Stats imported yet. Import a season with TEAM.csv, SCHD.csv, and TSSE.csv.
+          No Team Stats imported yet. Import a season with TEAM.csv, SCHD.csv, TSSE.csv, and BOWL.csv.
         </div>
       ) : mergedRows.length === 0 ? (
         <div className="muted">No stats rows found for {seasonYear}.</div>

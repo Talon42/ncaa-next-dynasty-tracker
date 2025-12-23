@@ -46,28 +46,31 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   }
 
   // Mandatory set for now (and will remain mandatory)
-  const requiredTypes = ["TEAM", "SCHD", "TSSE"];
+  const requiredTypes = ["TEAM", "SCHD", "TSSE", "BOWL"];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(
-      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, and TSSE.`
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, and BOWL.`
     );
   }
 
-  const [teamText, schdText, tsseText] = await Promise.all([
+  const [teamText, schdText, tsseText, bowlText] = await Promise.all([
     byType.TEAM.text(),
     byType.SCHD.text(),
     byType.TSSE.text(),
+    byType.BOWL.text(),
   ]);
 
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
   const tsseRows = parseCsvText(tsseText);
+  const bowlRows = parseCsvText(bowlText);
 
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
-  requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN"], "SCHD");
+  requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
   requireColumns(tsseRows, ["TGID"], "TSSE");
+  requireColumns(bowlRows, ["SEWN", "SGNM", "BNME"], "BOWL");
 
   const teamSeasons = teamRows.map((r) => ({
     dynastyId,
@@ -86,6 +89,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
 
   const games = schdRows.map((r) => {
     const week = Number(String(r.SEWN ?? "").trim()); // supports 0..22
+    const stage = Number(String(r.SGNM ?? "").trim());
     const awayScore = Number(String(r.GASC ?? "").trim());
     const homeScore = Number(String(r.GHSC ?? "").trim());
 
@@ -93,6 +97,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       dynastyId,
       seasonYear: year,
       week: Number.isFinite(week) ? week : 0,
+      sgnm: Number.isFinite(stage) ? stage : null,
       homeTgid: normId(r.GHTG),
       awayTgid: normId(r.GATG),
       homeScore: Number.isFinite(homeScore) ? homeScore : null,
@@ -145,23 +150,47 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     };
   });
 
-  await db.transaction("rw", db.teamSeasons, db.games, db.teams, db.teamStats, db.dynasties, async () => {
-    // Overwrite ONLY this season year
-    await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
-    await db.games.where({ dynastyId, seasonYear: year }).delete();
-    await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
+  const bowlGames = bowlRows.map((r) => {
+    const sewn = Number(String(r.SEWN ?? "").trim());
+    const sgnm = Number(String(r.SGNM ?? "").trim());
 
-    await db.teams.bulkPut(teams);
-    await db.teamSeasons.bulkPut(teamSeasons);
-    await db.games.bulkPut(games);
-    await db.teamStats.bulkPut(teamStats);
-
-    // Option A currentYear advance
-    const d = await db.dynasties.get(dynastyId);
-    if (d && year >= Number(d.currentYear)) {
-      await db.dynasties.update(dynastyId, { currentYear: year + 1 });
-    }
+    return {
+      dynastyId,
+      seasonYear: year,
+      sewn: Number.isFinite(sewn) ? sewn : null,
+      sgnm: Number.isFinite(sgnm) ? sgnm : null,
+      bnme: String(r.BNME ?? "").trim(),
+    };
   });
+
+  await db.transaction(
+    "rw",
+    db.teamSeasons,
+    db.games,
+    db.teams,
+    db.teamStats,
+    db.bowlGames,
+    db.dynasties,
+    async () => {
+      // Overwrite ONLY this season year
+      await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
+      await db.games.where({ dynastyId, seasonYear: year }).delete();
+      await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
+      await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
+
+      await db.teams.bulkPut(teams);
+      await db.teamSeasons.bulkPut(teamSeasons);
+      await db.games.bulkPut(games);
+      await db.teamStats.bulkPut(teamStats);
+      await db.bowlGames.bulkPut(bowlGames);
+
+      // Option A currentYear advance
+      const d = await db.dynasties.get(dynastyId);
+      if (d && year >= Number(d.currentYear)) {
+        await db.dynasties.update(dynastyId, { currentYear: year + 1 });
+      }
+    }
+  );
 
   // ✅ Silent logo mapping step (no UI required)
   // If the bundled CSV doesn't exist, it does nothing.

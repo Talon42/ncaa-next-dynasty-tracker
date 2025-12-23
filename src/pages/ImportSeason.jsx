@@ -136,7 +136,7 @@ export default function ImportSeason() {
       return;
     }
     if (!files.length) {
-    setStatus("Please select TEAM.csv, SCHD.csv, and TSSE.csv.");
+    setStatus("Please select TEAM.csv, SCHD.csv, TSSE.csv, and BOWL.csv.");
       return;
     }
 
