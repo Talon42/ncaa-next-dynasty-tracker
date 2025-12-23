@@ -534,7 +534,7 @@ useEffect(() => {
                       {r.bowlName ? (
                         <tr>
                           <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
                               {r.bowlLogoUrl ? (
                                 <img
                                   src={r.bowlLogoUrl}
@@ -615,7 +615,7 @@ useEffect(() => {
                 {r.bowlName ? (
                   <tr>
                     <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
                         {r.bowlLogoUrl ? (
                           <img
                             src={r.bowlLogoUrl}
