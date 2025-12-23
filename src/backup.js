@@ -11,6 +11,7 @@ const DYNASTY_TABLES = [
   "teamLogos",
   "logoOverrides",
   "bowlGames",
+  "coaches",
 ];
 
 function normalizeName(name) {

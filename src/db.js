@@ -116,6 +116,23 @@ db.version(8).stores({
   bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
 });
 
+// v9 (coaches)
+db.version(9).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+  bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
+  coaches:
+    "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+});
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -172,6 +189,7 @@ export async function deleteDynasty(id) {
     db.teamLogos.where("dynastyId").equals(id).delete(),
     db.logoOverrides.where("dynastyId").equals(id).delete(),
     db.bowlGames.where("dynastyId").equals(id).delete(),
+    db.coaches.where("dynastyId").equals(id).delete(),
   ]);
 
   const active = await getActiveDynastyId();

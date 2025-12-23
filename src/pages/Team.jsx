@@ -3,6 +3,11 @@ import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { readSeasonFilter, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
+import {
+  buildSeasonBowlNameMap,
+  createPostseasonLogoResolver,
+  getSeasonBowlName,
+} from "../postseasonMeta";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -268,46 +273,10 @@ useEffect(() => {
       const logoFor = (id) =>
         overrideByTgid.get(String(id)) || baseLogoByTgid.get(String(id)) || FALLBACK_LOGO;
 
-      const bowlByKey = new Map();
-      for (const r of bowlRows) {
-        if (r.seasonYear == null || r.sewn == null || r.sgnm == null) continue;
-        if (!String(r.bnme ?? "").trim()) continue;
-        bowlByKey.set(`${r.seasonYear}|${r.sewn}|${r.sgnm}`, String(r.bnme).trim());
-      }
-
-      const bowlNameFor = (seasonYearValue, sewnValue, sgnmValue) => {
-        if (seasonYearValue == null || sewnValue == null || sgnmValue == null) return "";
-        return bowlByKey.get(`${seasonYearValue}|${sewnValue}|${sgnmValue}`) || "";
-      };
-
-      const normalizeBowlName = (name) =>
-        String(name ?? "")
-          .replace(/\s+/g, " ")
-          .replace(/\s*-\s*/g, " - ")
-          .trim()
-          .toLowerCase();
-
-      const postseasonLogoFor = (name) => {
-        if (!name) return "";
-        const raw = String(name);
-        const direct = postseasonLogoMap.get(normalizeBowlName(raw));
-        if (direct) return direct;
-
-        const stripped = raw.replace(/^cfp\s*-\s*/i, "").replace(/^college football playoff\s*-\s*/i, "");
-        const strippedKey = normalizeBowlName(stripped);
-        if (strippedKey && postseasonLogoMap.has(strippedKey)) {
-          return postseasonLogoMap.get(strippedKey) || "";
-        }
-
-        const rawKey = normalizeBowlName(raw);
-        for (const [key, url] of postseasonLogoMap.entries()) {
-          if (rawKey.includes(key) || key.includes(rawKey)) {
-            return url || "";
-          }
-        }
-
-        return "";
-      };
+      const bowlByKey = buildSeasonBowlNameMap(bowlRows);
+      const bowlNameFor = (seasonYearValue, sewnValue, sgnmValue) =>
+        getSeasonBowlName(bowlByKey, seasonYearValue, sewnValue, sgnmValue);
+      const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
 
       // Prefer the most recent season's name for the header (if available)
       const latestYear = availableSeasons[0];

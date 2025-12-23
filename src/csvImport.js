@@ -46,31 +46,34 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   }
 
   // Mandatory set for now (and will remain mandatory)
-  const requiredTypes = ["TEAM", "SCHD", "TSSE", "BOWL"];
+  const requiredTypes = ["TEAM", "SCHD", "TSSE", "BOWL", "COCH"];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(
-      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, and BOWL.`
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, and COCH.`
     );
   }
 
-  const [teamText, schdText, tsseText, bowlText] = await Promise.all([
+  const [teamText, schdText, tsseText, bowlText, cochText] = await Promise.all([
     byType.TEAM.text(),
     byType.SCHD.text(),
     byType.TSSE.text(),
     byType.BOWL.text(),
+    byType.COCH.text(),
   ]);
 
   const teamRows = parseCsvText(teamText);
   const schdRows = parseCsvText(schdText);
   const tsseRows = parseCsvText(tsseText);
   const bowlRows = parseCsvText(bowlText);
+  const cochRows = parseCsvText(cochText);
 
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
   requireColumns(tsseRows, ["TGID"], "TSSE");
   requireColumns(bowlRows, ["SEWN", "SGNM", "BNME"], "BOWL");
+  requireColumns(cochRows, ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO"], "COCH");
 
   const teamSeasons = teamRows.map((r) => ({
     dynastyId,
@@ -163,6 +166,21 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     };
   });
 
+  const coaches = cochRows.map((r) => ({
+    dynastyId,
+    seasonYear: year,
+    ccid: normId(r.CCID),
+    tgid: normId(r.TGID),
+    firstName: String(r.CLFN ?? "").trim(),
+    lastName: String(r.CLLN ?? "").trim(),
+    isUser: Number(String(r.CFUC ?? "").trim()) === 1,
+    hcPrestige: toNumberOrNull(r.CPRE),
+    approval: toNumberOrNull(r.CCPO),
+    storedTeamPrestige: toNumberOrNull(r.CTOP),
+    seasonWins: toNumberOrNull(r.CSWI),
+    seasonLosses: toNumberOrNull(r.CSLO),
+  }));
+
   await db.transaction(
     "rw",
     db.teamSeasons,
@@ -170,6 +188,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.teams,
     db.teamStats,
     db.bowlGames,
+    db.coaches,
     db.dynasties,
     async () => {
       // Overwrite ONLY this season year
@@ -177,12 +196,14 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.games.where({ dynastyId, seasonYear: year }).delete();
       await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
       await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
+      await db.coaches.where({ dynastyId, seasonYear: year }).delete();
 
       await db.teams.bulkPut(teams);
       await db.teamSeasons.bulkPut(teamSeasons);
       await db.games.bulkPut(games);
       await db.teamStats.bulkPut(teamStats);
       await db.bowlGames.bulkPut(bowlGames);
+      await db.coaches.bulkPut(coaches);
 
       // Option A currentYear advance
       const d = await db.dynasties.get(dynastyId);

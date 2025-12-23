@@ -9,6 +9,8 @@ import TeamsIndex from "./pages/TeamsIndex";
 import TeamStats from "./pages/TeamStats";
 import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
+import Coaches from "./pages/Coaches";
+import Coach from "./pages/Coach";
 
 import {
   createDynasty,
@@ -56,7 +58,9 @@ export default function App() {
   const isTeamsPage =
     location.pathname === "/teams" ||
     location.pathname === "/team-stats" ||
-    location.pathname === "/postseason";
+    location.pathname === "/postseason" ||
+    location.pathname === "/coaches" ||
+    location.pathname.startsWith("/coach/");
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -291,6 +295,17 @@ export default function App() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  navigate("/coaches");
+                }}
+                title="Coaches"
+              >
+                <span>Coaches</span>
+              </a>
+
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
                   navigate("/postseason");
                 }}
                 title="Postseason"
@@ -406,6 +421,8 @@ export default function App() {
                 <Route path="/teams" element={<TeamsIndex />} />
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
+                <Route path="/coaches" element={<Coaches />} />
+                <Route path="/coach/:ccid" element={<Coach />} />
                 <Route path="/postseason" element={<Postseason />} />
                 <Route path="/postseason/bowl" element={<BowlResults />} />
                 <Route path="/standings" element={<ConferenceStandings />} />
