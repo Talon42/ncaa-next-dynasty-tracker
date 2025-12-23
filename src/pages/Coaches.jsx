@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getConferenceName } from "../conferences";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -37,6 +38,8 @@ export default function Coaches() {
   const [rows, setRows] = useState([]);
   const [sortKey, setSortKey] = useState("teamName");
   const [sortDir, setSortDir] = useState("asc");
+  const [confFilter, setConfFilter] = useState("All");
+  const [approvalFilter, setApprovalFilter] = useState("All");
 
   useEffect(() => {
     (async () => {
@@ -96,6 +99,8 @@ export default function Coaches() {
         })
       );
 
+      const cgidByTgid = new Map(teamSeasons.map((t) => [String(t.tgid), t.cgid]));
+
       const mapped = coaches.map((c) => {
         const tgid = String(c.tgid ?? "");
         const isNotHired = tgid === "511";
@@ -111,6 +116,7 @@ export default function Coaches() {
           tgid,
           teamName: isNotHired ? "Not Hired" : teamNameByTgid.get(tgid) || `TGID ${tgid}`,
           teamLogo: logoFor(tgid),
+          confName: isNotHired ? "Not Hired" : getConferenceName(cgidByTgid.get(tgid)),
           prestige: c.hcPrestige,
           approval: c.approval,
           isNotHired,
@@ -144,10 +150,30 @@ export default function Coaches() {
     return s ? s.toLowerCase() : null;
   }
 
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (confFilter !== "All" && r.confName !== confFilter) return false;
+      if (approvalFilter !== "All" && approvalLabel(r.approval).text !== approvalFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [rows, confFilter, approvalFilter]);
+
+  const confOptions = useMemo(() => {
+    const uniq = new Set();
+    rows.forEach((r) => {
+      if (r.confName) uniq.add(r.confName);
+    });
+    return Array.from(uniq).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  const approvalOptions = useMemo(() => ["Danger", "Hot Seat", "Warm", "Secure"], []);
+
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
     const key = sortKey;
-    const arr = [...rows];
+    const arr = [...filteredRows];
 
     arr.sort((a, b) => {
       const av =
@@ -194,7 +220,7 @@ export default function Coaches() {
     });
 
     return arr;
-  }, [rows, sortKey, sortDir]);
+  }, [filteredRows, sortKey, sortDir]);
 
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
@@ -240,6 +266,39 @@ export default function Coaches() {
 
   return (
     <div>
+      <div className="hrow">
+        <h2>Coaches</h2>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Conference</span>
+            <select
+              value={confFilter}
+              onChange={(e) => setConfFilter(e.target.value)}
+              disabled={!confOptions.length}
+            >
+              <option value="All">All</option>
+              {confOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Approval</span>
+            <select value={approvalFilter} onChange={(e) => setApprovalFilter(e.target.value)}>
+              <option value="All">All</option>
+              {approvalOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
       {!seasonYear ? <p className="kicker">No seasons uploaded yet.</p> : null}
 
       {!rows.length ? (
@@ -247,7 +306,12 @@ export default function Coaches() {
           No coaches found yet. Import a season via <b>Upload New Season</b>.
         </p>
       ) : (
-        <table className="table">
+        <>
+          {!sortedRows.length ? (
+            <p className="kicker">No coaches match those filters.</p>
+          ) : null}
+
+          <table className="table">
           <thead>
             <tr>
               <th
@@ -323,7 +387,8 @@ export default function Coaches() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </>
       )}
     </div>
   );
