@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { db, getDynasty } from "./db";
+import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 
 function parseCsvText(text) {
@@ -216,6 +217,15 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       }
     }
   );
+
+  try {
+    await ensureCoachQuotesForSeason({
+      dynastyId,
+      coachIds: coaches.map((c) => c.ccid),
+    });
+  } catch {
+    // Coach quotes are optional; don't block imports if the file can't be read.
+  }
 
   // ✅ Silent logo mapping step (no UI required)
   // If the bundled CSV doesn't exist, it does nothing.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getOrCreateCoachQuote } from "../coachQuotes";
 import { db, getActiveDynastyId } from "../db";
 import { loadPostseasonLogoMap } from "../logoService";
 import {
@@ -50,6 +51,7 @@ export default function Coach() {
     prestige: null,
   });
   const [seasonRows, setSeasonRows] = useState([]);
+  const [coachQuote, setCoachQuote] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -74,6 +76,7 @@ export default function Coach() {
     if (!dynastyId || !coachId) {
       setHeader({ name: "", teamName: "", teamLogo: FALLBACK_LOGO, prestige: null });
       setSeasonRows([]);
+      setCoachQuote("");
       return;
     }
 
@@ -190,6 +193,24 @@ export default function Coach() {
     })();
   }, [dynastyId, coachId, postseasonLogoMap]);
 
+  useEffect(() => {
+    if (!dynastyId || !coachId) {
+      setCoachQuote("");
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      const quote = await getOrCreateCoachQuote({ dynastyId, ccid: coachId });
+      if (!alive) return;
+      setCoachQuote(quote);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId, coachId]);
+
   if (!dynastyId) {
     return (
       <div>
@@ -226,6 +247,21 @@ export default function Coach() {
       </h2>
 
       <PrestigeStars value={header.prestige} />
+      {coachQuote ? (
+        <p
+          className="kicker"
+          style={{
+            textAlign: "center",
+            marginTop: 0,
+            marginBottom: 16,
+            fontSize: 16,
+            fontStyle: "italic",
+            opacity: 0.75,
+          }}
+        >
+          "{coachQuote}"
+        </p>
+      ) : null}
 
       <div className="hrow" style={{ alignItems: "flex-start" }}>
         <div>
