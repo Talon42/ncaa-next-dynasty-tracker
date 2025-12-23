@@ -321,6 +321,22 @@ button:disabled {
   line-height: 1.45;
 }
 
+.postseasonMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.postseasonMeta img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
 .hrow {
   display: flex;
   align-items: center;

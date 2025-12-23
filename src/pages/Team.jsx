@@ -530,70 +530,49 @@ useEffect(() => {
                 </thead>
                 <tbody>
                   {sec.rows.map((r, idx) => (
-                    <Fragment key={`${sec.seasonYear}-${r.week}-${idx}`}>
-                      {r.bowlName ? (
-                        <tr>
-                          <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                              {r.bowlLogoUrl ? (
-                                <img
-                                  src={r.bowlLogoUrl}
-                                  alt=""
-                                  style={{ width: 28, height: 28, objectFit: "contain" }}
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : null}
-                              <span>{r.bowlName}</span>
-                              {r.bowlLogoUrl ? (
-                                <img
-                                  src={r.bowlLogoUrl}
-                                  alt=""
-                                  style={{ width: 28, height: 28, objectFit: "contain" }}
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
-                      <tr>
-                        <td>{r.week}</td>
-                        <td>
-                          {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span
-                              style={{
-                                width: 22,
-                                textAlign: "center",
-                                fontWeight: 800,
-                                opacity: 0.9,
-                              }}
-                              title={r.isHome ? "Home game" : "Away game"}
-                            >
-                              {r.isHome ? "vs" : "@"}
-                            </span>
-
-                            <Link
-                              to={`/team/${r.oppTgid}`}
-                              style={{
-                                color: "inherit",
-                                textDecoration: "none",
-                                display: "inline-block",
-                              }}
-                              title="View opponent team page"
-                            >
-                              <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                            </Link>
+                    <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
+                      <td>{r.week}</td>
+                      <td>
+                        {r.bowlName ? (
+                          <div className="postseasonMeta">
+                            {r.bowlLogoUrl ? (
+                              <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                            ) : null}
+                            <span>{r.bowlName}</span>
                           </div>
-                        </td>
-                        <td>
-                          <OutcomeBadge outcome={r.outcome} />
-                          {r.result}
-                        </td>
-                      </tr>
-                    </Fragment>
+                        ) : null}
+                        {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span
+                            style={{
+                              width: 22,
+                              textAlign: "center",
+                              fontWeight: 800,
+                              opacity: 0.9,
+                            }}
+                            title={r.isHome ? "Home game" : "Away game"}
+                          >
+                            {r.isHome ? "vs" : "@"}
+                          </span>
+
+                          <Link
+                            to={`/team/${r.oppTgid}`}
+                            style={{
+                              color: "inherit",
+                              textDecoration: "none",
+                              display: "inline-block",
+                            }}
+                            title="View opponent team page"
+                          >
+                            <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                          </Link>
+                        </div>
+                      </td>
+                      <td>
+                        <OutcomeBadge outcome={r.outcome} />
+                        {r.result}
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -611,70 +590,49 @@ useEffect(() => {
           </thead>
           <tbody>
             {rows.map((r, idx) => (
-              <Fragment key={`${r.week}-${idx}`}>
-                {r.bowlName ? (
-                  <tr>
-                    <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                        {r.bowlLogoUrl ? (
-                          <img
-                            src={r.bowlLogoUrl}
-                            alt=""
-                            style={{ width: 28, height: 28, objectFit: "contain" }}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : null}
-                        <span>{r.bowlName}</span>
-                        {r.bowlLogoUrl ? (
-                          <img
-                            src={r.bowlLogoUrl}
-                            alt=""
-                            style={{ width: 28, height: 28, objectFit: "contain" }}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ) : null}
-                <tr>
-                  <td>{r.week}</td>
-                  <td>
-                    {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span
-                        style={{
-                          width: 22,
-                          textAlign: "center",
-                          fontWeight: 800,
-                          opacity: 0.9,
-                        }}
-                        title={r.isHome ? "Home game" : "Away game"}
-                      >
-                        {r.isHome ? "vs" : "@"}
-                      </span>
-
-                      <Link
-                        to={`/team/${r.oppTgid}`}
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                          display: "inline-block",
-                        }}
-                        title="View opponent team page"
-                      >
-                        <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                      </Link>
+              <tr key={`${r.week}-${idx}`}>
+                <td>{r.week}</td>
+                <td>
+                  {r.bowlName ? (
+                    <div className="postseasonMeta">
+                      {r.bowlLogoUrl ? (
+                        <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : null}
+                      <span>{r.bowlName}</span>
                     </div>
-                  </td>
-                  <td>
-                    <OutcomeBadge outcome={r.outcome} />
-                    {r.result}
-                  </td>
-                </tr>
-              </Fragment>
+                  ) : null}
+                  {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 22,
+                        textAlign: "center",
+                        fontWeight: 800,
+                        opacity: 0.9,
+                      }}
+                      title={r.isHome ? "Home game" : "Away game"}
+                    >
+                      {r.isHome ? "vs" : "@"}
+                    </span>
+
+                    <Link
+                      to={`/team/${r.oppTgid}`}
+                      style={{
+                        color: "inherit",
+                        textDecoration: "none",
+                        display: "inline-block",
+                      }}
+                      title="View opponent team page"
+                    >
+                      <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                    </Link>
+                  </div>
+                </td>
+                <td>
+                  <OutcomeBadge outcome={r.outcome} />
+                  {r.result}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
