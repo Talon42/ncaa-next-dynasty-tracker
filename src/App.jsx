@@ -18,6 +18,12 @@ import {
   listDynasties,
   setActiveDynastyId,
 } from "./db";
+import {
+  exportDatabase,
+  getImportPreview,
+  importDatabase,
+  validateBackupPayload,
+} from "./backup";
 
 function Modal({ title, children }) {
   return (
@@ -68,6 +74,13 @@ export default function App() {
   const [selectedDynasty, setSelectedDynasty] = useState(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [importPayload, setImportPayload] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importErr, setImportErr] = useState("");
+  const [importStatus, setImportStatus] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
 
   async function refresh() {
     const list = await listDynasties();
@@ -128,6 +141,82 @@ export default function App() {
     await refresh();
     navigate("/");
     window.location.reload();
+  }
+
+  function resetImportState() {
+    setImportPayload(null);
+    setImportPreview(null);
+    setImportErr("");
+    setImportStatus("");
+    setImportBusy(false);
+    setImportFileName("");
+  }
+
+  async function onExportDatabase() {
+    setImportErr("");
+    setImportStatus("");
+    try {
+      const payload = await exportDatabase();
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dynasty-tracker-backup-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setImportStatus("Export complete.");
+    } catch (e) {
+      setImportErr(e?.message || String(e));
+    }
+  }
+
+  async function onSelectBackupFile(e) {
+    const file = e.target.files?.[0] || null;
+    resetImportState();
+    if (!file) return;
+    setImportFileName(file.name);
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const validation = validateBackupPayload(payload);
+      if (!validation.ok) {
+        setImportErr(validation.error);
+        return;
+      }
+      const preview = await getImportPreview(payload);
+      if (preview.idConflicts.length) {
+        setImportErr("Backup conflicts with existing dynasty IDs.");
+        setImportPreview(preview);
+        return;
+      }
+      setImportPayload(payload);
+      setImportPreview(preview);
+    } catch (err) {
+      setImportErr(err?.message || "Unable to read backup file.");
+    }
+  }
+
+  async function onImportDatabase() {
+    if (!importPayload) return;
+    setImportErr("");
+    setImportStatus("");
+    setImportBusy(true);
+    try {
+      await importDatabase(importPayload);
+      await refresh();
+      setShowBackupModal(false);
+      resetImportState();
+      navigate("/");
+      window.location.reload();
+    } catch (e) {
+      setImportErr(e?.message || String(e));
+      setImportBusy(false);
+    }
   }
 
 
@@ -239,6 +328,17 @@ export default function App() {
                   style={{ width: "100%", marginBottom: 10 }}
                 >
                   + New Dynasty
+                </button>
+
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
+                    resetImportState();
+                    setShowBackupModal(true);
+                  }}
+                  style={{ width: "100%", marginBottom: 10 }}
+                >
+                  Import / Export
                 </button>
 
                 <div className="sideNav">
@@ -407,6 +507,92 @@ export default function App() {
             <button className="danger" onClick={confirmDeleteDynasty}>
               Yes, delete
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Backup Modal */}
+      {showBackupModal && (
+        <Modal title="Import / Export">
+          <div className="importModal backupModal">
+            <div className="backupSection">
+              <h3 style={{ marginTop: 0 }}>Export Database</h3>
+              <p className="kicker importDescription">
+                Exports the entire local database to one file.
+              </p>
+              <div className="importActions">
+                <button className="primary" onClick={onExportDatabase}>
+                  Export Database
+                </button>
+              </div>
+            </div>
+
+            <div className="backupDivider" />
+
+            <div className="backupSection">
+              <h3 style={{ marginTop: 0 }}>Import Database</h3>
+              <p className="kicker importDescription">
+                Only Dynasties with matching names will be overwritten.
+              </p>
+
+              <div className="backupFilePicker">
+                <input
+                  id="backupFileInput"
+                  className="backupFileInput"
+                  type="file"
+                  accept=".json"
+                  onChange={onSelectBackupFile}
+                />
+                <label className="fileButton" htmlFor="backupFileInput">
+                  Choose Backup File
+                </label>
+                <div className="backupFileName">
+                  {importFileName ? importFileName : "No file chosen"}
+                </div>
+              </div>
+
+              {importPreview ? (
+                <div className="backupPreview">
+                  <div className="kicker">Dynasties in file: {importPreview.totalDynasties}</div>
+                  <div className="kicker">
+                    Will overwrite:{" "}
+                    {importPreview.overwriteNames.length
+                      ? importPreview.overwriteNames.join(", ")
+                      : "None"}
+                  </div>
+                  <div className="kicker">
+                    Will add:{" "}
+                    {importPreview.addNames.length ? importPreview.addNames.join(", ") : "None"}
+                  </div>
+                </div>
+              ) : null}
+
+              {importErr ? (
+                <div className="kicker backupError">{importErr}</div>
+              ) : null}
+
+              {importStatus ? (
+                <div className="kicker backupStatus">{importStatus}</div>
+              ) : null}
+
+              <div className="importActions">
+                <button
+                  onClick={() => {
+                    setShowBackupModal(false);
+                    resetImportState();
+                  }}
+                >
+                  Close
+                </button>
+                <button
+                  className="primary"
+                  onClick={onImportDatabase}
+                  disabled={!importPayload || importBusy}
+                >
+                  Import Database
+                </button>
+              </div>
+            </div>
           </div>
         </Modal>
       )}
