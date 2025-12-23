@@ -99,17 +99,24 @@ export default function Coaches() {
       const mapped = coaches.map((c) => {
         const tgid = String(c.tgid ?? "");
         const isNotHired = tgid === "511";
+        const wins = Number(c.careerWins);
+        const losses = Number(c.careerLosses);
+        const hasWins = Number.isFinite(wins);
+        const hasLosses = Number.isFinite(losses);
+        const total = hasWins && hasLosses ? wins + losses : null;
+        const winPct = total != null && total > 0 ? wins / total : null;
         return {
           ccid: String(c.ccid ?? ""),
           name: `${String(c.firstName ?? "").trim()} ${String(c.lastName ?? "").trim()}`.trim(),
           tgid,
           teamName: isNotHired ? "Not Hired" : teamNameByTgid.get(tgid) || `TGID ${tgid}`,
           teamLogo: logoFor(tgid),
-          isUser: c.isUser ? "User" : "CPU",
-          isUserValue: c.isUser ? 1 : 0,
           prestige: c.hcPrestige,
           approval: c.approval,
           isNotHired,
+          careerWins: hasWins ? wins : null,
+          careerLosses: hasLosses ? losses : null,
+          winPct,
         };
       });
 
@@ -148,25 +155,29 @@ export default function Coaches() {
           ? a.name
           : key === "teamName"
             ? a.teamName
-            : key === "isUser"
-              ? a.isUserValue
-              : key === "prestige"
-                ? a.prestige
-                : key === "approval"
-                  ? a.approval
-                  : a.name;
+            : key === "record"
+              ? a.careerWins
+              : key === "winPct"
+                ? a.winPct
+                : key === "prestige"
+                  ? a.prestige
+                  : key === "approval"
+                    ? a.approval
+                    : a.name;
       const bv =
         key === "coachName"
           ? b.name
           : key === "teamName"
             ? b.teamName
-            : key === "isUser"
-              ? b.isUserValue
-              : key === "prestige"
-                ? b.prestige
-                : key === "approval"
-                  ? b.approval
-                  : b.name;
+            : key === "record"
+              ? b.careerWins
+              : key === "winPct"
+                ? b.winPct
+                : key === "prestige"
+                  ? b.prestige
+                  : key === "approval"
+                    ? b.approval
+                    : b.name;
 
       const ca = toComparable(av);
       const cb = toComparable(bv);
@@ -208,6 +219,17 @@ export default function Coaches() {
     return { text: "Secure", color: "#2f9b4f" };
   }
 
+  function recordLabel(wins, losses) {
+    if (!Number.isFinite(wins) || !Number.isFinite(losses)) return "-";
+    return `(${wins}-${losses})`;
+  }
+
+  function winPctLabel(value) {
+    if (!Number.isFinite(value)) return "-";
+    const raw = value.toFixed(3);
+    return raw.startsWith("0") ? raw.slice(1) : raw;
+  }
+
   if (!dynastyId) {
     return (
       <div>
@@ -243,11 +265,18 @@ export default function Coaches() {
                 Team{sortIndicator("teamName")}
               </th>
               <th
-                onClick={() => clickSort("isUser")}
-                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                onClick={() => clickSort("record")}
+                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
               >
-                User{sortIndicator("isUser")}
+                Record{sortIndicator("record")}
+              </th>
+              <th
+                onClick={() => clickSort("winPct")}
+                style={{ width: 120, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+              >
+                Win%{sortIndicator("winPct")}
               </th>
               <th
                 onClick={() => clickSort("prestige")}
@@ -282,7 +311,8 @@ export default function Coaches() {
                     </Link>
                   )}
                 </td>
-                <td>{r.isUser}</td>
+                <td>{recordLabel(r.careerWins, r.careerLosses)}</td>
+                <td>{winPctLabel(r.winPct)}</td>
                 <td>{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
                 <td>
                   {(() => {

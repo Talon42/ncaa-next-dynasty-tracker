@@ -179,6 +179,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     storedTeamPrestige: toNumberOrNull(r.CTOP),
     seasonWins: toNumberOrNull(r.CSWI),
     seasonLosses: toNumberOrNull(r.CSLO),
+    careerWins: toNumberOrNull(r.CCWI ?? r.ccwi),
+    careerLosses: toNumberOrNull(r.CCLO ?? r.cclo),
   }));
 
   await db.transaction(
