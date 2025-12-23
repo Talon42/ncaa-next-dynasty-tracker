@@ -136,9 +136,21 @@ export default function Postseason() {
       const allGames = await db.games.where({ dynastyId }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
-      setSeasonYear(years[0] ?? "");
+      const saved = sessionStorage.getItem("seasonFilterYear");
+      const savedNum = saved != null ? Number(saved) : null;
+      if (savedNum != null && Number.isFinite(savedNum) && years.includes(savedNum)) {
+        setSeasonYear(String(savedNum));
+      } else {
+        setSeasonYear(years[0] ?? "");
+      }
     })();
   }, [dynastyId]);
+
+  useEffect(() => {
+    if (seasonYear !== "") {
+      sessionStorage.setItem("seasonFilterYear", String(seasonYear));
+    }
+  }, [seasonYear]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {

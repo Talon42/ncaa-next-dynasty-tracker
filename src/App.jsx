@@ -463,13 +463,28 @@ export default function App() {
               setShowImportSeason(false);
               setPendingFirstDynastyId(null);
             }}
-            onImported={async () => {
+            onImported={async (result) => {
               setShowImportSeason(false);
               if (pendingFirstDynastyId) {
                 await loadDynasty(pendingFirstDynastyId);
                 setPendingFirstDynastyId(null);
               }
-              navigate(`/?ts=${Date.now()}`);
+              const importedSeasons = Array.isArray(result?.seasons) ? result.seasons : null;
+              const latestImported =
+                importedSeasons && importedSeasons.length
+                  ? Math.max(...importedSeasons.map((s) => Number(s.seasonYear)).filter(Number.isFinite))
+                  : Number.isFinite(Number(result?.seasonYear))
+                    ? Number(result.seasonYear)
+                    : null;
+
+              if (latestImported != null) {
+                const params = new URLSearchParams();
+                params.set("season", String(latestImported));
+                params.set("ts", String(Date.now()));
+                navigate({ pathname: "/", search: `?${params.toString()}` });
+              } else {
+                navigate(`/?ts=${Date.now()}`);
+              }
             }}
           />
         </Modal>

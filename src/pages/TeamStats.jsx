@@ -148,7 +148,18 @@ export default function TeamStats() {
 
     if (season != null) {
       const n = Number(season);
-      if (Number.isFinite(n)) setSeasonYear(n);
+      if (Number.isFinite(n)) {
+        setSeasonYear(n);
+        sessionStorage.setItem("seasonFilterYear", String(n));
+      } else {
+        const saved = sessionStorage.getItem("seasonFilterYear");
+        const savedNum = saved != null ? Number(saved) : null;
+        if (savedNum != null && Number.isFinite(savedNum)) setSeasonYear(savedNum);
+      }
+    } else {
+      const saved = sessionStorage.getItem("seasonFilterYear");
+      const savedNum = saved != null ? Number(saved) : null;
+      if (savedNum != null && Number.isFinite(savedNum)) setSeasonYear(savedNum);
     }
     if (tabParam && TAB_ORDER.includes(tabParam)) setTab(tabParam);
     if (sort) setSortKey(sort);
@@ -185,7 +196,13 @@ export default function TeamStats() {
       ).sort((a, b) => b - a);
 
       setAvailableYears(years);
-      setSeasonYear((cur) => (cur == null ? years[0] ?? null : cur));
+      setSeasonYear((cur) => {
+        if (cur != null) return cur;
+        const saved = sessionStorage.getItem("seasonFilterYear");
+        const savedNum = saved != null ? Number(saved) : null;
+        if (savedNum != null && Number.isFinite(savedNum) && years.includes(savedNum)) return savedNum;
+        return years[0] ?? null;
+      });
       setLoading(false);
     })();
 
@@ -201,6 +218,7 @@ export default function TeamStats() {
     params.set("tab", tab);
     params.set("sort", sortKey);
     params.set("dir", sortDir);
+    sessionStorage.setItem("seasonFilterYear", String(seasonYear));
     navigate({ pathname: "/team-stats", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, seasonYear, tab, sortKey, sortDir, navigate, location.search]);
 

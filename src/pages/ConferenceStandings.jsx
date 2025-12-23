@@ -95,7 +95,13 @@ export default function ConferenceStandings() {
     const conf = params.get("conf");
     const seasonParam = params.get("season");
     if (conf) setCgid(conf);
-    if (seasonParam) setSeason(seasonParam);
+    if (seasonParam) {
+      setSeason(seasonParam);
+      sessionStorage.setItem("seasonFilterYear", String(seasonParam));
+    } else {
+      const saved = sessionStorage.getItem("seasonFilterYear");
+      if (saved != null) setSeason(saved);
+    }
   }, [location.search]);
   /* -------------------------------------------------- */
   /* Active dynasty                                     */
@@ -165,7 +171,11 @@ useEffect(() => {
       if (!alive) return;
       setSeasons(list);
 
-      if (!season && list.length) setSeason(list[0].key);
+      if (!season && list.length) {
+        const saved = sessionStorage.getItem("seasonFilterYear");
+        const savedValid = saved && list.some((s) => s.key === saved);
+        setSeason(savedValid ? saved : list[0].key);
+      }
     })();
 
     return () => {
@@ -179,6 +189,7 @@ useEffect(() => {
     const params = new URLSearchParams(location.search);
     params.set("season", season);
     params.set("conf", cgid);
+    sessionStorage.setItem("seasonFilterYear", String(season));
     navigate({ pathname: "/standings", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, season, cgid, navigate, location.search]);
 

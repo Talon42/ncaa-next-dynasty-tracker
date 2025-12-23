@@ -185,6 +185,8 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
       const result = await importSeasonBatch({ dynastyId, seasonYear: yearNum, files: filesToUse });
       await refreshExistingYears();
       setStatus(`Imported ${result.seasonYear}: ${result.teams} teams, ${result.games} games`);
+      sessionStorage.setItem("seasonUploadComplete", String(Date.now()));
+      sessionStorage.setItem("seasonUploadLatest", String(result.seasonYear));
       setTimeout(() => {
         if (onImported) {
           onImported(result);
@@ -218,6 +220,13 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
           .map((r) => r.seasonYear)
           .join(", ")}`
       );
+      sessionStorage.setItem("seasonUploadComplete", String(Date.now()));
+      if (results.length) {
+        const latestImported = Math.max(...results.map((r) => Number(r.seasonYear)).filter(Number.isFinite));
+        if (Number.isFinite(latestImported)) {
+          sessionStorage.setItem("seasonUploadLatest", String(latestImported));
+        }
+      }
       setTimeout(() => {
         if (onImported) {
           onImported({ seasons: results });

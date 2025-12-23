@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 
@@ -36,6 +36,7 @@ export default function Home() {
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
+  const latestSeasonRef = useRef(null);
 
   const [availableWeeks, setAvailableWeeks] = useState([]);
   const [weekFilter, setWeekFilter] = useState("All");
@@ -53,14 +54,30 @@ export default function Home() {
     const params = new URLSearchParams(location.search);
     const season = params.get("season");
     const week = params.get("week");
-    if (season != null) setSeasonYear(season);
+    const hasUploadFlag = Boolean(sessionStorage.getItem("seasonUploadComplete"));
+
+    if (!hasUploadFlag && season != null) {
+      setSeasonYear(season);
+      sessionStorage.setItem("seasonFilterYear", String(season));
+    } else if (!hasUploadFlag && season == null) {
+      const saved = sessionStorage.getItem("seasonFilterYear");
+      if (saved != null) setSeasonYear(saved);
+    }
+
     if (week != null) setWeekFilter(week);
   }, [location.search]);
 
   useEffect(() => {
     if (!dynastyId) return;
+    const hasUploadFlag = Boolean(
+      sessionStorage.getItem("seasonUploadComplete") || sessionStorage.getItem("seasonUploadLatest")
+    );
+    if (hasUploadFlag) return;
     const params = new URLSearchParams(location.search);
-    if (seasonYear !== "") params.set("season", seasonYear);
+    if (seasonYear !== "") {
+      params.set("season", seasonYear);
+      sessionStorage.setItem("seasonFilterYear", String(seasonYear));
+    }
     if (weekFilter) params.set("week", weekFilter);
     navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, seasonYear, weekFilter, navigate, location.search]);
@@ -69,6 +86,7 @@ export default function Home() {
     if (!dynastyId) {
       setAvailableSeasons([]);
       setSeasonYear("");
+      latestSeasonRef.current = null;
       return;
     }
 
@@ -77,18 +95,32 @@ export default function Home() {
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
 
-      const params = new URLSearchParams(location.search);
-      const paramSeason = params.get("season");
-      const paramYearNum = paramSeason ? Number(paramSeason) : null;
-      const hasParamYear = paramYearNum != null && Number.isFinite(paramYearNum);
-      const shouldDefault = hasParamYear
-        ? !years.includes(paramYearNum)
-        : seasonYear === "" || !years.includes(Number(seasonYear));
-      if (shouldDefault) {
-        setSeasonYear(years[0] ?? "");
+      const latest = years[0] ?? null;
+      const prevLatest = latestSeasonRef.current;
+      const hasNewLatest = latest != null && prevLatest != null && latest > prevLatest;
+      const hasUploadFlag = Boolean(sessionStorage.getItem("seasonUploadComplete"));
+      const uploadLatestRaw = sessionStorage.getItem("seasonUploadLatest");
+      const uploadLatest = uploadLatestRaw ? Number(uploadLatestRaw) : null;
+      const hasUploadLatest = uploadLatest != null && Number.isFinite(uploadLatest) && years.includes(uploadLatest);
+
+      if (hasUploadLatest) {
+        const nextSeason = String(uploadLatest);
+        setSeasonYear(nextSeason);
+        const params = new URLSearchParams(location.search);
+        params.set("season", nextSeason);
+        navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
+        sessionStorage.removeItem("seasonUploadLatest");
+        sessionStorage.removeItem("seasonUploadComplete");
+      } else if (hasUploadFlag || hasNewLatest) {
+        setSeasonYear(String(latest));
+        sessionStorage.removeItem("seasonUploadComplete");
+      } else if (seasonYear === "" || !years.includes(Number(seasonYear))) {
+        setSeasonYear(latest != null ? String(latest) : "");
       }
+
+      latestSeasonRef.current = latest;
     })();
-  }, [dynastyId, location.search, seasonYear]);
+  }, [dynastyId, location.search, seasonYear, navigate]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
