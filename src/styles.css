@@ -287,6 +287,89 @@ button:disabled {
   transform: none !important;
 }
 
+.fileButton {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.fileButton:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.fileButton:active {
+  transform: translateY(0);
+}
+
+.importModal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.importField {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  align-items: center;
+}
+
+.importField input[type="number"] {
+  width: 100%;
+  text-align: center;
+}
+
+.importFilesMeta {
+  width: 100%;
+}
+
+.importFilesList {
+  margin-top: 8px;
+  max-height: 120px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px 10px;
+}
+
+.importFileName {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.importActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 2px;
+}
+
 /* Tables */
 .table {
   width: 100%;

@@ -21,7 +21,7 @@ function Modal({ title, children }) {
   return (
     <div className="modalOverlay">
       <div className="card" style={{ width: "100%", maxWidth: 560 }}>
-        <h2 style={{ margin: 0, marginBottom: 8 }}>{title}</h2>
+        <h2 style={{ margin: 0, marginBottom: 8, textAlign: "center" }}>{title}</h2>
         <div style={{ marginTop: 4 }}>{children}</div>
       </div>
     </div>
@@ -58,6 +58,7 @@ export default function App() {
   const [newName, setNewName] = useState("");
   const [newStartYear, setNewStartYear] = useState(2025);
   const [newErr, setNewErr] = useState("");
+  const [showImportSeason, setShowImportSeason] = useState(false);
 
   const [showDynastyActions, setShowDynastyActions] = useState(false);
   const [selectedDynasty, setSelectedDynasty] = useState(null);
@@ -239,7 +240,7 @@ export default function App() {
 
                       <button
                         className="primary"
-                        onClick={() => navigate("/import")}
+                        onClick={() => setShowImportSeason(true)}
                         style={{ width: "100%", marginTop: 6, marginBottom: 6 }}
                         disabled={!activeId}
                       >
@@ -289,34 +290,47 @@ export default function App() {
       {/* New Dynasty Modal */}
       {showNewDynasty && (
         <Modal title="Create New Dynasty">
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
               <span style={{ display: "inline-block", marginBottom: 6 }}>Dynasty Name</span>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g., My Dynasty"
+                style={{ width: 220 }}
               />
             </label>
 
-            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
               <span style={{ display: "inline-block", marginBottom: 6 }}>Starting Year</span>
               <input
                 type="number"
                 value={newStartYear}
                 onChange={(e) => setNewStartYear(Number(e.target.value))}
+                style={{ width: 140 }}
               />
             </label>
 
             {newErr && <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>}
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
               <button className="primary" onClick={onCreateDynasty}>
                 Create Dynasty
               </button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Upload Season Modal */}
+      {showImportSeason && (
+        <Modal title="Upload New Season">
+          <ImportSeason
+            inline
+            onClose={() => setShowImportSeason(false)}
+            onImported={() => setShowImportSeason(false)}
+          />
         </Modal>
       )}
 

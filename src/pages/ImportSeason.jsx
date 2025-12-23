@@ -45,7 +45,7 @@ function Modal({ title, children, onCancel, onConfirm, confirmText }) {
   );
 }
 
-export default function ImportSeason() {
+export default function ImportSeason({ inline = false, onClose, onImported } = {}) {
   const navigate = useNavigate();
 
   const [dynastyId, setDynastyId] = useState(null);
@@ -114,7 +114,13 @@ export default function ImportSeason() {
       const result = await importSeasonBatch({ dynastyId, seasonYear: yearNum, files: filesToUse });
       await refreshExistingYears();
       setStatus(`Imported ${result.seasonYear}: ${result.teams} teams, ${result.games} games`);
-      setTimeout(() => navigate("/"), 400);
+      setTimeout(() => {
+        if (onImported) {
+          onImported(result);
+          return;
+        }
+        navigate("/");
+      }, 400);
     } catch (err) {
       setStatus(err && err.message ? err.message : String(err));
     } finally {
@@ -170,16 +176,16 @@ export default function ImportSeason() {
 
   return (
     <div>
-      <div className="hrow">
-        <div>
-          <h2>Import Season</h2>
-          {dynastyName ? <p className="kicker">Dynasty: {dynastyName}</p> : <p className="kicker">No dynasty loaded.</p>}
-        </div>
-      </div>
-
-      {dynastyId ? (
-        <div style={{ marginBottom: 10 }}>
-          <b>Existing seasons:</b> {existingYearsLabel}
+      {!inline ? (
+        <div className="hrow">
+          <div>
+            <h2>Import Season</h2>
+            {dynastyName ? (
+              <p className="kicker">Dynasty: {dynastyName}</p>
+            ) : (
+              <p className="kicker">No dynasty loaded.</p>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -189,37 +195,68 @@ export default function ImportSeason() {
         </div>
       ) : null}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="importModal">
+        <label className="importField">
           <span>Season Year</span>
-          <input type="number" value={seasonYear} onChange={(e) => setSeasonYear(e.target.value)} style={{ width: 120 }} disabled={busy} />
+          <input
+            type="number"
+            value={seasonYear}
+            onChange={(e) => setSeasonYear(e.target.value)}
+            disabled={busy}
+          />
         </label>
 
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <label className="importField">
           <span>CSV Files</span>
-          <input type="file" accept=".csv,text/csv" multiple onChange={onPickFiles} disabled={busy} />
+          <input
+            id="importFiles"
+            type="file"
+            accept=".csv,text/csv"
+            multiple
+            onChange={onPickFiles}
+            disabled={busy}
+            style={{ display: "none" }}
+          />
+          <label htmlFor="importFiles" className="fileButton">
+            {files.length ? `Choose Files (${files.length})` : "Choose Files"}
+          </label>
+
+          <div className="importFilesMeta">
+            {files.length ? (
+              <>
+                <div className="kicker">Selected: {files.length} file{files.length === 1 ? "" : "s"}</div>
+                <div className="importFilesList">
+                  {files.map((f) => (
+                    <div key={f.name} className="importFileName">
+                      {f.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="kicker">No files selected yet.</div>
+            )}
+          </div>
         </label>
 
-        <button className="primary" onClick={onImportClicked} disabled={busy}>
-          {busy ? "Importing..." : willOverwrite ? "Overwrite Season" : "Import Season"}
-        </button>
+        <div className="importActions">
+          <button
+            onClick={() => {
+              if (onClose) {
+                onClose();
+                return;
+              }
+              navigate("/");
+            }}
+            disabled={busy}
+          >
+            Cancel
+          </button>
 
-        <button onClick={() => navigate("/")} disabled={busy}>
-          Cancel
-        </button>
-      </div>
-
-      <div>
-        <h3 style={{ marginBottom: 6 }}>Selected files</h3>
-        {files.length ? (
-          <ul>
-            {files.map((f) => (
-              <li key={f.name}>{f.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No files selected yet.</p>
-        )}
+          <button className="primary" onClick={onImportClicked} disabled={busy}>
+            {busy ? "Importing..." : willOverwrite ? "Overwrite Season" : "Import Season"}
+          </button>
+        </div>
       </div>
 
       {status ? (
