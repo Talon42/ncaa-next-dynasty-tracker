@@ -7,11 +7,21 @@
 - If behavior changes, explain what changed and why
 
 ## Code Changes
-- Prefer shared services/components over duplicated logic
+- Prefer centralized helpers when the same logic appears in 2+ places (parsing URL params, persistence, formatting, validation, etc.).
 - Standardize existing patterns instead of introducing parallel ones
 - Do not delete code unless it is clearly unused or confirmed safe
 - Ask before making large structural or architectural changes
 - For non-trivial tasks, briefly outline the planned approach before making code changes
+
+## Shared helpers / DRY
+- Prefer centralized helpers when the same logic appears in 2+ places (parsing URL params, persistence, formatting, validation, etc.).
+- Before adding new per-page logic, search for an existing helper in `src/` and reuse it if it fits.
+- If you create a helper, keep it:
+  - Small and focused (single responsibility)
+  - Pure where possible (separate read/write side effects from selection logic)
+  - Named and placed consistently (e.g., `src/seasonFilter.js` for season filter behavior)
+- When updating behavior, refactor existing callers to use the helper (don’t leave mixed patterns).
+- Avoid helpers that hide important side effects; document any storage/URL mutations in the helper’s header comment.
 
 ## UI & Styling
 - Preserve existing UI, layout, and CSS unless explicitly asked
