@@ -21,8 +21,8 @@ function Modal({ title, children }) {
   return (
     <div className="modalOverlay">
       <div className="card" style={{ width: "100%", maxWidth: 560 }}>
-        <h2 style={{ margin: 0 }}>{title}</h2>
-        <div style={{ marginTop: 12 }}>{children}</div>
+        <h2 style={{ margin: 0, marginBottom: 8 }}>{title}</h2>
+        <div style={{ marginTop: 4 }}>{children}</div>
       </div>
     </div>
   );
@@ -289,9 +289,9 @@ export default function App() {
       {/* New Dynasty Modal */}
       {showNewDynasty && (
         <Modal title="Create New Dynasty">
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <label>
-              <span>Dynasty Name</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ display: "inline-block", marginBottom: 6 }}>Dynasty Name</span>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -299,8 +299,8 @@ export default function App() {
               />
             </label>
 
-            <label>
-              <span>Starting Year</span>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ display: "inline-block", marginBottom: 6 }}>Starting Year</span>
               <input
                 type="number"
                 value={newStartYear}
