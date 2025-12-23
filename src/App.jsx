@@ -8,9 +8,11 @@ import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
 import TeamStats from "./pages/TeamStats";
 import Postseason from "./pages/Postseason";
+import BowlResults from "./pages/BowlResults";
 
 import {
   createDynasty,
+  db,
   deleteDynasty,
   getActiveDynastyId,
   listDynasties,
@@ -59,6 +61,8 @@ export default function App() {
   const [newStartYear, setNewStartYear] = useState(2025);
   const [newErr, setNewErr] = useState("");
   const [showImportSeason, setShowImportSeason] = useState(false);
+  const [pendingFirstDynastyId, setPendingFirstDynastyId] = useState(null);
+  const [hasAnySeasons, setHasAnySeasons] = useState(false);
 
   const [showDynastyActions, setShowDynastyActions] = useState(false);
   const [selectedDynasty, setSelectedDynasty] = useState(null);
@@ -70,11 +74,21 @@ export default function App() {
     setDynasties(list);
     const id = await getActiveDynastyId();
     setActiveId(id);
+    const gamesCount = await db.games.count();
+    setHasAnySeasons(gamesCount > 0);
   }
 
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    if (dynasties.length === 0) {
+      setShowNewDynasty(true);
+      return;
+    }
+    setShowNewDynasty(false);
+  }, [dynasties.length]);
 
   const activeDynasty = useMemo(
     () => dynasties.find((d) => d.id === activeId) || null,
@@ -116,14 +130,21 @@ export default function App() {
     window.location.reload();
   }
 
+
   async function onCreateDynasty() {
     setNewErr("");
     try {
+      const isFirstDynasty = dynasties.length === 0;
       const d = await createDynasty({ name: newName, startYear: newStartYear });
       setShowNewDynasty(false);
       setNewName("");
       setNewStartYear(2025);
       await refresh();
+      if (isFirstDynasty) {
+        setPendingFirstDynastyId(d.id);
+        setShowImportSeason(true);
+        return;
+      }
       await loadDynasty(d.id);
     } catch (e) {
       setNewErr(e?.message || String(e));
@@ -228,6 +249,10 @@ export default function App() {
                         className="active"
                         onClick={(e) => {
                           e.preventDefault();
+                          if (dynasties.length === 1) {
+                            openDynastyActions(activeDynasty);
+                            return;
+                          }
                           setShowDynastyActions(false);
                           setSelectedDynasty(null);
                           navigate("/");
@@ -268,9 +293,9 @@ export default function App() {
         </aside>
 
         <main className="main">
-          {dynasties.length === 0 ? (
+          {dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
-          ) : (
+          ) : dynasties.length === 0 ? null : (
             <div className={`card routedCard ${isTeamsPage ? "cardWide" : ""}`}>
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -278,6 +303,7 @@ export default function App() {
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
                 <Route path="/postseason" element={<Postseason />} />
+                <Route path="/postseason/bowl" element={<BowlResults />} />
                 <Route path="/standings" element={<ConferenceStandings />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
@@ -290,31 +316,31 @@ export default function App() {
       {/* New Dynasty Modal */}
       {showNewDynasty && (
         <Modal title="Create New Dynasty">
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center", textAlign: "center" }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-              <span style={{ display: "inline-block", marginBottom: 6 }}>Dynasty Name</span>
+          <div className="importModal">
+            <label className="importField">
+              <span>Dynasty Name</span>
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g., My Dynasty"
-                style={{ width: 220 }}
               />
             </label>
 
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
-              <span style={{ display: "inline-block", marginBottom: 6 }}>Starting Year</span>
+            <label className="importField">
+              <span>Starting Year</span>
               <input
                 type="number"
                 value={newStartYear}
                 onChange={(e) => setNewStartYear(Number(e.target.value))}
-                style={{ width: 140 }}
               />
             </label>
 
             {newErr && <p className="kicker" style={{ color: "#ff9b9b" }}>{newErr}</p>}
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
+            <div className="importActions">
+              {hasAnySeasons ? (
+                <button onClick={() => setShowNewDynasty(false)}>Cancel</button>
+              ) : null}
               <button className="primary" onClick={onCreateDynasty}>
                 Create Dynasty
               </button>
@@ -328,8 +354,19 @@ export default function App() {
         <Modal title="Upload New Season">
           <ImportSeason
             inline
-            onClose={() => setShowImportSeason(false)}
-            onImported={() => setShowImportSeason(false)}
+            hideCancel={!hasAnySeasons}
+            onClose={() => {
+              setShowImportSeason(false);
+              setPendingFirstDynastyId(null);
+            }}
+            onImported={async () => {
+              setShowImportSeason(false);
+              if (pendingFirstDynastyId) {
+                await loadDynasty(pendingFirstDynastyId);
+                setPendingFirstDynastyId(null);
+              }
+              navigate(`/?ts=${Date.now()}`);
+            }}
           />
         </Modal>
       )}
@@ -343,9 +380,11 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => setShowDynastyActions(false)}>Cancel</button>
-            <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
-              Load
-            </button>
+            {dynasties.length > 1 ? (
+              <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
+                Load
+              </button>
+            ) : null}
             <button className="danger" onClick={askDeleteDynasty}>
               Delete
             </button>
@@ -371,6 +410,7 @@ export default function App() {
           </div>
         </Modal>
       )}
+
     </div>
   );
 }

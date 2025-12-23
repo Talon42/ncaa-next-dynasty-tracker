@@ -377,12 +377,18 @@ export default function Postseason() {
                         key={`${round}-${idx}`}
                         className={`bracketCard ${isFinal ? "bracketCardFinal" : ""}`}
                       >
-                        <div className="bracketMeta">
-                          {g.bowlLogoUrl ? (
-                            <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                          ) : null}
-                          <span>{g.bowlName}</span>
-                        </div>
+                    <div className="bracketMeta">
+                      {g.bowlLogoUrl ? (
+                        <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : null}
+                      <Link
+                        to={`/postseason/bowl?name=${encodeURIComponent(g.bowlName)}`}
+                        style={{ color: "inherit", textDecoration: "none" }}
+                        title="View bowl results"
+                      >
+                        <span>{g.bowlName}</span>
+                      </Link>
+                    </div>
 
                         <div className={`bracketMatch ${homeWins ? "isWinner" : awayWins ? "isLoser" : ""}`}>
                           <Link to={`/team/${g.homeTgid}`} className="bracketTeamLink" title="View team page">
@@ -473,7 +479,13 @@ export default function Postseason() {
                           referrerPolicy="no-referrer"
                         />
                       ) : null}
-                      <span>{r.bowlName}</span>
+                      <Link
+                        to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                        style={{ color: "inherit", textDecoration: "none" }}
+                        title="View bowl results"
+                      >
+                        <span>{r.bowlName}</span>
+                      </Link>
                     </div>
                   </td>
                   <td>

@@ -45,7 +45,7 @@ function Modal({ title, children, onCancel, onConfirm, confirmText }) {
   );
 }
 
-export default function ImportSeason({ inline = false, onClose, onImported } = {}) {
+export default function ImportSeason({ inline = false, onClose, onImported, hideCancel = false } = {}) {
   const navigate = useNavigate();
 
   const [dynastyId, setDynastyId] = useState(null);
@@ -119,7 +119,7 @@ export default function ImportSeason({ inline = false, onClose, onImported } = {
           onImported(result);
           return;
         }
-        navigate("/");
+        navigate(`/?ts=${Date.now()}`);
       }, 400);
     } catch (err) {
       setStatus(err && err.message ? err.message : String(err));
@@ -240,18 +240,20 @@ export default function ImportSeason({ inline = false, onClose, onImported } = {
         </label>
 
         <div className="importActions">
-          <button
-            onClick={() => {
-              if (onClose) {
-                onClose();
-                return;
-              }
-              navigate("/");
-            }}
-            disabled={busy}
-          >
-            Cancel
-          </button>
+          {!hideCancel ? (
+            <button
+              onClick={() => {
+                if (onClose) {
+                  onClose();
+                  return;
+                }
+                navigate("/");
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+          ) : null}
 
           <button className="primary" onClick={onImportClicked} disabled={busy}>
             {busy ? "Importing..." : willOverwrite ? "Overwrite Season" : "Import Season"}

@@ -8,6 +8,7 @@ export default defineConfig({
   base: "/ncaa-next-dynasty-tracker/",
   server: {
     port: 5173,
-    strictPort: true,
+    strictPort: false,
+    host: "127.0.0.1",
   },
 });

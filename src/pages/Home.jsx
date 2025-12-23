@@ -78,7 +78,7 @@ export default function Home() {
       setAvailableSeasons(years);
       setSeasonYear(years[0] ?? "");
     })();
-  }, [dynastyId]);
+  }, [dynastyId, location.search]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
@@ -97,7 +97,7 @@ export default function Home() {
         setWeekFilter("All");
       }
     })();
-  }, [dynastyId, seasonYear]);
+  }, [dynastyId, seasonYear, location.search]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
@@ -145,7 +145,7 @@ export default function Home() {
 
       setRows(sorted);
     })();
-  }, [dynastyId, seasonYear, weekFilter]);
+  }, [dynastyId, seasonYear, weekFilter, location.search]);
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);

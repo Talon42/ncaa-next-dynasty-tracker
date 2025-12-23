@@ -332,8 +332,8 @@ button:disabled {
   align-items: center;
 }
 
-.importField input[type="number"] {
-  width: 100%;
+ .importField input {
+  width: 50%;
   text-align: center;
 }
 
