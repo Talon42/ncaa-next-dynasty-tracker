@@ -1,0 +1,307 @@
+# NCAA Next Dynasty Tracker
+
+A browser-based tracker for **NCAA Next** dynasties. Create multiple dynasties, import one or more seasons from game-exported CSVs, then explore schedules/results, teams, team stats, postseason, and conference standings.
+
+All dynasty data is stored **locally in your browser** (IndexedDB). There is no backend and no account system.
+
+## Contents
+- Quick start
+- Requirements
+- Core concepts
+- Creating a dynasty
+- Uploading a season (CSV import)
+- Loading/switching dynasties
+- Navigating the UI
+- CSV requirements (important)
+- Logos (optional)
+- Pitfalls & troubleshooting
+- Development / deployment notes
+
+## Quick start
+1. Open the app in a modern browser.
+2. Click **+ New Dynasty**, give it a name, and set a **Starting Year**.
+3. When prompted (or from the sidebar), click **+ Upload New Season**.
+4. Choose a **Season Year** and select **four CSV files**: `TEAM.csv`, `SCHD.csv`, `TSSE.csv`, `BOWL.csv`.
+5. After import completes, use the left sidebar to navigate.
+
+## Requirements
+
+### For normal use
+- A modern browser with:
+  - IndexedDB support (Chrome/Edge/Firefox/Safari)
+  - File upload support
+  - `crypto.randomUUID()` support (used for dynasty IDs)
+- Enough local storage space (large dynasties can be sizable).
+
+### For the best reliability (recommended)
+- Use a normal browser window (avoid Incognito/Private mode).
+- If your browser prompts about site storage, allow persistent storage (the app requests it on startup).
+
+### For local development
+- Node.js + npm
+- Install deps: `npm install`
+- Run dev server: `npm run dev` (defaults to `http://127.0.0.1:5173`)
+- Build: `npm run build`
+- Preview build: `npm run preview`
+
+## Core concepts
+
+### Dynasty
+A dynasty is a separate "save slot" inside the app. Each dynasty has its own:
+- Imported seasons
+- Teams, schedules, and games
+- Team stats
+- Bowl metadata
+- Resolved team logos (and future per-team overrides)
+
+### Season
+Each import is stored under a specific season year (e.g., 2026). You can import multiple seasons per dynasty, and you can overwrite a season year (with confirmation).
+
+### Where your data lives
+Data is stored in your browser's IndexedDB under the database name:
+- `dynasty-tracker-v1`
+
+If you clear Site Data/Storage for the site, you will delete your dynasties.
+
+## Creating a dynasty
+1. In the left sidebar under **Dynasties**, click **+ New Dynasty**.
+2. Enter:
+   - **Dynasty Name** (required)
+   - **Starting Year** (required, numeric)
+3. Click **Create Dynasty**.
+
+Notes:
+- If this is your **first** dynasty, the app immediately prompts you to upload your first season.
+- For additional dynasties, the app creates it and then loads it as the active dynasty.
+
+## Uploading a season (CSV import)
+
+### From the UI
+1. Select the dynasty you want to import into (it must be **Active**).
+2. In the left sidebar under **Dynasties**, click **+ Upload New Season**.
+3. Set **Season Year** (defaults to the dynasty's current-year suggestion).
+4. Click **Choose Files** and select these four files at the same time:
+   - `TEAM.csv`
+   - `SCHD.csv`
+   - `TSSE.csv`
+   - `BOWL.csv`
+5. Click **Import Season**.
+6. When the status reads something like `Imported 2026: 134 teams, 900 games`, the app returns you to the main views.
+
+### Overwriting an existing season year
+If you import a year that already exists in the active dynasty:
+- The import button becomes **Overwrite Season**
+- You will see an overwrite warning
+- You must confirm overwrite in a modal
+
+Important:
+- Overwrite **deletes and replaces** all stored records for that dynasty + season year (TEAM/SCHD/TSSE/BOWL-derived records).
+- This cannot be undone inside the app.
+
+## Loading / switching dynasties
+In the left sidebar under **Dynasties**:
+- The active dynasty shows an **Active** badge.
+- Clicking a *non-active* dynasty opens **Dynasty Options**:
+  - **Load**: switches to that dynasty and reloads the app so all views use it
+  - **Delete**: permanently deletes the dynasty and all of its data
+
+Tip:
+- If you only have one dynasty, clicking the active dynasty name opens options for that dynasty.
+
+## Deleting a dynasty (permanent)
+1. Open **Dynasty Options** (click the dynasty name).
+2. Click **Delete**.
+3. Confirm in **Confirm Delete**.
+
+This deletes:
+- The dynasty record itself
+- All seasons, teams, games, stats, and bowl rows associated with it
+
+## Navigating the UI
+The app layout is:
+- **Left sidebar**: navigation + dynasty management
+- **Main content card**: the page you are currently viewing
+
+### Sidebar navigation
+The **Navigation** section contains:
+- **Schedule / Results**: season + week filters, click teams to open their pages
+- **Teams**: a conference grid of teams (click any team)
+- **Team Stats**: sortable team stat tables (TSSE-based)
+- **Postseason**: conference championships, bowls, and playoff bracket
+- **Conference Standings**: standings by conference (or all conferences)
+
+### Schedule / Results (Home)
+What you can do:
+- Pick a **Season** (dropdown)
+- Filter by **Week** (All or a specific week)
+- Click a team row (home or away) to open its **Team** page
+
+What you will see:
+- Week number
+- Home and away teams (with logos when available)
+- Result (score) when available from `SCHD.csv`
+
+If it says "No seasons uploaded":
+- Upload a season for the active dynasty using **+ Upload New Season**.
+
+### Teams
+What you can do:
+- Browse teams grouped by conference
+- Click any team to open its **Team** page
+
+Notes:
+- This view is built from the dynasty's team season snapshot (typically the most recently imported season).
+- If it says "No teams found yet", import a season first.
+
+### Team page
+What you can do:
+- Switch between **All seasons** and a **specific season year**
+- Review the team's schedule/results
+- Click opponents to jump between team pages
+
+What you will see:
+- Opponent rows with `vs` (home) or `@` (away)
+- A W/L badge when scores exist
+- Bowl metadata when a game is mapped to a bowl
+- Prestige stars (from `TEAM.csv` column `TMPR`, using the latest season snapshot)
+
+### Team Stats
+Team Stats comes from `TSSE.csv` and adds a few derived metrics.
+
+What you can do:
+- Select a **Season** year
+- Switch tabs: **Offense**, **Defense**, **Efficiency**
+- Sort by clicking column headers
+- Click a team to open its **Team** page
+
+If it says "No Team Stats imported yet":
+- Re-import a season and make sure `TSSE.csv` is included and contains a `TGID` column.
+
+### Postseason
+What you can do:
+- Select a **Season**
+- Switch between tabs:
+  - **Conference Championships**
+  - **Bowls**
+  - **Bracket** (College Football Playoff)
+- Click a bowl name to open its **Bowl Results** page
+- Click teams to open **Team** pages
+
+Notes:
+- Postseason views require bowl mapping info from `BOWL.csv` (`BNME`) and schedule game staging from `SCHD.csv` (`SEWN`, `SGNM`).
+- The bracket is derived from CFP-labeled bowl names and specific postseason weeks.
+
+### Bowl Results
+This page shows all games for a specific bowl name across imported seasons.
+
+How to use:
+- Navigate here by clicking a bowl name in the **Postseason** table.
+- Click teams to open their **Team** pages.
+
+### Conference Standings
+What you can do:
+- Select a **Season**
+- Select a **Conference**
+  - `All` shows a standings card for each conference
+  - A specific conference shows one standings table
+- Click teams to open **Team** pages
+
+Standings include:
+- Overall record (W-L[-T])
+- Conference record (W-L[-T])
+- Points For / Points Against / Point Differential
+
+## CSV requirements (important)
+
+The import step detects file types **by filename**. Make sure your files are named exactly like this (case-insensitive is fine):
+- `TEAM.csv`
+- `SCHD.csv`
+- `TSSE.csv`
+- `BOWL.csv`
+
+The importer reads the last 4 alphanumeric characters before `.csv` as the type code, so names like `my-export-TEAM.csv` also work as long as they still end in `TEAM.csv`.
+
+### Required columns
+`TEAM.csv` must include:
+- `TGID` (team ID)
+- `CGID` (conference ID snapshot)
+- `TDNA` (team "school" / display name chunk)
+- `TMNA` (team nickname/mascot chunk)
+- `TMPR` (team prestige, used for stars)
+
+`SCHD.csv` must include:
+- `GATG` (away team TGID)
+- `GHTG` (home team TGID)
+- `GASC` (away score)
+- `GHSC` (home score)
+- `SEWN` (week number; supports 0-22)
+- `SGNM` (stage; used to map bowls)
+
+`TSSE.csv` must include:
+- `TGID`
+- Any other columns are stored and surfaced in Team Stats (some keys are case-sensitive).
+
+`BOWL.csv` must include:
+- `SEWN` (week)
+- `SGNM` (stage)
+- `BNME` (bowl name)
+
+### Data consistency rules (common causes of "missing" data)
+- `TGID` values should match across `TEAM.csv`, `SCHD.csv`, and `TSSE.csv`.
+- Bowl mapping relies on (`seasonYear`, `SEWN`, `SGNM`) matching between `SCHD.csv` and `BOWL.csv`.
+- CSVs must include a header row and not be empty.
+
+## Logos (optional but recommended)
+The app supports:
+- Team logos (mapped automatically after import)
+- Conference logos (shown in Teams + Conference Standings)
+- Postseason/bowl logos (shown in Postseason and Bowl Results)
+
+Logo sources live under `public/logos/` and are registered by `public/logos/index.json`.
+
+Notes:
+- If a logo URL is a GitHub "blob" URL, the app converts it to a `raw.githubusercontent.com` URL automatically.
+- If a logo fails to load, the UI falls back to a default placeholder.
+- If you are offline or a logo host blocks hotlinking, you may see the fallback logo.
+
+See `docs/LOGOS.md` for the expected `public/logos/index.json` format.
+
+## Pitfalls & troubleshooting
+
+### "My data disappeared"
+Most common causes:
+- You opened the app in Incognito/Private mode (storage may be cleared automatically).
+- You cleared the site's storage/cache.
+- A browser/OS "storage pressure" cleanup removed non-persisted storage.
+
+What to do:
+- Use a normal browser profile.
+- If prompted, allow persistent storage.
+- Avoid clearing site data if you want to keep dynasties.
+
+### Import fails with "Missing required CSV(s)"
+- You did not select all four required files.
+- One or more filenames do not end with `TEAM.csv`, `SCHD.csv`, `TSSE.csv`, `BOWL.csv`.
+
+### Import fails with "missing required columns"
+- Your export does not match the required headers listed above.
+- Headers are case-sensitive for the required list (e.g., it expects `TGID`, not `tgid`).
+
+### "No teams found" / "No stats found" after import
+- Ensure the import finished successfully (check the status message).
+- Verify that your CSVs are not empty and have correct headers.
+- Verify IDs are consistent across files (`TGID` matches).
+
+### Overwrite surprises
+Overwrite is intentionally destructive (season-year scoped). If you want to compare two versions of the same year, import one of them under a different season year.
+
+## Privacy
+- No accounts.
+- No server-side storage.
+- Your imported data stays in your browser unless you delete it.
+
+## Development / deployment notes
+- This is a Vite + React app.
+- GitHub Pages deployments use a base path: `/ncaa-next-dynasty-tracker/` (see `vite.config.js`).
+- The repo includes SPA fallbacks for GitHub Pages (`public/404.html` + `index.html` redirect handling).
+
