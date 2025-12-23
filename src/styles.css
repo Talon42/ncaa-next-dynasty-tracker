@@ -446,7 +446,7 @@ button:disabled {
 
 .bracketCol {
   min-width: 230px;
-  flex: 0 0 230px;
+  flex: 1 1 230px;
   padding: 10px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.015);
@@ -572,7 +572,11 @@ button:disabled {
 }
 
 .bracketTeamName {
-  white-space: normal;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bracketTeam img {
