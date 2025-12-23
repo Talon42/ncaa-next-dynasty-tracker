@@ -6,4 +6,8 @@ export default defineConfig({
   // IMPORTANT: GitHub Pages serves this repo at /ncaa-next-dynasty-tracker/
   // base MUST include leading + trailing slashes so Vite sets BASE_URL correctly.
   base: "/ncaa-next-dynasty-tracker/",
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
 });
