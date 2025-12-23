@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { loadPostseasonLogoMap } from "../logoService";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -137,6 +138,7 @@ export default function Team() {
 
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
+  const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
 
   // ✅ NEW: latest-season prestige (TMPR)
   const [teamPrestige, setTeamPrestige] = useState(null);
@@ -155,6 +157,18 @@ export default function Team() {
       const id = await getActiveDynastyId();
       setDynastyId(id);
     })();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const map = await loadPostseasonLogoMap();
+      if (!alive) return;
+      setPostseasonLogoMap(map);
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Seasons where this team appears (based on games) — optimized: query just this team via indexes
@@ -256,6 +270,35 @@ useEffect(() => {
         return bowlByKey.get(`${seasonYearValue}|${sewnValue}|${sgnmValue}`) || "";
       };
 
+      const normalizeBowlName = (name) =>
+        String(name ?? "")
+          .replace(/\s+/g, " ")
+          .replace(/\s*-\s*/g, " - ")
+          .trim()
+          .toLowerCase();
+
+      const postseasonLogoFor = (name) => {
+        if (!name) return "";
+        const raw = String(name);
+        const direct = postseasonLogoMap.get(normalizeBowlName(raw));
+        if (direct) return direct;
+
+        const stripped = raw.replace(/^cfp\s*-\s*/i, "").replace(/^college football playoff\s*-\s*/i, "");
+        const strippedKey = normalizeBowlName(stripped);
+        if (strippedKey && postseasonLogoMap.has(strippedKey)) {
+          return postseasonLogoMap.get(strippedKey) || "";
+        }
+
+        const rawKey = normalizeBowlName(raw);
+        for (const [key, url] of postseasonLogoMap.entries()) {
+          if (rawKey.includes(key) || key.includes(rawKey)) {
+            return url || "";
+          }
+        }
+
+        return "";
+      };
+
       // Prefer the most recent season's name for the header (if available)
       const latestYear = availableSeasons[0];
 
@@ -314,7 +357,11 @@ useEffect(() => {
           .map((g) => {
             const isHome = String(g.homeTgid) === teamTgid;
             const oppTgid = String(isHome ? g.awayTgid : g.homeTgid);
-            const bowlName = bowlNameFor(year, Number(g.week), g.sgnm);
+            const bowlNameRaw = bowlNameFor(year, Number(g.week), g.sgnm);
+            const bowlName = /^nat championship$/i.test(bowlNameRaw)
+              ? "National Championship"
+              : bowlNameRaw;
+            const bowlLogoUrl = bowlName ? postseasonLogoFor(bowlName) : "";
 
             const hasScore = g.homeScore != null && g.awayScore != null;
             const teamScore = hasScore ? (isHome ? g.homeScore : g.awayScore) : null;
@@ -334,6 +381,7 @@ useEffect(() => {
               oppName: nameByTgid.get(oppTgid) || `TGID ${oppTgid}`,
               oppLogo: logoFor(oppTgid),
               bowlName,
+              bowlLogoUrl,
               outcome,
               result: hasScore ? `${g.homeScore} - ${g.awayScore}` : "—",
             };
@@ -486,7 +534,27 @@ useEffect(() => {
                       {r.bowlName ? (
                         <tr>
                           <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                            {r.bowlName}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
+                              {r.bowlLogoUrl ? (
+                                <img
+                                  src={r.bowlLogoUrl}
+                                  alt=""
+                                  style={{ width: 28, height: 28, objectFit: "contain" }}
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : null}
+                              <span>{r.bowlName}</span>
+                              {r.bowlLogoUrl ? (
+                                <img
+                                  src={r.bowlLogoUrl}
+                                  alt=""
+                                  style={{ width: 28, height: 28, objectFit: "contain" }}
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       ) : null}
@@ -547,7 +615,27 @@ useEffect(() => {
                 {r.bowlName ? (
                   <tr>
                     <td colSpan={3} className="kicker" style={{ fontWeight: 700, paddingTop: 8 }}>
-                      {r.bowlName}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
+                        {r.bowlLogoUrl ? (
+                          <img
+                            src={r.bowlLogoUrl}
+                            alt=""
+                            style={{ width: 28, height: 28, objectFit: "contain" }}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : null}
+                        <span>{r.bowlName}</span>
+                        {r.bowlLogoUrl ? (
+                          <img
+                            src={r.bowlLogoUrl}
+                            alt=""
+                            style={{ width: 28, height: 28, objectFit: "contain" }}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ) : null}

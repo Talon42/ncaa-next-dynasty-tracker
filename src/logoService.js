@@ -3,6 +3,7 @@ import { db } from "./db";
 
 const CSV_PATH = `${import.meta.env.BASE_URL}logos/fbs_logos.csv`;
 const CONF_CSV_PATH = `${import.meta.env.BASE_URL}logos/conference_logos.csv`;
+const POSTSEASON_CSV_PATH = `${import.meta.env.BASE_URL}logos/postseason.csv`;
 const LOGO_INDEX_PATH = `${import.meta.env.BASE_URL}logos/index.json`;
 const CSV_HASH_KEY = "logosCsvHash";
 
@@ -84,6 +85,8 @@ async function loadLogoSources() {
 
 let _confLogoMapCache = null; // Map
 let _confLogoMapPromise = null;
+let _postseasonLogoMapCache = null; // Map
+let _postseasonLogoMapPromise = null;
 
 /**
  * Load conference_logos.csv from /public/logos and return a Map of lookup keys -> url.
@@ -142,6 +145,53 @@ export async function loadConferenceLogoMap() {
 
   const result = await _confLogoMapPromise;
   _confLogoMapPromise = null;
+  return result;
+}
+
+/**
+ * Load postseason.csv from /public/logos and return a Map of bowl name -> url.
+ * - URLs are normalized (GitHub blob -> raw) to work reliably in <img>.
+ * - Results are memoized in-memory for the session.
+ */
+export async function loadPostseasonLogoMap() {
+  if (_postseasonLogoMapCache) return _postseasonLogoMapCache;
+  if (_postseasonLogoMapPromise) return _postseasonLogoMapPromise;
+
+  _postseasonLogoMapPromise = (async () => {
+    let text = "";
+    try {
+      const res = await fetch(POSTSEASON_CSV_PATH, { cache: "no-store" });
+      if (!res.ok) return new Map();
+      text = await res.text();
+    } catch {
+      return new Map();
+    }
+
+    const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+    const rows = parsed.data || [];
+
+    const map = new Map();
+    for (const r of rows) {
+      const nameRaw =
+        r["Bowl Name"] ??
+        r.Bowl ??
+        r.BowlName ??
+        r.Name ??
+        r.name ??
+        "";
+      const urlRaw = r.URL ?? r.Url ?? r.url ?? r.Logo ?? r.logo ?? r.logoUrl ?? r.LogoUrl ?? "";
+      const name = String(nameRaw ?? "").trim();
+      const url = normalizeGithubUrl(urlRaw);
+      if (!name || !url) continue;
+      map.set(name.toLowerCase(), url);
+    }
+
+    _postseasonLogoMapCache = map;
+    return map;
+  })();
+
+  const result = await _postseasonLogoMapPromise;
+  _postseasonLogoMapPromise = null;
   return result;
 }
 
