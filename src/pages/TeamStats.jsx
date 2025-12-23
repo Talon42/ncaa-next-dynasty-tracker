@@ -465,10 +465,11 @@ export default function TeamStats() {
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
           <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
-            <table className="table">
+            <table className="table teamStatsTable">
               <thead>
                 <tr>
                   <th
+                    className="teamCol"
                     onClick={() => clickSort("teamName")}
                     style={{
                       width: 190,
@@ -485,6 +486,7 @@ export default function TeamStats() {
                   {colsForTab.map((c) => (
                     <th
                       key={c.key}
+                      className="statCol"
                       onClick={() => clickSort(c.key)}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                       title={c.fullLabel}
@@ -498,7 +500,7 @@ export default function TeamStats() {
               <tbody>
                 {sortedRows.map((r) => (
                   <tr key={r.tgid}>
-                    <td data-label="Team" style={{ paddingRight: 10 }}>
+                    <td className="teamCol" data-label="Team" style={{ paddingRight: 56 }}>
                       <Link
                         to={`/team/${r.tgid}`}
                         style={{
@@ -513,7 +515,7 @@ export default function TeamStats() {
                     </td>
 
                     {colsForTab.map((c) => (
-                      <td key={c.key} data-label={c.fullLabel || c.label}>
+                      <td key={c.key} className="statCol" data-label={c.fullLabel || c.label}>
                         {getVal(r, c.key) ?? ""}
                       </td>
                     ))}

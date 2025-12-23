@@ -608,11 +608,13 @@ button:disabled {
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border);
   padding: 10px 12px;
+  white-space: nowrap;
 }
 
 .table tbody td {
   padding: 10px 12px;
   border-bottom: 1px solid rgba(42,42,42,0.85);
+  white-space: nowrap;
 }
 
 .table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
@@ -957,7 +959,6 @@ button:disabled {
   .sidebar { display: none; }
   .postseasonTabs { flex-wrap: wrap; }
   .postseasonBowlCell { white-space: normal; }
-  .teamCell span { white-space: normal; }
   .postseasonBracket {
     flex-direction: column;
   }
@@ -981,6 +982,10 @@ button:disabled {
   height: 20px;
   object-fit: contain;
   display: inline-block;
+}
+
+.teamCell span {
+  white-space: nowrap;
 }
 
 /* Teams page: conference grid (always 4 columns, centered within Teams card) */
@@ -1115,8 +1120,20 @@ button:disabled {
     letter-spacing: 0.2px;
   }
 
-  .table tbody td {
-    word-break: break-word;
-    overflow-wrap: anywhere;
+  .teamStatsTable .teamCol {
+    white-space: nowrap;
+  }
+
+  .teamStatsTable .teamCol .teamCell span {
+    white-space: nowrap;
+  }
+
+  .teamStatsTable .teamCol {
+    padding-right: 16px;
+  }
+
+  .teamStatsTable .statCol {
+    padding-left: 6px;
+    padding-right: 6px;
   }
 }
