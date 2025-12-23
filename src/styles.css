@@ -337,6 +337,83 @@ button:disabled {
   object-fit: contain;
 }
 
+.postseasonTabs {
+  display: flex;
+  gap: 6px;
+}
+
+.postseasonBowlCell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.postseasonBracket {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.bracketCol {
+  min-width: 230px;
+  flex: 0 0 230px;
+}
+
+.bracketCard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 12px;
+}
+
+.bracketMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.bracketMeta img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.bracketMatch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.bracketTeam {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bracketTeam img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.bracketScore {
+  font-weight: 800;
+  min-width: 20px;
+  text-align: right;
+}
+
 .champBadge {
   display: inline-flex;
   align-items: center;
