@@ -711,6 +711,32 @@ button:disabled {
   table-layout: fixed;
 }
 
+.postseasonBowlRow td {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.6);
+  font-size: 12px;
+  letter-spacing: 0.35px;
+  color: var(--muted);
+}
+
+.postseasonBowlLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: inherit;
+  color: inherit;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: inherit;
+}
+
+.postseasonBowlLogo {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+}
+
 .bowlFilterHeader {
   display: flex;
   flex-direction: column;
@@ -739,6 +765,14 @@ button:disabled {
   min-height: 560px;
   align-items: flex-start;
   flex-wrap: wrap;
+}
+
+.bracketTableWrap {
+  display: none;
+}
+
+.bracketTableGroup {
+  margin-bottom: 16px;
 }
 
 .bracketCol {
@@ -894,8 +928,13 @@ button:disabled {
 
 @media (max-width: 1400px) {
   .postseasonBracket {
+    display: none;
     gap: 10px;
     min-height: 0;
+  }
+
+  .bracketTableWrap {
+    display: block;
   }
 
   .bracketCol {
@@ -1333,5 +1372,10 @@ button:disabled {
     font-size: inherit;
     font-weight: inherit;
     white-space: nowrap;
+  }
+
+  .postseasonBowlRow td {
+    font-size: 16px;
+    letter-spacing: 0.2px;
   }
 }

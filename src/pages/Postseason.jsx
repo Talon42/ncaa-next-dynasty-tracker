@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
@@ -304,7 +304,15 @@ export default function Postseason() {
     );
   }
 
-  function renderBowlFilteredTable(list, { showWinningCoach }) {
+  function renderBowlFilteredTable(
+    list,
+    {
+      showWinningCoach = false,
+      showBowlNameRows = false,
+      winnerLabel = "Champion",
+      normalizeBowlLabel = (name) => name,
+    } = {}
+  ) {
     const sorted = list
       .slice()
       .sort((a, b) => {
@@ -324,6 +332,7 @@ export default function Postseason() {
         recordWidth * 2 -
         (showWinningCoach ? winningCoachWidth : 0)) /
       2;
+    const colCount = showWinningCoach ? 7 : 6;
 
     return (
       <table className="table postseasonTable">
@@ -339,7 +348,7 @@ export default function Postseason() {
         <thead>
           <tr>
             <th>Season</th>
-            <th>Champion</th>
+            <th>{winnerLabel}</th>
             <th>Record</th>
             <th>Result</th>
             <th>Opponent</th>
@@ -349,25 +358,45 @@ export default function Postseason() {
         </thead>
         <tbody>
           {sorted.map((r, idx) => (
-            <tr key={`${r.seasonYear}-${r.week}-${idx}`}>
-              <td>{r.seasonYear}</td>
-              <td>
-                <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
-                  <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
-                </Link>
-              </td>
-              <td>{r.leftRecord || "-"}</td>
-              <td>
-                {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
-              </td>
-              <td>
-                <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
-                  <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
-                </Link>
-              </td>
-              <td>{r.rightRecord || "-"}</td>
-              {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
-            </tr>
+            <Fragment key={`${r.seasonYear}-${r.week}-${idx}`}>
+              {showBowlNameRows && r.bowlName ? (
+                <tr className="postseasonBowlRow">
+                  <td colSpan={colCount}>
+                    <span className="postseasonBowlLabel">
+                      {r.bowlLogoUrl ? (
+                        <img
+                          className="postseasonBowlLogo"
+                          src={r.bowlLogoUrl}
+                          alt=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : null}
+                      <span>{normalizeBowlLabel(r.bowlName)}</span>
+                    </span>
+                  </td>
+                </tr>
+              ) : null}
+              <tr>
+                <td>{r.seasonYear}</td>
+                <td>
+                  <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
+                    <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
+                  </Link>
+                </td>
+                <td>{r.leftRecord || "-"}</td>
+                <td>
+                  {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
+                </td>
+                <td>
+                  <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
+                    <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
+                  </Link>
+                </td>
+                <td>{r.rightRecord || "-"}</td>
+                {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+              </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -773,97 +802,121 @@ export default function Postseason() {
         seasonYear === "All" ? (
           <p className="kicker">Select a season to view the CFP bracket.</p>
         ) : (
-        <div className="postseasonBracket">
-          {["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"].map((round) => (
-            <div
-              key={round}
-              className={[
-                "bracketCol",
-                round === "National Championship" ? "bracketColFinal" : "",
-                round === "CFP - Semifinals" ? "bracketColCenter" : "",
-                round === "National Championship" ? "bracketColCenter" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <h3 className="bracketRoundTitle">{round}</h3>
-              <div className="bracketColBody">
-                {playoffCols[round].length === 0 ? (
-                  <div className="bracketCard bracketCardEmpty matchupCard">
-                    <div className="bracketMeta">
-                      <span className="kicker">No game for this round</span>
-                    </div>
-                    <div className="bracketMatch bracketMatchEmpty" />
-                    <div className="bracketMatch bracketMatchEmpty" />
-                  </div>
-                ) : (
-                  playoffCols[round].map((g, idx) => {
-                    const hs = g.homeScore;
-                    const as = g.awayScore;
-                    const hasScore = hs != null && as != null;
-                    const homeWins = hasScore && Number(hs) > Number(as);
-                    const awayWins = hasScore && Number(as) > Number(hs);
-                    const isFinal = round === "National Championship";
-
-                    return (
-                      <div
-                        key={`${round}-${idx}`}
-                        className={`bracketCard matchupCard ${isFinal ? "bracketCardFinal" : ""}`}
-                      >
-                    <div className="bracketMeta matchupMeta">
-                      {g.bowlLogoUrl ? (
-                        <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                      ) : null}
-                      <Link
-                        to={`/postseason/bowl?name=${encodeURIComponent(g.bowlName)}`}
-                        style={{ color: "inherit", textDecoration: "none" }}
-                        title="View bowl results"
-                      >
-                        <span>{g.bowlName}</span>
-                      </Link>
-                    </div>
-
-                        <div className="matchupRow">
-                          <Link to={`/team/${g.homeTgid}`} className="matchupTeam" title="View team page">
-                            <div className="bracketTeam">
-                              <img className="matchupLogo" src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                              <span className="matchupTeamName">{g.homeName}</span>
-                              {isFinal && homeWins ? <span className="bracketPill">Champion</span> : null}
-                            </div>
-                          </Link>
-                          <span className="matchupScore">
-                            {g.homeScore ?? "-"}
-                            {homeWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                          </span>
-                        </div>
-                        <div className="matchupMeta">
-                          ({g.homeRecord}, {g.homeConfRecord} {g.homeConfName})
-                        </div>
-
-                        <div className="matchupRow">
-                          <Link to={`/team/${g.awayTgid}`} className="matchupTeam" title="View team page">
-                            <div className="bracketTeam">
-                              <img className="matchupLogo" src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                              <span className="matchupTeamName">{g.awayName}</span>
-                              {isFinal && awayWins ? <span className="bracketPill">Champion</span> : null}
-                            </div>
-                          </Link>
-                          <span className="matchupScore">
-                            {g.awayScore ?? "-"}
-                            {awayWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                          </span>
-                        </div>
-                        <div className="matchupMeta">
-                          ({g.awayRecord}, {g.awayConfRecord} {g.awayConfName})
-                        </div>
+        <>
+          <div className="postseasonBracket">
+            {["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"].map((round) => (
+              <div
+                key={round}
+                className={[
+                  "bracketCol",
+                  round === "National Championship" ? "bracketColFinal" : "",
+                  round === "CFP - Semifinals" ? "bracketColCenter" : "",
+                  round === "National Championship" ? "bracketColCenter" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <h3 className="bracketRoundTitle">{round}</h3>
+                <div className="bracketColBody">
+                  {playoffCols[round].length === 0 ? (
+                    <div className="bracketCard bracketCardEmpty matchupCard">
+                      <div className="bracketMeta">
+                        <span className="kicker">No game for this round</span>
                       </div>
-                    );
-                  })
-                )}
+                      <div className="bracketMatch bracketMatchEmpty" />
+                      <div className="bracketMatch bracketMatchEmpty" />
+                    </div>
+                  ) : (
+                    playoffCols[round].map((g, idx) => {
+                      const hs = g.homeScore;
+                      const as = g.awayScore;
+                      const hasScore = hs != null && as != null;
+                      const homeWins = hasScore && Number(hs) > Number(as);
+                      const awayWins = hasScore && Number(as) > Number(hs);
+                      const isFinal = round === "National Championship";
+
+                      return (
+                        <div
+                          key={`${round}-${idx}`}
+                          className={`bracketCard matchupCard ${isFinal ? "bracketCardFinal" : ""}`}
+                        >
+                      <div className="bracketMeta matchupMeta">
+                        {g.bowlLogoUrl ? (
+                          <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ) : null}
+                        <Link
+                          to={`/postseason/bowl?name=${encodeURIComponent(g.bowlName)}`}
+                          style={{ color: "inherit", textDecoration: "none" }}
+                          title="View bowl results"
+                        >
+                          <span>{g.bowlName}</span>
+                        </Link>
+                      </div>
+
+                          <div className="matchupRow">
+                            <Link to={`/team/${g.homeTgid}`} className="matchupTeam" title="View team page">
+                              <div className="bracketTeam">
+                                <img className="matchupLogo" src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                                <span className="matchupTeamName">{g.homeName}</span>
+                                {isFinal && homeWins ? <span className="bracketPill">Champion</span> : null}
+                              </div>
+                            </Link>
+                            <span className="matchupScore">
+                              {g.homeScore ?? "-"}
+                              {homeWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                            </span>
+                          </div>
+                          <div className="matchupMeta">
+                            ({g.homeRecord}, {g.homeConfRecord} {g.homeConfName})
+                          </div>
+
+                          <div className="matchupRow">
+                            <Link to={`/team/${g.awayTgid}`} className="matchupTeam" title="View team page">
+                              <div className="bracketTeam">
+                                <img className="matchupLogo" src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                                <span className="matchupTeamName">{g.awayName}</span>
+                                {isFinal && awayWins ? <span className="bracketPill">Champion</span> : null}
+                              </div>
+                            </Link>
+                            <span className="matchupScore">
+                              {g.awayScore ?? "-"}
+                              {awayWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                            </span>
+                          </div>
+                          <div className="matchupMeta">
+                            ({g.awayRecord}, {g.awayConfRecord} {g.awayConfName})
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <div className="bracketTableWrap">
+            {[
+              { key: "CFP - Round 1", label: "Round 1" },
+              { key: "CFP - Quarterfinals", label: "Round 2" },
+              { key: "CFP - Semifinals", label: "Round 3" },
+              { key: "National Championship", label: "National Championship" },
+            ].map((round) => {
+              const list = playoffCols[round.key] || [];
+              if (list.length === 0) return null;
+              return (
+                <div key={round.key} className="bracketTableGroup">
+                  <h3 className="bracketRoundTitle">{round.label}</h3>
+                  {renderBowlFilteredTable(list, {
+                    showWinningCoach: round.key === "National Championship",
+                    showBowlNameRows: round.key !== "National Championship",
+                    winnerLabel: round.key === "National Championship" ? "Champion" : "Winner",
+                    normalizeBowlLabel: (name) => String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim(),
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </>
         )
       ) : (() => {
         const isConfChamp = (name) =>
