@@ -431,9 +431,6 @@ useEffect(() => {
       <div>
         <h2>Team</h2>
         <p className="kicker">Invalid team TGID.</p>
-        <Link to="/" className="kicker">
-          ← Back to Schedule / Results
-        </Link>
       </div>
     );
   }
@@ -471,14 +468,8 @@ useEffect(() => {
       {/* ✅ NEW: prestige under team name (latest season only) */}
       <PrestigeStars value={teamPrestige} />
 
-      {/* Back link + Season filter row */}
+      {/* Season filter row */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <div>
-          <Link to="/" className="kicker" style={{ display: "inline-block", marginBottom: 10 }}>
-            ← Back to Schedule / Results
-          </Link>
-        </div>
-
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span>Season</span>

@@ -302,6 +302,49 @@ export default function Postseason() {
     );
   }
 
+  function renderBowlFilteredTable(list) {
+    const sorted = list
+      .slice()
+      .sort((a, b) => {
+        if (a.seasonYear !== b.seasonYear) return Number(b.seasonYear) - Number(a.seasonYear);
+        if (a.week !== b.week) return Number(a.week) - Number(b.week);
+        return String(a.homeTgid).localeCompare(String(b.homeTgid));
+      });
+
+    return (
+      <table className="table postseasonTable">
+        <thead>
+          <tr>
+            <th>Season</th>
+            <th>Team (Winner)</th>
+            <th>Result</th>
+            <th>Team</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((r, idx) => (
+            <tr key={`${r.seasonYear}-${r.week}-${idx}`}>
+              <td>{r.seasonYear}</td>
+              <td>
+                <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
+                  <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
+                </Link>
+              </td>
+              <td>
+                {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
+              </td>
+              <td>
+                <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
+                  <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
@@ -800,6 +843,9 @@ export default function Postseason() {
             filtered = filtered.filter((r) => r.bowlName === bowlFilter);
           }
 
+          const bowlHeaderLogo = filtered.find((r) => r.bowlLogoUrl)?.bowlLogoUrl || "";
+          const bowlHeaderName = normalizeBowlLabel(bowlFilter) || bowlFilter;
+
           return (
             <>
               <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
@@ -828,7 +874,21 @@ export default function Postseason() {
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for that bowl.</p>
               ) : bowlFilter !== "All" ? (
-                renderBowlFilteredSeasonCards(filtered)
+                <>
+                  <div className="bowlFilterHeader">
+                    {bowlHeaderLogo ? (
+                      <img
+                        className="bowlFilterLogo"
+                        src={bowlHeaderLogo}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                    <div className="bowlFilterTitle">{bowlHeaderName}</div>
+                  </div>
+                  {renderBowlFilteredTable(filtered)}
+                </>
               ) : (
                 renderMatchupCards(filtered, seasonYear)
               )}
