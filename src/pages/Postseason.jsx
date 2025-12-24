@@ -472,7 +472,7 @@ export default function Postseason() {
         }
 
         return (
-          <table className="table" style={{ tableLayout: "auto", width: "100%" }}>
+          <table className="table postseasonTable" style={{ tableLayout: "auto", width: "100%" }}>
             <thead>
               <tr>
                 <th style={{ width: 80 }}>Bowl</th>

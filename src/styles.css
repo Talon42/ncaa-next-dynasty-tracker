@@ -686,8 +686,8 @@ button:disabled {
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: inherit;
+  font-size: inherit;
   white-space: nowrap;
 }
 
@@ -971,7 +971,12 @@ button:disabled {
   body { font-size: 18px; }
   .kicker { font-size: 17px; }
   .mobileHeader { font-size: 1rem; }
-  .headerTrigger { font-size: 15px; }
+  .headerTrigger,
+  .headerNavBtn {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
   .teamLogo {
     width: calc(20px * 1.2);
     height: calc(20px * 1.2);
@@ -1168,5 +1173,41 @@ button:disabled {
   .teamStatsTable .statCol {
     padding-left: 6px;
     padding-right: 6px;
+  }
+
+  /* Postseason results spacing */
+  .postseasonTable {
+    table-layout: fixed;
+  }
+
+  .postseasonTable th:nth-child(1),
+  .postseasonTable td:nth-child(1) {
+    width: 28%;
+  }
+
+  .postseasonTable th:nth-child(2),
+  .postseasonTable td:nth-child(2) {
+    width: 31%;
+    text-align: left;
+  }
+
+  .postseasonTable th:nth-child(3),
+  .postseasonTable td:nth-child(3) {
+    width: 10%;
+    text-align: center;
+  }
+
+  .postseasonTable th:nth-child(4),
+  .postseasonTable td:nth-child(4) {
+    width: 31%;
+    text-align: left;
+  }
+
+  .postseasonTable .postseasonBowlCell,
+  .postseasonTable .postseasonBowlCell a,
+  .postseasonTable .postseasonBowlCell span {
+    font-size: inherit;
+    font-weight: inherit;
+    white-space: nowrap;
   }
 }
