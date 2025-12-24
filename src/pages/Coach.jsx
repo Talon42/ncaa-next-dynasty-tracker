@@ -51,6 +51,20 @@ export default function Coach() {
     prestige: null,
   });
   const [seasonRows, setSeasonRows] = useState([]);
+  const [coachStats, setCoachStats] = useState({
+    careerWins: null,
+    careerLosses: null,
+    top25Wins: null,
+    top25Losses: null,
+    winningSeasons: null,
+    conferenceTitles: null,
+    nationalTitles: null,
+  });
+  const [contractStats, setContractStats] = useState({
+    contractYear: null,
+    contractLength: null,
+    yearsWithTeam: null,
+  });
   const [coachQuote, setCoachQuote] = useState("");
 
   useEffect(() => {
@@ -76,6 +90,20 @@ export default function Coach() {
     if (!dynastyId || !coachId) {
       setHeader({ name: "", teamName: "", teamLogo: FALLBACK_LOGO, prestige: null });
       setSeasonRows([]);
+      setCoachStats({
+        careerWins: null,
+        careerLosses: null,
+        top25Wins: null,
+        top25Losses: null,
+        winningSeasons: null,
+        conferenceTitles: null,
+        nationalTitles: null,
+      });
+      setContractStats({
+        contractYear: null,
+        contractLength: null,
+        yearsWithTeam: null,
+      });
       setCoachQuote("");
       return;
     }
@@ -89,6 +117,20 @@ export default function Coach() {
       if (!sorted.length) {
         setHeader({ name: "", teamName: "", teamLogo: FALLBACK_LOGO, prestige: null });
         setSeasonRows([]);
+        setCoachStats({
+          careerWins: null,
+          careerLosses: null,
+          top25Wins: null,
+          top25Losses: null,
+          winningSeasons: null,
+          conferenceTitles: null,
+          nationalTitles: null,
+        });
+        setContractStats({
+          contractYear: null,
+          contractLength: null,
+          yearsWithTeam: null,
+        });
         return;
       }
 
@@ -162,6 +204,47 @@ export default function Coach() {
         teamName: latestTeamName,
         teamLogo: logoFor(latestTgid),
         prestige: latest.hcPrestige,
+      });
+
+      const winningSeasons = sorted.reduce((count, r) => {
+        const w = Number(r.seasonWins);
+        const l = Number(r.seasonLosses);
+        if (Number.isFinite(w) && Number.isFinite(l) && w > l) return count + 1;
+        return count;
+      }, 0);
+
+      const conferenceTitleSeasons = new Set();
+      const nationalTitleSeasons = new Set();
+      for (const [year, list] of postseasonByYear.entries()) {
+        for (const p of list) {
+          if (p.outcome !== "W") continue;
+          const name = String(p.bowlName ?? "");
+          if (/national championship/i.test(name)) nationalTitleSeasons.add(year);
+          if (/championship$/i.test(name) && !/national championship/i.test(name)) {
+            conferenceTitleSeasons.add(year);
+          }
+        }
+      }
+
+      setCoachStats({
+        careerWins: Number.isFinite(Number(latest.careerWins)) ? Number(latest.careerWins) : null,
+        careerLosses: Number.isFinite(Number(latest.careerLosses)) ? Number(latest.careerLosses) : null,
+        top25Wins: null,
+        top25Losses: null,
+        winningSeasons,
+        conferenceTitles: conferenceTitleSeasons.size,
+        nationalTitles: nationalTitleSeasons.size,
+      });
+
+      const yearsWithTeam = sorted.reduce((count, r) => {
+        if (String(r.tgid ?? "") === latestTgid) return count + 1;
+        return count;
+      }, 0);
+
+      setContractStats({
+        contractYear: Number.isFinite(Number(latest.contractYear)) ? Number(latest.contractYear) : null,
+        contractLength: Number.isFinite(Number(latest.contractLength)) ? Number(latest.contractLength) : null,
+        yearsWithTeam,
       });
 
       const rows = sorted.map((r) => {
@@ -263,6 +346,66 @@ export default function Coach() {
         </p>
       ) : null}
 
+      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+          <div className="kicker" style={{ fontWeight: 700 }}>
+            Contract
+          </div>
+        </div>
+        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+          <div>
+            <div className="kicker">Contract Year</div>
+            <div style={{ fontWeight: 700 }}>{contractStats.contractYear ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Length</div>
+            <div style={{ fontWeight: 700 }}>{contractStats.contractLength ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Years with Team</div>
+            <div style={{ fontWeight: 700 }}>{contractStats.yearsWithTeam ?? "-"}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+          <div className="kicker" style={{ fontWeight: 700 }}>
+            Career Summary
+          </div>
+        </div>
+        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+          <div>
+            <div className="kicker">Career Wins</div>
+            <div style={{ fontWeight: 700 }}>{coachStats.careerWins ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Career Losses</div>
+            <div style={{ fontWeight: 700 }}>{coachStats.careerLosses ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Top-25 Record</div>
+            <div style={{ fontWeight: 700 }}>
+              {coachStats.top25Wins ?? "-"}-{coachStats.top25Losses ?? "-"}
+            </div>
+          </div>
+          <div>
+            <div className="kicker">Winning Seasons</div>
+            <div style={{ fontWeight: 700 }}>{coachStats.winningSeasons ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Conf Titles</div>
+            <div style={{ fontWeight: 700 }}>{coachStats.conferenceTitles ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Nat Titles</div>
+            <div style={{ fontWeight: 700 }}>{coachStats.nationalTitles ?? "-"}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="hrow" style={{ alignItems: "flex-start" }}>
         <div>
           <Link to="/coaches" className="kicker" style={{ display: "inline-block", marginBottom: 10 }}>
@@ -314,7 +457,17 @@ export default function Coach() {
                           <img src={p.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
                         ) : null}
                         <span>{p.bowlName}</span>
-                        {p.outcome ? <span style={{ fontWeight: 800, marginLeft: 8 }}>{p.outcome}</span> : null}
+                        {p.outcome ? (
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              marginLeft: 8,
+                              color: p.outcome === "W" ? "#4caf50" : p.outcome === "L" ? "#d30000" : "inherit",
+                            }}
+                          >
+                            {p.outcome}
+                          </span>
+                        ) : null}
                       </div>
                     ))}
                   </div>
