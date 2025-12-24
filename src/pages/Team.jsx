@@ -145,6 +145,7 @@ export default function Team() {
 
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
+  const [coachName, setCoachName] = useState("");
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
 
   // ✅ NEW: latest-season prestige (TMPR)
@@ -268,12 +269,16 @@ useEffect(() => {
     }
 
     (async () => {
+      const latestYear = availableSeasons[0];
       // Pull all needed data once (local-first, small enough for now)
-      const [teamSeasonsAll, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
+      const [teamSeasonsAll, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
         db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
         db.bowlGames.where({ dynastyId }).toArray(),
+        latestYear != null
+          ? db.coaches.where({ dynastyId, seasonYear: latestYear }).toArray()
+          : Promise.resolve([]),
       ]);
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
@@ -288,8 +293,6 @@ useEffect(() => {
       const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
 
       // Prefer the most recent season's name for the header (if available)
-      const latestYear = availableSeasons[0];
-
       const latestRows = teamSeasonsAll.filter((t) => t.seasonYear === latestYear);
       const latestTeamRow = latestRows.find((t) => String(t.tgid) === teamTgid);
 
@@ -299,6 +302,12 @@ useEffect(() => {
 
       setTeamName(latestNameMap.get(teamTgid) || `TGID ${teamTgid}`);
       setTeamLogo(logoFor(teamTgid));
+      const coachRow = coachRows.find((c) => String(c.tgid) === teamTgid);
+      const coachDisplay =
+        coachRow
+          ? `${String(coachRow.firstName ?? "").trim()} ${String(coachRow.lastName ?? "").trim()}`.trim()
+          : "";
+      setCoachName(coachDisplay);
 
       // ✅ NEW: set prestige from latest season team row (TMPR)
       // Stored as `tmpr` on teamSeasons rows (recommended). If missing, prestige won't show.
@@ -464,6 +473,12 @@ useEffect(() => {
 
       {/* Centered team name */}
       <h2 style={{ marginTop: 0, marginBottom: 6, textAlign: "center" }}>{teamName}</h2>
+
+      {coachName ? (
+        <div className="kicker" style={{ textAlign: "center", marginBottom: 6 }}>
+          Coach: {coachName}
+        </div>
+      ) : null}
 
       {/* ✅ NEW: prestige under team name (latest season only) */}
       <PrestigeStars value={teamPrestige} />
