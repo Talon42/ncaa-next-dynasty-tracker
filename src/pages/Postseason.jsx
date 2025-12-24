@@ -327,11 +327,21 @@ export default function Postseason() {
       winnerLabel = "Champion",
       normalizeBowlLabel = (name) => name,
       groupBySeason = false,
+      sortBy = "season",
     } = {}
   ) {
+    const sortLabel = (name) => normalizeBowlLabel(name);
+    const byGame = (a, b) => sortLabel(a.bowlName).localeCompare(sortLabel(b.bowlName));
     const sorted = list
       .slice()
       .sort((a, b) => {
+        if (sortBy === "game") {
+          const nameSort = byGame(a, b);
+          if (nameSort) return nameSort;
+          if (a.seasonYear !== b.seasonYear) return Number(b.seasonYear) - Number(a.seasonYear);
+          if (a.week !== b.week) return Number(a.week) - Number(b.week);
+          return String(a.homeTgid).localeCompare(String(b.homeTgid));
+        }
         if (a.seasonYear !== b.seasonYear) return Number(b.seasonYear) - Number(a.seasonYear);
         if (a.week !== b.week) return Number(a.week) - Number(b.week);
         return String(a.homeTgid).localeCompare(String(b.homeTgid));
@@ -363,6 +373,11 @@ export default function Postseason() {
       : [];
     const singleSeasonLabel = !groupBySeason && sorted.length ? sorted[0].seasonYear : null;
     const rowsBySeason = groupBySeason ? groupedRows : new Map([[String(singleSeasonLabel ?? ""), sorted]]);
+    if (sortBy === "game") {
+      for (const [seasonKey, items] of rowsBySeason.entries()) {
+        rowsBySeason.set(seasonKey, items.slice().sort(byGame));
+      }
+    }
 
     return (
       <table className="table postseasonTable">
@@ -1184,12 +1199,13 @@ export default function Postseason() {
                       />
                     ) : null}
                   </div>
-                  {renderBowlFilteredTable(filtered, { showWinningCoach: false })}
+                  {renderBowlFilteredTable(filtered, { showWinningCoach: false, sortBy: "game" })}
                 </>
               ) : effectiveView === "table" ? (
                 renderBowlFilteredTable(filtered, {
                   showWinningCoach: false,
                   groupBySeason: seasonYear === "All",
+                  sortBy: "game",
                 })
               ) : (
                 renderMatchupCards(filtered, seasonYear)

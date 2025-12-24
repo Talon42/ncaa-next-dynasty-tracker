@@ -148,18 +148,38 @@ export default function BowlResults() {
         .map(({ game, bnme }) => {
           const homeName = nameByKey.get(`${game.seasonYear}|${game.homeTgid}`) || `TGID ${game.homeTgid}`;
           const awayName = nameByKey.get(`${game.seasonYear}|${game.awayTgid}`) || `TGID ${game.awayTgid}`;
+          const hasScore = game.homeScore != null && game.awayScore != null;
+          const homeScoreNum = hasScore ? Number(game.homeScore) : null;
+          const awayScoreNum = hasScore ? Number(game.awayScore) : null;
+          const winner =
+            hasScore && Number.isFinite(homeScoreNum) && Number.isFinite(awayScoreNum)
+              ? homeScoreNum === awayScoreNum
+                ? null
+                : homeScoreNum > awayScoreNum
+                  ? "home"
+                  : "away"
+              : null;
+          const championIsHome = winner !== "away";
+          const leftTgid = championIsHome ? game.homeTgid : game.awayTgid;
+          const rightTgid = championIsHome ? game.awayTgid : game.homeTgid;
+          const leftName = championIsHome ? homeName : awayName;
+          const rightName = championIsHome ? awayName : homeName;
+          const leftLogo = championIsHome ? logoFor(game.homeTgid) : logoFor(game.awayTgid);
+          const rightLogo = championIsHome ? logoFor(game.awayTgid) : logoFor(game.homeTgid);
+          const leftScore = championIsHome ? game.homeScore : game.awayScore;
+          const rightScore = championIsHome ? game.awayScore : game.homeScore;
 
           return {
             seasonYear: game.seasonYear,
             week: game.week,
-            homeTgid: game.homeTgid,
-            awayTgid: game.awayTgid,
-            homeName,
-            awayName,
-            homeLogo: logoFor(game.homeTgid),
-            awayLogo: logoFor(game.awayTgid),
+            leftTgid,
+            rightTgid,
+            leftName,
+            rightName,
+            leftLogo,
+            rightLogo,
             result:
-              game.homeScore != null && game.awayScore != null ? `${game.homeScore} - ${game.awayScore}` : "—",
+              game.homeScore != null && game.awayScore != null ? `${leftScore} - ${rightScore}` : "—",
             bnme,
           };
         })
@@ -191,12 +211,20 @@ export default function BowlResults() {
   return (
     <div>
       <div className="hrow">
-        <h2 style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span>{title || "Bowl Results"}</span>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           {logoUrl ? (
-            <img className="teamLogo" src={logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+            <img
+              src={logoUrl}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              style={{ width: 180, height: 180, objectFit: "contain" }}
+            />
           ) : null}
-        </h2>
+          <h2 style={{ marginTop: 6, marginBottom: 0, textAlign: "center" }}>
+            {title || "Bowl Results"}
+          </h2>
+        </div>
       </div>
 
       {!bowlName ? (
@@ -208,9 +236,9 @@ export default function BowlResults() {
           <thead>
             <tr>
               <th style={{ width: 80 }}>Season</th>
-              <th>Team</th>
+              <th>Champion</th>
               <th style={{ width: 140 }}>Result</th>
-              <th>Team</th>
+              <th>Opponent</th>
             </tr>
           </thead>
           <tbody>
@@ -219,21 +247,21 @@ export default function BowlResults() {
                 <td data-label="Season">{r.seasonYear}</td>
                 <td data-label="Team">
                   <Link
-                    to={`/team/${r.homeTgid}`}
+                    to={`/team/${r.leftTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
                     title="View team page"
                   >
-                    <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
+                    <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
                   </Link>
                 </td>
                 <td data-label="Result">{r.result}</td>
                 <td data-label="Team">
                   <Link
-                    to={`/team/${r.awayTgid}`}
+                    to={`/team/${r.rightTgid}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
                     title="View team page"
                   >
-                    <TeamCell name={r.awayName} logoUrl={r.awayLogo} />
+                    <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
                   </Link>
                 </td>
               </tr>
