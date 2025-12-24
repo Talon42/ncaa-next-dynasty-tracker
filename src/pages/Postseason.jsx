@@ -111,6 +111,12 @@ export default function Postseason() {
     if (q === "confChamp" || q === "bowls" || q === "bracket") {
       setTab(q);
     }
+    const seasonParam = params.get("season");
+    if (seasonParam === "All") {
+      setSeasonYear("All");
+    } else if (seasonParam) {
+      setSeasonYear(seasonParam);
+    }
   }, [location.search]);
 
   function setTabAndUrl(nextTab) {
@@ -143,13 +149,14 @@ export default function Postseason() {
       const allGames = await db.games.where({ dynastyId }).toArray();
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
+      if (seasonYear === "All") return;
       const picked = pickSeasonFromList({ currentSeason: seasonYear, availableSeasons: years });
       if (picked != null) setSeasonYear(picked);
     })();
   }, [dynastyId]);
 
   useEffect(() => {
-    if (seasonYear !== "") {
+    if (seasonYear !== "" && seasonYear !== "All") {
       writeSeasonFilter(seasonYear);
     }
   }, [seasonYear]);
@@ -169,21 +176,30 @@ export default function Postseason() {
     let alive = true;
 
     (async () => {
+      const isAllSeasons = seasonYear === "All";
       const year = Number(seasonYear);
       const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
-        db.games.where({ dynastyId, seasonYear: year }).toArray(),
-        db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
+        isAllSeasons
+          ? db.games.where({ dynastyId }).toArray()
+          : db.games.where({ dynastyId, seasonYear: year }).toArray(),
+        isAllSeasons
+          ? db.teamSeasons.where({ dynastyId }).toArray()
+          : db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
-        db.bowlGames.where({ dynastyId, seasonYear: year }).toArray(),
+        isAllSeasons
+          ? db.bowlGames.where({ dynastyId }).toArray()
+          : db.bowlGames.where({ dynastyId, seasonYear: year }).toArray(),
       ]);
 
       if (!alive) return;
 
-      const nameByTgid = new Map(
-        teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()])
+      const nameByKey = new Map(
+        teamSeasonRows.map((t) => [`${t.seasonYear}|${t.tgid}`, `${t.tdna} ${t.tmna}`.trim()])
       );
-      const confByTgid = new Map(teamSeasonRows.map((t) => [String(t.tgid), String(t.cgid ?? "")]));
+      const confByKey = new Map(
+        teamSeasonRows.map((t) => [`${t.seasonYear}|${t.tgid}`, String(t.cgid ?? "")])
+      );
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
       const logoFor = (tgid) =>
@@ -193,7 +209,7 @@ export default function Postseason() {
       for (const r of bowlRows) {
         if (r.sewn == null || r.sgnm == null) continue;
         if (!String(r.bnme ?? "").trim()) continue;
-        bowlByKey.set(`${r.sewn}|${r.sgnm}`, String(r.bnme).trim());
+        bowlByKey.set(`${r.seasonYear ?? ""}|${r.sewn}|${r.sgnm}`, String(r.bnme).trim());
       }
 
       const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
@@ -205,15 +221,17 @@ export default function Postseason() {
 
         const homeId = String(g.homeTgid);
         const awayId = String(g.awayTgid);
+        const keyHome = `${g.seasonYear}|${homeId}`;
+        const keyAway = `${g.seasonYear}|${awayId}`;
         const hs = Number(g.homeScore);
         const as = Number(g.awayScore);
         if (!Number.isFinite(hs) || !Number.isFinite(as)) continue;
 
-        if (!recordMap.has(homeId)) recordMap.set(homeId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
-        if (!recordMap.has(awayId)) recordMap.set(awayId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+        if (!recordMap.has(keyHome)) recordMap.set(keyHome, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+        if (!recordMap.has(keyAway)) recordMap.set(keyAway, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
 
-        const homeRec = recordMap.get(homeId);
-        const awayRec = recordMap.get(awayId);
+        const homeRec = recordMap.get(keyHome);
+        const awayRec = recordMap.get(keyAway);
 
         if (hs > as) {
           homeRec.w += 1;
@@ -226,8 +244,8 @@ export default function Postseason() {
           awayRec.t += 1;
         }
 
-        const homeConf = confByTgid.get(homeId);
-        const awayConf = confByTgid.get(awayId);
+        const homeConf = confByKey.get(keyHome);
+        const awayConf = confByKey.get(keyAway);
         if (homeConf && awayConf && homeConf === awayConf) {
           if (hs > as) {
             homeRec.cw += 1;
@@ -243,16 +261,18 @@ export default function Postseason() {
       }
 
       const postseasonGames = gamesRaw
-        .filter((g) => bowlByKey.has(`${g.week}|${g.sgnm}`))
+        .filter((g) => bowlByKey.has(`${g.seasonYear}|${g.week}|${g.sgnm}`))
         .map((g) => {
-          const bowlNameRaw = bowlByKey.get(`${g.week}|${g.sgnm}`) || "";
+          const bowlNameRaw = bowlByKey.get(`${g.seasonYear}|${g.week}|${g.sgnm}`) || "";
           const bowlName = /^nat championship$/i.test(bowlNameRaw)
             ? "National Championship"
             : bowlNameRaw;
           const bowlLogoUrl = bowlName ? postseasonLogoFor(bowlName) : "";
 
-          const homeName = nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`;
-          const awayName = nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`;
+          const homeName =
+            nameByKey.get(`${g.seasonYear}|${g.homeTgid}`) || `TGID ${g.homeTgid}`;
+          const awayName =
+            nameByKey.get(`${g.seasonYear}|${g.awayTgid}`) || `TGID ${g.awayTgid}`;
           const hasScore = g.homeScore != null && g.awayScore != null;
           const homeWins = hasScore && Number(g.homeScore) > Number(g.awayScore);
           const awayWins = hasScore && Number(g.awayScore) > Number(g.homeScore);
@@ -260,12 +280,14 @@ export default function Postseason() {
 
           const homeId = String(g.homeTgid);
           const awayId = String(g.awayTgid);
-          const homeConfId = confByTgid.get(homeId);
-          const awayConfId = confByTgid.get(awayId);
+          const homeKey = `${g.seasonYear}|${homeId}`;
+          const awayKey = `${g.seasonYear}|${awayId}`;
+          const homeConfId = confByKey.get(homeKey);
+          const awayConfId = confByKey.get(awayKey);
           const homeConfName = getConferenceName(homeConfId);
           const awayConfName = getConferenceName(awayConfId);
-          const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
-          const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const homeRec = recordMap.get(homeKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const awayRec = recordMap.get(awayKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
 
           const leftIsHome = homeWins || (!homeWins && !awayWins);
           const leftTgid = leftIsHome ? g.homeTgid : g.awayTgid;
@@ -278,6 +300,7 @@ export default function Postseason() {
           const rightScore = leftIsHome ? g.awayScore : g.homeScore;
 
           return {
+            seasonYear: g.seasonYear,
             week: g.week,
             homeTgid: g.homeTgid,
             awayTgid: g.awayTgid,
@@ -308,6 +331,7 @@ export default function Postseason() {
           };
         })
         .sort((a, b) => {
+          if (a.seasonYear !== b.seasonYear) return b.seasonYear - a.seasonYear;
           if (a.week !== b.week) return a.week - b.week;
           return String(a.homeTgid).localeCompare(String(b.homeTgid));
         });
@@ -334,7 +358,7 @@ export default function Postseason() {
   }, [dynastyId, seasonYear, postseasonLogoMap]);
 
   const hasSeasons = availableSeasons.length > 0;
-  const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
+  const seasonOptions = useMemo(() => ["All", ...availableSeasons.map(String)], [availableSeasons]);
 
   if (!dynastyId) {
     return (
@@ -403,7 +427,9 @@ export default function Postseason() {
               onChange={(e) => {
                 const next = e.target.value;
                 setSeasonYear(next);
-                writeSeasonFilter(next);
+                if (next !== "All") {
+                  writeSeasonFilter(next);
+                }
               }}
               disabled={!hasSeasons}
             >
@@ -424,6 +450,9 @@ export default function Postseason() {
       {!hasSeasons ? (
         <p className="kicker">No seasons uploaded yet for this dynasty.</p>
       ) : tab === "bracket" ? (
+        seasonYear === "All" ? (
+          <p className="kicker">Select a season to view the CFP bracket.</p>
+        ) : (
         <div className="postseasonBracket">
           {["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"].map((round) => (
             <div
@@ -510,6 +539,7 @@ export default function Postseason() {
             </div>
           ))}
         </div>
+        )
       ) : (() => {
         const isConfChamp = (name) =>
           /championship$/i.test(String(name ?? "")) && !/national championship$/i.test(String(name ?? ""));
@@ -539,10 +569,76 @@ export default function Postseason() {
           return <p className="kicker">No games found for this season.</p>;
         }
 
+        if (seasonYear === "All") {
+          const bySeason = new Map();
+          filtered.forEach((r) => {
+            const key = String(r.seasonYear ?? "");
+            if (!bySeason.has(key)) bySeason.set(key, []);
+            bySeason.get(key).push(r);
+          });
+          const seasons = Array.from(bySeason.keys()).sort((a, b) => Number(b) - Number(a));
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {seasons.map((season) => (
+                <div key={season} className="card" style={{ padding: 14 }}>
+                  <h3 style={{ marginTop: 0, marginBottom: 12 }}>{season}</h3>
+                  <div className="matchupGrid matchupGridPostseason">
+                    {bySeason.get(season).map((r, idx) => (
+                      <div key={`${season}-${r.week}-${idx}`} className="matchupCard">
+                        <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {r.bowlLogoUrl ? (
+                            <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          ) : null}
+                          <Link
+                            to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                            style={{ color: "inherit", textDecoration: "none" }}
+                            title="View bowl results"
+                          >
+                            {r.bowlName}
+                          </Link>
+                        </div>
+
+                        <div className="matchupRow">
+                          <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
+                            <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                            <span className="matchupTeamName">{r.awayName}</span>
+                          </Link>
+                          <span className="matchupScore">
+                            {r.awayScore ?? "-"}
+                            {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                          </span>
+                        </div>
+                        <div className="matchupMeta">
+                          ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+                        </div>
+
+                        <div className="matchupRow">
+                          <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
+                            <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                            <span className="matchupTeamName">{r.homeName}</span>
+                          </Link>
+                          <span className="matchupScore">
+                            {r.homeScore ?? "-"}
+                            {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                          </span>
+                        </div>
+                        <div className="matchupMeta">
+                          ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
         return (
           <div className="matchupGrid matchupGridPostseason">
             {filtered.map((r, idx) => (
-              <div key={`${r.week}-${idx}`} className="matchupCard">
+              <div key={`${r.seasonYear}-${r.week}-${idx}`} className="matchupCard">
                 <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {r.bowlLogoUrl ? (
                     <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
