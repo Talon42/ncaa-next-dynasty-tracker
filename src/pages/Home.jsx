@@ -364,6 +364,23 @@ export default function Home() {
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
   const weekOptions = useMemo(() => ["All", ...availableWeeks.map(String)], [availableWeeks]);
+  const groupedRows = useMemo(() => {
+    if (rows.length === 0) return [];
+    if (weekFilter !== "All") {
+      const weekNum = Number(weekFilter);
+      return [{ week: Number.isFinite(weekNum) ? weekNum : null, rows }];
+    }
+    const groups = [];
+    const byWeek = new Map();
+    rows.forEach((row) => {
+      if (!byWeek.has(row.week)) {
+        byWeek.set(row.week, []);
+        groups.push({ week: row.week, rows: byWeek.get(row.week) });
+      }
+      byWeek.get(row.week).push(row);
+    });
+    return groups;
+  }, [rows, weekFilter]);
 
   if (!dynastyId) {
     return (
@@ -462,45 +479,52 @@ export default function Home() {
       ) : view === "table" ? (
         renderScheduleTable(rows)
       ) : (
-        <div className="matchupGrid">
-          {rows.map((r, idx) => (
-            <div key={`${r.week}-${idx}`} className="matchupCard">
-              <div className="matchupRow">
-                <Link
-                  to={`/team/${r.awayTgid}`}
-                  className="matchupTeam"
-                  title="View team page"
-                >
-                  <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                  <span className="matchupTeamName">{r.awayName}</span>
-                </Link>
-                <span className="matchupScore">
-                  {r.awayScore}
-                  {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                </span>
-              </div>
-              <div className="matchupMeta">
-                ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
-              </div>
+        <div className="matchupWeekGroups">
+          {groupedRows.map((group) => (
+            <section key={group.week ?? "week"} className="matchupWeekGroup">
+              <div className="matchupWeekHeader">Week {group.week ?? "-"}</div>
+              <div className="matchupGrid">
+                {group.rows.map((r, idx) => (
+                  <div key={`${r.week}-${idx}`} className="matchupCard">
+                    <div className="matchupRow">
+                      <Link
+                        to={`/team/${r.awayTgid}`}
+                        className="matchupTeam"
+                        title="View team page"
+                      >
+                        <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <span className="matchupTeamName">{r.awayName}</span>
+                      </Link>
+                      <span className="matchupScore">
+                        {r.awayScore}
+                        {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                      </span>
+                    </div>
+                    <div className="matchupMeta">
+                      ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+                    </div>
 
-              <div className="matchupRow">
-                <Link
-                  to={`/team/${r.homeTgid}`}
-                  className="matchupTeam"
-                  title="View team page"
-                >
-                  <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                  <span className="matchupTeamName">{r.homeName}</span>
-                </Link>
-                <span className="matchupScore">
-                  {r.homeScore}
-                  {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                </span>
+                    <div className="matchupRow">
+                      <Link
+                        to={`/team/${r.homeTgid}`}
+                        className="matchupTeam"
+                        title="View team page"
+                      >
+                        <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <span className="matchupTeamName">{r.homeName}</span>
+                      </Link>
+                      <span className="matchupScore">
+                        {r.homeScore}
+                        {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                      </span>
+                    </div>
+                    <div className="matchupMeta">
+                      ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="matchupMeta">
-                ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
-              </div>
-            </div>
+            </section>
           ))}
         </div>
       )}
