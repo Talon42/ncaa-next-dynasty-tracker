@@ -1224,7 +1224,8 @@ export default function Postseason() {
             });
           }
 
-          const confHeaderLogo = confLogoMap.get(normalizeConfKey(confFilter)) || "";
+          const confHeaderLogo =
+            confFilter === "All" ? "" : (filtered[0]?.bowlLogoUrl || "");
           const confHeaderName =
             confFilter === "All"
               ? ""
