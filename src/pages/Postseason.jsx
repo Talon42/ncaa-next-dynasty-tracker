@@ -89,6 +89,7 @@ export default function Postseason() {
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
   const [tab, setTab] = useState("confChamp");
+  const [bowlFilter, setBowlFilter] = useState("All");
   const [rows, setRows] = useState([]);
   const [playoffCols, setPlayoffCols] = useState({
     "CFP - Round 1": [],
@@ -97,6 +98,123 @@ export default function Postseason() {
     "National Championship": [],
   });
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
+
+  function renderMatchupCards(list, seasonValue) {
+    if (seasonValue === "All") {
+      const bySeason = new Map();
+      list.forEach((r) => {
+        const key = String(r.seasonYear ?? "");
+        if (!bySeason.has(key)) bySeason.set(key, []);
+        bySeason.get(key).push(r);
+      });
+      const seasons = Array.from(bySeason.keys()).sort((a, b) => Number(b) - Number(a));
+
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          {seasons.map((season) => (
+            <div key={season} className="card" style={{ padding: 14 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 12 }}>{season}</h3>
+              <div className="matchupGrid matchupGridPostseason">
+                {bySeason.get(season).map((r, idx) => (
+                  <div key={`${season}-${r.week}-${idx}`} className="matchupCard">
+                    <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {r.bowlLogoUrl ? (
+                        <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : null}
+                      <Link
+                        to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                        style={{ color: "inherit", textDecoration: "none" }}
+                        title="View bowl results"
+                      >
+                        {r.bowlName}
+                      </Link>
+                    </div>
+
+                    <div className="matchupRow">
+                      <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
+                        <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <span className="matchupTeamName">{r.awayName}</span>
+                      </Link>
+                      <span className="matchupScore">
+                        {r.awayScore ?? "-"}
+                        {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                      </span>
+                    </div>
+                    <div className="matchupMeta">
+                      ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+                    </div>
+
+                    <div className="matchupRow">
+                      <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
+                        <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <span className="matchupTeamName">{r.homeName}</span>
+                      </Link>
+                      <span className="matchupScore">
+                        {r.homeScore ?? "-"}
+                        {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                      </span>
+                    </div>
+                    <div className="matchupMeta">
+                      ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="matchupGrid matchupGridPostseason">
+        {list.map((r, idx) => (
+          <div key={`${r.seasonYear}-${r.week}-${idx}`} className="matchupCard">
+            <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {r.bowlLogoUrl ? (
+                <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+              ) : null}
+              <Link
+                to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                style={{ color: "inherit", textDecoration: "none" }}
+                title="View bowl results"
+              >
+                {r.bowlName}
+              </Link>
+            </div>
+
+            <div className="matchupRow">
+              <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
+                <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                <span className="matchupTeamName">{r.awayName}</span>
+              </Link>
+              <span className="matchupScore">
+                {r.awayScore ?? "-"}
+                {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+              </span>
+            </div>
+            <div className="matchupMeta">
+              ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+            </div>
+
+            <div className="matchupRow">
+              <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
+                <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                <span className="matchupTeamName">{r.homeName}</span>
+              </Link>
+              <span className="matchupScore">
+                {r.homeScore ?? "-"}
+                {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+              </span>
+            </div>
+            <div className="matchupMeta">
+              ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   useEffect(() => {
     (async () => {
@@ -160,6 +278,10 @@ export default function Postseason() {
       writeSeasonFilter(seasonYear);
     }
   }, [seasonYear]);
+
+  useEffect(() => {
+    setBowlFilter("All");
+  }, [seasonYear, tab]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
@@ -569,120 +691,57 @@ export default function Postseason() {
           return <p className="kicker">No games found for this season.</p>;
         }
 
-        if (seasonYear === "All") {
-          const bySeason = new Map();
-          filtered.forEach((r) => {
-            const key = String(r.seasonYear ?? "");
-            if (!bySeason.has(key)) bySeason.set(key, []);
-            bySeason.get(key).push(r);
-          });
-          const seasons = Array.from(bySeason.keys()).sort((a, b) => Number(b) - Number(a));
+        if (tab === "bowls") {
+          const normalizeBowlLabel = (name) =>
+            String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim();
+          const bowlOptions = Array.from(
+            new Set(
+              filtered
+                .map((r) => r.bowlName)
+                .filter((name) => name && !/cfp\s*-\s*round\s*1/i.test(String(name)))
+            )
+          ).sort((a, b) =>
+            normalizeBowlLabel(a).localeCompare(normalizeBowlLabel(b))
+          );
+          const natIndex = bowlOptions.findIndex((name) => /national championship/i.test(String(name)));
+          if (natIndex > 0) {
+            const [nat] = bowlOptions.splice(natIndex, 1);
+            bowlOptions.unshift(nat);
+          }
+
+          if (bowlFilter !== "All") {
+            filtered = filtered.filter((r) => r.bowlName === bowlFilter);
+          }
 
           return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              {seasons.map((season) => (
-                <div key={season} className="card" style={{ padding: 14 }}>
-                  <h3 style={{ marginTop: 0, marginBottom: 12 }}>{season}</h3>
-                  <div className="matchupGrid matchupGridPostseason">
-                    {bySeason.get(season).map((r, idx) => (
-                      <div key={`${season}-${r.week}-${idx}`} className="matchupCard">
-                        <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {r.bowlLogoUrl ? (
-                            <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                          ) : null}
-                          <Link
-                            to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
-                            style={{ color: "inherit", textDecoration: "none" }}
-                            title="View bowl results"
-                          >
-                            {r.bowlName}
-                          </Link>
-                        </div>
-
-                        <div className="matchupRow">
-                          <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
-                            <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                            <span className="matchupTeamName">{r.awayName}</span>
-                          </Link>
-                          <span className="matchupScore">
-                            {r.awayScore ?? "-"}
-                            {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                          </span>
-                        </div>
-                        <div className="matchupMeta">
-                          ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
-                        </div>
-
-                        <div className="matchupRow">
-                          <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
-                            <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                            <span className="matchupTeamName">{r.homeName}</span>
-                          </Link>
-                          <span className="matchupScore">
-                            {r.homeScore ?? "-"}
-                            {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                          </span>
-                        </div>
-                        <div className="matchupMeta">
-                          ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
-                        </div>
-                      </div>
+            <>
+              <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>Bowl</span>
+                  <select
+                    value={bowlFilter}
+                    onChange={(e) => setBowlFilter(e.target.value)}
+                    disabled={!bowlOptions.length}
+                  >
+                    <option value="All">All</option>
+                    {bowlOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {normalizeBowlLabel(name)}
+                      </option>
                     ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </select>
+                </label>
+              </div>
+              {filtered.length === 0 ? (
+                <p className="kicker">No games found for that bowl.</p>
+              ) : (
+                renderMatchupCards(filtered, seasonYear)
+              )}
+            </>
           );
         }
 
-        return (
-          <div className="matchupGrid matchupGridPostseason">
-            {filtered.map((r, idx) => (
-              <div key={`${r.seasonYear}-${r.week}-${idx}`} className="matchupCard">
-                <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {r.bowlLogoUrl ? (
-                    <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                  ) : null}
-                  <Link
-                    to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
-                    style={{ color: "inherit", textDecoration: "none" }}
-                    title="View bowl results"
-                  >
-                    {r.bowlName}
-                  </Link>
-                </div>
-
-                <div className="matchupRow">
-                  <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
-                    <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    <span className="matchupTeamName">{r.awayName}</span>
-                  </Link>
-                  <span className="matchupScore">
-                    {r.awayScore ?? "-"}
-                    {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                  </span>
-                </div>
-                <div className="matchupMeta">
-                  ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
-                </div>
-
-                <div className="matchupRow">
-                  <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
-                    <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    <span className="matchupTeamName">{r.homeName}</span>
-                  </Link>
-                  <span className="matchupScore">
-                    {r.homeScore ?? "-"}
-                    {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
-                  </span>
-                </div>
-                <div className="matchupMeta">
-                  ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
-                </div>
-              </div>
-            ))}
-          </div>
-        );
+        return renderMatchupCards(filtered, seasonYear);
       })()}
     </div>
   );
