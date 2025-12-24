@@ -216,6 +216,92 @@ export default function Postseason() {
     );
   }
 
+  function renderBowlFilteredSeasonCards(list) {
+    const bySeason = new Map();
+    list.forEach((r) => {
+      const key = String(r.seasonYear ?? "");
+      if (!bySeason.has(key)) bySeason.set(key, []);
+      bySeason.get(key).push(r);
+    });
+    const seasons = Array.from(bySeason.keys()).sort((a, b) => Number(b) - Number(a));
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {seasons.map((season) => {
+          const seasonRows = bySeason.get(season) || [];
+          if (!seasonRows.length) return null;
+          const first = seasonRows[0];
+          const bowlLabel = String(first.bowlName ?? "").replace(/^cfp\s*-\s*/i, "").trim();
+
+          return (
+            <div
+              key={season}
+              className="card"
+              style={{ padding: 14, maxWidth: 860, marginLeft: "auto", marginRight: "auto" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginBottom: 10,
+                }}
+              >
+                <h3 style={{ margin: 0 }}>{season}</h3>
+                <Link
+                  to={`/postseason/bowl?name=${encodeURIComponent(first.bowlName)}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                  title="View bowl results"
+                >
+                  <div className="postseasonBowlCell">
+                    {first.bowlLogoUrl ? (
+                      <img className="teamLogo" src={first.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                    ) : null}
+                    <span>{bowlLabel || first.bowlName}</span>
+                  </div>
+                </Link>
+              </div>
+
+              {seasonRows.map((r, idx) => (
+                <div key={`${season}-${r.week}-${idx}`} className="matchupCard" style={{ marginTop: idx ? 12 : 0 }}>
+                  <div className="matchupRow">
+                    <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
+                      <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      <span className="matchupTeamName">{r.awayName}</span>
+                    </Link>
+                    <span className="matchupScore">
+                      {r.awayScore ?? "-"}
+                      {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                    </span>
+                  </div>
+                  <div className="matchupMeta">
+                    ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+                  </div>
+
+                  <div className="matchupRow">
+                    <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
+                      <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      <span className="matchupTeamName">{r.homeName}</span>
+                    </Link>
+                    <span className="matchupScore">
+                      {r.homeScore ?? "-"}
+                      {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                    </span>
+                  </div>
+                  <div className="matchupMeta">
+                    ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
@@ -281,7 +367,7 @@ export default function Postseason() {
 
   useEffect(() => {
     setBowlFilter("All");
-  }, [seasonYear, tab]);
+  }, [tab]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
@@ -549,6 +635,7 @@ export default function Postseason() {
               onChange={(e) => {
                 const next = e.target.value;
                 setSeasonYear(next);
+                setBowlFilter("All");
                 if (next !== "All") {
                   writeSeasonFilter(next);
                 }
@@ -720,7 +807,13 @@ export default function Postseason() {
                   <span>Bowl</span>
                   <select
                     value={bowlFilter}
-                    onChange={(e) => setBowlFilter(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (next !== "All" && seasonYear !== "All") {
+                        setSeasonYear("All");
+                      }
+                      setBowlFilter(next);
+                    }}
                     disabled={!bowlOptions.length}
                   >
                     <option value="All">All</option>
@@ -734,6 +827,8 @@ export default function Postseason() {
               </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for that bowl.</p>
+              ) : bowlFilter !== "All" ? (
+                renderBowlFilteredSeasonCards(filtered)
               ) : (
                 renderMatchupCards(filtered, seasonYear)
               )}
