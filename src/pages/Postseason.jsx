@@ -328,6 +328,8 @@ export default function Postseason() {
       normalizeBowlLabel = (name) => name,
       groupBySeason = false,
       sortBy = "season",
+      showSeasonColumn = false,
+      showGameColumn = true,
     } = {}
   ) {
     const sortLabel = (name) => normalizeBowlLabel(name);
@@ -347,17 +349,23 @@ export default function Postseason() {
         return String(a.homeTgid).localeCompare(String(b.homeTgid));
       });
 
-    const gameWidth = showWinningCoach ? 18 : 20;
+    const seasonWidth = showSeasonColumn ? 8 : 0;
+    const gameWidth = showGameColumn ? (showWinningCoach ? 18 : 20) : 0;
     const resultWidth = showWinningCoach ? 8 : 10;
     const recordWidth = showWinningCoach ? 10 : 12;
     const winningCoachWidth = showWinningCoach ? 20 : 0;
     const baseWidth =
+      seasonWidth +
       gameWidth +
       resultWidth +
       recordWidth * 2 +
       (showWinningCoach ? winningCoachWidth : 0);
     const teamWidth = (100 - baseWidth) / 2;
-    const colCount = showWinningCoach ? 7 : 6;
+    const colCount =
+      5 +
+      (showGameColumn ? 1 : 0) +
+      (showSeasonColumn ? 1 : 0) +
+      (showWinningCoach ? 1 : 0);
     const seasonHeaderColCount = colCount;
 
     const groupedRows = groupBySeason
@@ -382,7 +390,8 @@ export default function Postseason() {
     return (
       <table className="table postseasonTable">
         <colgroup>
-          <col style={{ width: `${gameWidth}%` }} />
+          {showSeasonColumn ? <col style={{ width: `${seasonWidth}%` }} /> : null}
+          {showGameColumn ? <col style={{ width: `${gameWidth}%` }} /> : null}
           <col style={{ width: `${teamWidth}%` }} />
           <col style={{ width: `${recordWidth}%` }} />
           <col style={{ width: `${resultWidth}%` }} />
@@ -392,75 +401,143 @@ export default function Postseason() {
         </colgroup>
         <thead />
         <tbody>
-          {(groupBySeason ? groupedSeasons : [String(singleSeasonLabel ?? "")]).map((season, seasonIdx) => (
-            <Fragment key={season || "season"}>
-              <tr className="scheduleWeekRow">
-                <th colSpan={seasonHeaderColCount} className="scheduleWeekHeaderTop">
-                  {season || "-"}
-                </th>
-              </tr>
-              <tr className="scheduleWeekHeader">
-                <th>Game</th>
-                <th>{winnerLabel}</th>
-                <th>Record</th>
-                <th>Result</th>
-                <th>Opponent</th>
-                <th>Record</th>
-                {showWinningCoach ? <th>Winning Coach</th> : null}
-              </tr>
-              {(rowsBySeason.get(season) || []).map((r, idx) => (
-                <Fragment key={`${season}-${r.week}-${idx}`}>
-                  <tr>
-                    <td>
-                      {r.bowlName ? (
-                        <Link
-                          to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
-                          style={{ color: "inherit", textDecoration: "none" }}
-                          title="View bowl results"
-                        >
-                          <span className="postseasonBowlCell">
-                            {r.bowlLogoUrl ? (
-                              <img
-                                className="postseasonBowlLogo"
-                                src={r.bowlLogoUrl}
-                                alt=""
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                              />
-                            ) : null}
-                            <span>{normalizeBowlLabel(r.bowlName)}</span>
-                          </span>
-                        </Link>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td>
-                      <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
-                        <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
-                      </Link>
-                    </td>
-                    <td>{r.leftRecord || "-"}</td>
-                    <td>
-                      {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
-                    </td>
-                    <td>
-                      <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
-                        <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
-                      </Link>
-                    </td>
-                    <td>{r.rightRecord || "-"}</td>
-                    {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+          {groupBySeason
+            ? groupedSeasons.map((season, seasonIdx) => (
+                <Fragment key={season || "season"}>
+                  <tr className="scheduleWeekRow">
+                    <th colSpan={seasonHeaderColCount} className="scheduleWeekHeaderTop">
+                      {season || "-"}
+                    </th>
                   </tr>
+                  <tr className="scheduleWeekHeader">
+                    {showSeasonColumn ? <th>Season</th> : null}
+                    {showGameColumn ? <th>Game</th> : null}
+                    <th>{winnerLabel}</th>
+                    <th>Record</th>
+                    <th>Result</th>
+                    <th>Opponent</th>
+                    <th>Record</th>
+                    {showWinningCoach ? <th>Winning Coach</th> : null}
+                  </tr>
+                  {(rowsBySeason.get(season) || []).map((r, idx) => (
+                    <Fragment key={`${season}-${r.week}-${idx}`}>
+                      <tr>
+                        {showSeasonColumn ? <td>{r.seasonYear}</td> : null}
+                        {showGameColumn ? (
+                        <td>
+                          {r.bowlName ? (
+                            <Link
+                              to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                              style={{ color: "inherit", textDecoration: "none" }}
+                              title="View bowl results"
+                            >
+                              <span className="postseasonBowlCell">
+                                {r.bowlLogoUrl ? (
+                                  <img
+                                    className="postseasonBowlLogo"
+                                    src={r.bowlLogoUrl}
+                                    alt=""
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                ) : null}
+                                <span>{normalizeBowlLabel(r.bowlName)}</span>
+                              </span>
+                            </Link>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        ) : null}
+                        <td>
+                          <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
+                            <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
+                          </Link>
+                        </td>
+                        <td>{r.leftRecord || "-"}</td>
+                        <td>
+                          {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
+                        </td>
+                        <td>
+                          <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
+                            <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
+                          </Link>
+                        </td>
+                        <td>{r.rightRecord || "-"}</td>
+                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+                      </tr>
+                    </Fragment>
+                  ))}
+                  {seasonIdx < (groupBySeason ? groupedSeasons.length : 1) - 1 ? (
+                    <tr className="scheduleWeekSpacer" aria-hidden="true">
+                      <td colSpan={seasonHeaderColCount} />
+                    </tr>
+                  ) : null}
                 </Fragment>
-              ))}
-              {seasonIdx < (groupBySeason ? groupedSeasons.length : 1) - 1 ? (
-                <tr className="scheduleWeekSpacer" aria-hidden="true">
-                  <td colSpan={seasonHeaderColCount} />
-                </tr>
-              ) : null}
-            </Fragment>
-          ))}
+              ))
+            : (
+                <>
+                  <tr className="scheduleWeekHeader">
+                    {showSeasonColumn ? <th>Season</th> : null}
+                    {showGameColumn ? <th>Game</th> : null}
+                    <th>{winnerLabel}</th>
+                    <th>Record</th>
+                    <th>Result</th>
+                    <th>Opponent</th>
+                    <th>Record</th>
+                    {showWinningCoach ? <th>Winning Coach</th> : null}
+                  </tr>
+                  {(rowsBySeason.get(String(singleSeasonLabel ?? "")) || []).map((r, idx) => (
+                    <Fragment key={`${r.seasonYear}-${r.week}-${idx}`}>
+                      <tr>
+                        {showSeasonColumn ? <td>{r.seasonYear}</td> : null}
+                        {showGameColumn ? (
+                          <td>
+                            {r.bowlName ? (
+                              <Link
+                                to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                                style={{ color: "inherit", textDecoration: "none" }}
+                                title="View bowl results"
+                              >
+                                <span className="postseasonBowlCell">
+                                  {r.bowlLogoUrl ? (
+                                    <img
+                                      className="postseasonBowlLogo"
+                                      src={r.bowlLogoUrl}
+                                      alt=""
+                                      loading="lazy"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : null}
+                                  <span>{normalizeBowlLabel(r.bowlName)}</span>
+                                </span>
+                              </Link>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                        ) : null}
+                        <td>
+                          <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
+                            <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
+                          </Link>
+                        </td>
+                        <td>{r.leftRecord || "-"}</td>
+                        <td>
+                          {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
+                        </td>
+                        <td>
+                          <Link to={`/team/${r.rightTgid || r.homeTgid}`} className="matchupTeam" title="View team page">
+                            <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
+                          </Link>
+                        </td>
+                        <td>{r.rightRecord || "-"}</td>
+                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+                      </tr>
+                    </Fragment>
+                  ))}
+                </>
+              )}
         </tbody>
       </table>
     );
@@ -1128,6 +1205,12 @@ export default function Postseason() {
           }
 
           const confHeaderLogo = confLogoMap.get(normalizeConfKey(confFilter)) || "";
+          const confHeaderName =
+            confFilter === "All"
+              ? ""
+              : String(filtered[0]?.bowlName ?? confFilter)
+                  .replace(/^cfp\s*-\s*/i, "")
+                  .trim();
 
           const showViewToggle = !forcedTable;
 
@@ -1198,13 +1281,26 @@ export default function Postseason() {
                         referrerPolicy="no-referrer"
                       />
                     ) : null}
+                    {confHeaderName ? (
+                      <h2 style={{ marginTop: 6, marginBottom: 0, textAlign: "center" }}>
+                        {confHeaderName}
+                      </h2>
+                    ) : null}
                   </div>
-                  {renderBowlFilteredTable(filtered, { showWinningCoach: false, sortBy: "game" })}
+                  {renderBowlFilteredTable(filtered, {
+                    showWinningCoach: false,
+                    showSeasonColumn: confFilter !== "All",
+                    showGameColumn: confFilter === "All",
+                    groupBySeason: confFilter === "All" && seasonYear === "All",
+                    sortBy: "game",
+                  })}
                 </>
               ) : effectiveView === "table" ? (
                 renderBowlFilteredTable(filtered, {
                   showWinningCoach: false,
-                  groupBySeason: seasonYear === "All",
+                  showSeasonColumn: confFilter !== "All",
+                  showGameColumn: confFilter === "All",
+                  groupBySeason: confFilter === "All" && seasonYear === "All",
                   sortBy: "game",
                 })
               ) : (

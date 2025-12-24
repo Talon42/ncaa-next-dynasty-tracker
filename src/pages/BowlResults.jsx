@@ -221,7 +221,7 @@ export default function BowlResults() {
               style={{ width: 180, height: 180, objectFit: "contain" }}
             />
           ) : null}
-          <h2 style={{ marginTop: 6, marginBottom: 0, textAlign: "center" }}>
+          <h2 style={{ marginTop: 6, marginBottom: 0, textAlign: "center", fontSize: "1.5em" }}>
             {title || "Bowl Results"}
           </h2>
         </div>
