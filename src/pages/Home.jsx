@@ -123,20 +123,21 @@ export default function Home() {
           <col style={{ width: `${teamWidth}%` }} />
           <col style={{ width: `${recordWidth}%` }} />
         </colgroup>
-        <thead>
-          <tr>
-            <th>Winner</th>
-            <th>Record</th>
-            <th>Result</th>
-            <th>Opponent</th>
-            <th>Record</th>
-          </tr>
-        </thead>
+        <thead />
         <tbody>
-          {groups.map((group) => (
+          {groups.map((group, groupIdx) => (
             <Fragment key={group.week ?? "week"}>
               <tr className="scheduleWeekRow">
-                <td colSpan={5}>Week {group.week ?? "-"}</td>
+                <th colSpan={5} className="scheduleWeekHeaderTop">
+                  Week {group.week ?? "-"}
+                </th>
+              </tr>
+              <tr className="scheduleWeekHeader">
+                <th>Team</th>
+                <th>Record</th>
+                <th>Result</th>
+                <th>Team</th>
+                <th>Record</th>
               </tr>
               {group.rows.map((r, idx) => (
                 <tr key={`${r.week}-${idx}`}>
@@ -157,6 +158,11 @@ export default function Home() {
                   <td>{r.rightRecord || "-"}</td>
                 </tr>
               ))}
+              {groupIdx < groups.length - 1 ? (
+                <tr className="scheduleWeekSpacer" aria-hidden="true">
+                  <td colSpan={5} />
+                </tr>
+              ) : null}
             </Fragment>
           ))}
         </tbody>
