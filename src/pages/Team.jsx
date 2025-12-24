@@ -575,7 +575,7 @@ useEffect(() => {
                             style={{
                               width: 22,
                               textAlign: "center",
-                              fontWeight: 800,
+                              fontWeight: 400,
                               opacity: 0.9,
                             }}
                             title={r.isHome ? "Home game" : "Away game"}
@@ -635,7 +635,7 @@ useEffect(() => {
                       style={{
                         width: 22,
                         textAlign: "center",
-                        fontWeight: 800,
+                        fontWeight: 400,
                         opacity: 0.9,
                       }}
                       title={r.isHome ? "Home game" : "Away game"}
