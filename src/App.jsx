@@ -61,6 +61,7 @@ export default function App() {
     location.pathname === "/postseason" ||
     location.pathname === "/coaches" ||
     location.pathname.startsWith("/coach/");
+  const isSchedulePage = location.pathname === "/";
 
   const [dynasties, setDynasties] = useState([]);
   const [activeId, setActiveId] = useState(null);
@@ -567,7 +568,16 @@ export default function App() {
           {dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : dynasties.length === 0 ? null : (
-            <div className={`card routedCard ${isTeamsPage ? "cardWide" : ""}`}>
+            <div
+              className={[
+                "card",
+                "routedCard",
+                isTeamsPage ? "cardWide" : "",
+                isSchedulePage ? "cardSchedule" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/teams" element={<TeamsIndex />} />

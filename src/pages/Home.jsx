@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 
 const FALLBACK_LOGO =
@@ -30,6 +31,11 @@ function TeamCell({ name, logoUrl }) {
   );
 }
 
+function formatRecord({ w, l, t }) {
+  if (!Number.isFinite(w) || !Number.isFinite(l)) return "-";
+  return t ? `${w}-${l}-${t}` : `${w}-${l}`;
+}
+
 export default function Home() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,6 +49,7 @@ export default function Home() {
   const [weekFilter, setWeekFilter] = useState("All");
 
   const [rows, setRows] = useState([]);
+  const [recordByTgid, setRecordByTgid] = useState(new Map());
 
   useEffect(() => {
     (async () => {
@@ -148,6 +155,7 @@ export default function Home() {
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
       setRows([]);
+      setRecordByTgid(new Map());
       return;
     }
 
@@ -162,11 +170,61 @@ export default function Home() {
       ]);
 
       const nameByTgid = new Map(teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()]));
+      const confByTgid = new Map(teamSeasonRows.map((t) => [String(t.tgid), String(t.cgid ?? "")]));
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
 
       const logoFor = (tgid) =>
         overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
+
+      const recordMap = new Map();
+      for (const g of gamesRaw) {
+        const hasScore = g.homeScore != null && g.awayScore != null;
+        if (!hasScore) continue;
+
+        const homeId = String(g.homeTgid);
+        const awayId = String(g.awayTgid);
+        const hs = Number(g.homeScore);
+        const as = Number(g.awayScore);
+
+        if (!recordMap.has(homeId)) {
+          recordMap.set(homeId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+        }
+        if (!recordMap.has(awayId)) {
+          recordMap.set(awayId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+        }
+
+        const homeRec = recordMap.get(homeId);
+        const awayRec = recordMap.get(awayId);
+
+        if (hs > as) {
+          homeRec.w += 1;
+          awayRec.l += 1;
+        } else if (hs < as) {
+          homeRec.l += 1;
+          awayRec.w += 1;
+        } else {
+          homeRec.t += 1;
+          awayRec.t += 1;
+        }
+
+        const homeConf = confByTgid.get(homeId);
+        const awayConf = confByTgid.get(awayId);
+        if (homeConf && awayConf && homeConf === awayConf) {
+          if (hs > as) {
+            homeRec.cw += 1;
+            awayRec.cl += 1;
+          } else if (hs < as) {
+            homeRec.cl += 1;
+            awayRec.cw += 1;
+          } else {
+            homeRec.ct += 1;
+            awayRec.ct += 1;
+          }
+        }
+      }
+
+      setRecordByTgid(recordMap);
 
       let games = gamesRaw;
       if (weekFilter !== "All") {
@@ -177,17 +235,36 @@ export default function Home() {
       const sorted = games
         .slice()
         .sort((a, b) => a.week - b.week)
-        .map((g) => ({
-          week: g.week,
-          homeTgid: g.homeTgid,
-          awayTgid: g.awayTgid,
-          homeName: nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`,
-          awayName: nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`,
-          result:
-            g.homeScore != null && g.awayScore != null ? `${g.homeScore} - ${g.awayScore}` : "—",
-          homeLogo: logoFor(g.homeTgid),
-          awayLogo: logoFor(g.awayTgid),
-        }));
+        .map((g) => {
+          const homeId = String(g.homeTgid);
+          const awayId = String(g.awayTgid);
+          const homeConfId = confByTgid.get(homeId);
+          const awayConfId = confByTgid.get(awayId);
+          const homeConfName = getConferenceName(homeConfId);
+          const awayConfName = getConferenceName(awayConfId);
+          const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const hasScore = g.homeScore != null && g.awayScore != null;
+          return {
+            week: g.week,
+            homeTgid: g.homeTgid,
+            awayTgid: g.awayTgid,
+            homeName: nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`,
+            awayName: nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`,
+            result:
+              hasScore ? `${g.homeScore} - ${g.awayScore}` : "-",
+            homeLogo: logoFor(g.homeTgid),
+            awayLogo: logoFor(g.awayTgid),
+            homeScore: hasScore ? g.homeScore : "-",
+            awayScore: hasScore ? g.awayScore : "-",
+            homeRecord: formatRecord(homeRec),
+            awayRecord: formatRecord(awayRec),
+            homeConfRecord: formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct }),
+            awayConfRecord: formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct }),
+            homeConfName,
+            awayConfName,
+          };
+        });
 
       setRows(sorted);
     })();
@@ -257,42 +334,41 @@ export default function Home() {
           No seasons uploaded yet for this dynasty. Use <b>Upload New Season</b> in the sidebar.
         </p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th style={{ width: 80 }}>Week</th>
-              <th>Home</th>
-              <th style={{ width: 140 }}>Result</th>
-              <th>Away</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr key={`${r.week}-${idx}`}>
-                <td data-label="Week">{r.week}</td>
-                <td data-label="Home">
-                  <Link
-                    to={`/team/${r.homeTgid}`}
-                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                    title="View team page"
-                  >
-                    <TeamCell name={r.homeName} logoUrl={r.homeLogo} />
-                  </Link>
-                </td>
-                <td data-label="Result">{r.result}</td>
-                <td data-label="Away">
-                  <Link
-                    to={`/team/${r.awayTgid}`}
-                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                    title="View team page"
-                  >
-                    <TeamCell name={r.awayName} logoUrl={r.awayLogo} />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="matchupGrid">
+          {rows.map((r, idx) => (
+            <div key={`${r.week}-${idx}`} className="matchupCard">
+              <div className="matchupRow">
+                <Link
+                  to={`/team/${r.awayTgid}`}
+                  className="matchupTeam"
+                  title="View team page"
+                >
+                  <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  <span className="matchupTeamName">{r.awayName}</span>
+                </Link>
+                <span className="matchupScore">{r.awayScore}</span>
+              </div>
+              <div className="matchupMeta">
+                ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+              </div>
+
+              <div className="matchupRow">
+                <Link
+                  to={`/team/${r.homeTgid}`}
+                  className="matchupTeam"
+                  title="View team page"
+                >
+                  <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  <span className="matchupTeamName">{r.homeName}</span>
+                </Link>
+                <span className="matchupScore">{r.homeScore}</span>
+              </div>
+              <div className="matchupMeta">
+                ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
