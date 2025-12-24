@@ -665,6 +665,15 @@ button:disabled {
 .table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 .table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
+.table .scheduleWeekRow td {
+  padding: 8px 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+}
+
 .kicker {
   color: var(--muted);
   font-size: 13px;

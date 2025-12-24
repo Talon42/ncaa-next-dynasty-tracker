@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
@@ -109,16 +109,14 @@ export default function Home() {
     writeViewPreference({ page: "home", dynastyId, view: normalizedView });
   }, [dynastyId, view, navigate, location.search]);
 
-  function renderScheduleTable(list) {
-    const seasonWidth = 10;
+  function renderScheduleTable(groups) {
     const resultWidth = 10;
     const recordWidth = 12;
-    const teamWidth = (100 - seasonWidth - resultWidth - recordWidth * 2) / 2;
+    const teamWidth = (100 - resultWidth - recordWidth * 2) / 2;
 
     return (
       <table className="table postseasonTable">
         <colgroup>
-          <col style={{ width: `${seasonWidth}%` }} />
           <col style={{ width: `${teamWidth}%` }} />
           <col style={{ width: `${recordWidth}%` }} />
           <col style={{ width: `${resultWidth}%` }} />
@@ -127,8 +125,7 @@ export default function Home() {
         </colgroup>
         <thead>
           <tr>
-            <th>Season</th>
-            <th>Champion</th>
+            <th>Winner</th>
             <th>Record</th>
             <th>Result</th>
             <th>Opponent</th>
@@ -136,25 +133,31 @@ export default function Home() {
           </tr>
         </thead>
         <tbody>
-          {list.map((r, idx) => (
-            <tr key={`${r.week}-${idx}`}>
-              <td>{seasonYear}</td>
-              <td>
-                <Link to={`/team/${r.leftTgid}`} className="matchupTeam" title="View team page">
-                  <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
-                </Link>
-              </td>
-              <td>{r.leftRecord || "-"}</td>
-              <td>
-                {r.leftScore ?? "-"} - {r.rightScore ?? "-"}
-              </td>
-              <td>
-                <Link to={`/team/${r.rightTgid}`} className="matchupTeam" title="View team page">
-                  <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
-                </Link>
-              </td>
-              <td>{r.rightRecord || "-"}</td>
-            </tr>
+          {groups.map((group) => (
+            <Fragment key={group.week ?? "week"}>
+              <tr className="scheduleWeekRow">
+                <td colSpan={5}>Week {group.week ?? "-"}</td>
+              </tr>
+              {group.rows.map((r, idx) => (
+                <tr key={`${r.week}-${idx}`}>
+                  <td>
+                    <Link to={`/team/${r.leftTgid}`} className="matchupTeam" title="View team page">
+                      <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
+                    </Link>
+                  </td>
+                  <td>{r.leftRecord || "-"}</td>
+                  <td>
+                    {r.leftScore ?? "-"} - {r.rightScore ?? "-"}
+                  </td>
+                  <td>
+                    <Link to={`/team/${r.rightTgid}`} className="matchupTeam" title="View team page">
+                      <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
+                    </Link>
+                  </td>
+                  <td>{r.rightRecord || "-"}</td>
+                </tr>
+              ))}
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -477,7 +480,7 @@ export default function Home() {
           No seasons uploaded yet for this dynasty. Use <b>Upload New Season</b> in the sidebar.
         </p>
       ) : view === "table" ? (
-        renderScheduleTable(rows)
+        renderScheduleTable(groupedRows)
       ) : (
         <div className="matchupWeekGroups">
           {groupedRows.map((group) => (
