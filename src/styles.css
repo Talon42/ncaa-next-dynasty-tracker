@@ -362,6 +362,12 @@ a { color: inherit; }
   padding-left: 24px;
   padding-right: 24px;
 }
+
+@media (min-width: 1401px) {
+  .routedCard.cardSchedule {
+    max-width: calc(var(--schedule-max) * 1.15);
+  }
+}
 .card {
   background: rgba(20,20,20,0.95);
   border: 1px solid var(--border);
@@ -1034,8 +1040,12 @@ button:disabled {
 
 .matchupGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, minmax(240px, 1fr));
   gap: 12px;
+}
+
+.matchupGridPostseason {
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
 }
 
 .matchupCard {
@@ -1048,11 +1058,34 @@ button:disabled {
   gap: 6px;
 }
 
+@media (min-width: 1401px) {
+  .matchupCard {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .matchupMeta {
+    line-height: 1.5;
+  }
+}
+
 .matchupRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.winnerCaret {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 7px solid var(--red);
+  transform: translateY(-50%);
 }
 
 .matchupTeam {
@@ -1078,23 +1111,24 @@ button:disabled {
 
 .matchupScore {
   font-weight: 800;
-  min-width: 40px;
+  min-width: 56px;
   text-align: right;
+  position: relative;
+  padding-right: 14px;
 }
+
 
 .matchupMeta {
   color: var(--muted);
   font-size: 12px;
 }
 
-@media (max-width: 1600px) {
-  .matchupGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1400px) {
   .matchupGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .matchupGridPostseason {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

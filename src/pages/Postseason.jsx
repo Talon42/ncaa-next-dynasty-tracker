@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { getConferenceName } from "../conferences";
 import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
 
@@ -74,6 +75,11 @@ function playoffRoundForGame(game) {
   if (week === 18 && lower.includes("cfp - round 1")) return "CFP - Round 1";
 
   return null;
+}
+
+function formatRecord({ w, l, t }) {
+  if (!Number.isFinite(w) || !Number.isFinite(l)) return "-";
+  return t ? `${w}-${l}-${t}` : `${w}-${l}`;
 }
 
 export default function Postseason() {
@@ -177,6 +183,7 @@ export default function Postseason() {
       const nameByTgid = new Map(
         teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()])
       );
+      const confByTgid = new Map(teamSeasonRows.map((t) => [String(t.tgid), String(t.cgid ?? "")]));
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
       const logoFor = (tgid) =>
@@ -190,6 +197,50 @@ export default function Postseason() {
       }
 
       const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
+
+      const recordMap = new Map();
+      for (const g of gamesRaw) {
+        const hasScore = g.homeScore != null && g.awayScore != null;
+        if (!hasScore) continue;
+
+        const homeId = String(g.homeTgid);
+        const awayId = String(g.awayTgid);
+        const hs = Number(g.homeScore);
+        const as = Number(g.awayScore);
+        if (!Number.isFinite(hs) || !Number.isFinite(as)) continue;
+
+        if (!recordMap.has(homeId)) recordMap.set(homeId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+        if (!recordMap.has(awayId)) recordMap.set(awayId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
+
+        const homeRec = recordMap.get(homeId);
+        const awayRec = recordMap.get(awayId);
+
+        if (hs > as) {
+          homeRec.w += 1;
+          awayRec.l += 1;
+        } else if (hs < as) {
+          homeRec.l += 1;
+          awayRec.w += 1;
+        } else {
+          homeRec.t += 1;
+          awayRec.t += 1;
+        }
+
+        const homeConf = confByTgid.get(homeId);
+        const awayConf = confByTgid.get(awayId);
+        if (homeConf && awayConf && homeConf === awayConf) {
+          if (hs > as) {
+            homeRec.cw += 1;
+            awayRec.cl += 1;
+          } else if (hs < as) {
+            homeRec.cl += 1;
+            awayRec.cw += 1;
+          } else {
+            homeRec.ct += 1;
+            awayRec.ct += 1;
+          }
+        }
+      }
 
       const postseasonGames = gamesRaw
         .filter((g) => bowlByKey.has(`${g.week}|${g.sgnm}`))
@@ -205,6 +256,16 @@ export default function Postseason() {
           const hasScore = g.homeScore != null && g.awayScore != null;
           const homeWins = hasScore && Number(g.homeScore) > Number(g.awayScore);
           const awayWins = hasScore && Number(g.awayScore) > Number(g.homeScore);
+          const winner = homeWins ? "home" : awayWins ? "away" : null;
+
+          const homeId = String(g.homeTgid);
+          const awayId = String(g.awayTgid);
+          const homeConfId = confByTgid.get(homeId);
+          const awayConfId = confByTgid.get(awayId);
+          const homeConfName = getConferenceName(homeConfId);
+          const awayConfName = getConferenceName(awayConfId);
+          const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
 
           const leftIsHome = homeWins || (!homeWins && !awayWins);
           const leftTgid = leftIsHome ? g.homeTgid : g.awayTgid;
@@ -226,6 +287,13 @@ export default function Postseason() {
             awayLogo: logoFor(g.awayTgid),
             homeScore: g.homeScore,
             awayScore: g.awayScore,
+            winner,
+            homeRecord: formatRecord(homeRec),
+            awayRecord: formatRecord(awayRec),
+            homeConfRecord: formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct }),
+            awayConfRecord: formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct }),
+            homeConfName,
+            awayConfName,
             leftTgid,
             rightTgid,
             leftName,
@@ -472,61 +540,52 @@ export default function Postseason() {
         }
 
         return (
-          <table className="table postseasonTable" style={{ tableLayout: "auto", width: "100%" }}>
-            <thead>
-              <tr>
-                <th style={{ width: 80 }}>Bowl</th>
-                <th>Team</th>
-                <th style={{ width: 140 }}>Result</th>
-                <th>Team</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, idx) => (
-                <tr key={`${r.week}-${idx}`}>
-                  <td data-label="Bowl">
-                    <div className="postseasonBowlCell">
-                      {r.bowlLogoUrl ? (
-                        <img
-                          className="teamLogo"
-                          src={r.bowlLogoUrl}
-                          alt=""
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : null}
-                      <Link
-                        to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
-                        style={{ color: "inherit", textDecoration: "none" }}
-                        title="View bowl results"
-                      >
-                        <span>{r.bowlName}</span>
-                      </Link>
-                    </div>
-                  </td>
-                  <td data-label="Team">
-                    <Link
-                      to={`/team/${r.leftTgid}`}
-                      style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                      title="View team page"
-                    >
-                      <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
-                    </Link>
-                  </td>
-                  <td data-label="Result">{r.result}</td>
-                  <td data-label="Team">
-                    <Link
-                      to={`/team/${r.rightTgid}`}
-                      style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                      title="View team page"
-                    >
-                      <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="matchupGrid matchupGridPostseason">
+            {filtered.map((r, idx) => (
+              <div key={`${r.week}-${idx}`} className="matchupCard">
+                <div className="matchupMeta" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {r.bowlLogoUrl ? (
+                    <img className="matchupLogo" src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  ) : null}
+                  <Link
+                    to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                    style={{ color: "inherit", textDecoration: "none" }}
+                    title="View bowl results"
+                  >
+                    {r.bowlName}
+                  </Link>
+                </div>
+
+                <div className="matchupRow">
+                  <Link to={`/team/${r.awayTgid}`} className="matchupTeam" title="View team page">
+                    <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                    <span className="matchupTeamName">{r.awayName}</span>
+                  </Link>
+                  <span className="matchupScore">
+                    {r.awayScore ?? "-"}
+                    {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                  </span>
+                </div>
+                <div className="matchupMeta">
+                  ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
+                </div>
+
+                <div className="matchupRow">
+                  <Link to={`/team/${r.homeTgid}`} className="matchupTeam" title="View team page">
+                    <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                    <span className="matchupTeamName">{r.homeName}</span>
+                  </Link>
+                  <span className="matchupScore">
+                    {r.homeScore ?? "-"}
+                    {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                  </span>
+                </div>
+                <div className="matchupMeta">
+                  ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
+                </div>
+              </div>
+            ))}
+          </div>
         );
       })()}
     </div>

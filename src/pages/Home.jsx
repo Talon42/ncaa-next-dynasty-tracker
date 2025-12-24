@@ -47,9 +47,10 @@ export default function Home() {
 
   const [availableWeeks, setAvailableWeeks] = useState([]);
   const [weekFilter, setWeekFilter] = useState("All");
+  const [confFilter, setConfFilter] = useState("All");
 
   const [rows, setRows] = useState([]);
-  const [recordByTgid, setRecordByTgid] = useState(new Map());
+  const [confOptions, setConfOptions] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -62,6 +63,7 @@ export default function Home() {
     const params = new URLSearchParams(location.search);
     const season = params.get("season");
     const week = params.get("week");
+    const conf = params.get("conf");
     const hasUploadFlag = Boolean(
       sessionStorage.getItem("seasonUploadComplete") || sessionStorage.getItem("seasonUploadLatest")
     );
@@ -72,6 +74,7 @@ export default function Home() {
     }
 
     if (week != null) setWeekFilter(week);
+    if (conf) setConfFilter(conf);
   }, [location.search]);
 
   useEffect(() => {
@@ -86,8 +89,9 @@ export default function Home() {
       writeSeasonFilter(seasonYear);
     }
     if (weekFilter) params.set("week", weekFilter);
+    if (confFilter) params.set("conf", confFilter);
     navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
-  }, [dynastyId, seasonYear, weekFilter, navigate, location.search]);
+  }, [dynastyId, seasonYear, weekFilter, confFilter, navigate, location.search]);
 
   useEffect(() => {
     if (!dynastyId) {
@@ -155,7 +159,7 @@ export default function Home() {
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
       setRows([]);
-      setRecordByTgid(new Map());
+      setConfOptions([]);
       return;
     }
 
@@ -171,6 +175,13 @@ export default function Home() {
 
       const nameByTgid = new Map(teamSeasonRows.map((t) => [t.tgid, `${t.tdna} ${t.tmna}`.trim()]));
       const confByTgid = new Map(teamSeasonRows.map((t) => [String(t.tgid), String(t.cgid ?? "")]));
+      const confIds = Array.from(new Set(teamSeasonRows.map((t) => String(t.cgid ?? "")).filter(Boolean)))
+        .sort((a, b) => Number(a) - Number(b))
+        .map((id) => ({ id, name: getConferenceName(id) }));
+      setConfOptions(confIds);
+      if (confFilter !== "All" && !confIds.some((c) => c.id === String(confFilter))) {
+        setConfFilter("All");
+      }
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [r.tgid, r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
 
@@ -224,12 +235,17 @@ export default function Home() {
         }
       }
 
-      setRecordByTgid(recordMap);
-
       let games = gamesRaw;
       if (weekFilter !== "All") {
         const wf = Number(weekFilter);
         games = gamesRaw.filter((g) => g.week === wf);
+      }
+      if (confFilter !== "All") {
+        games = games.filter((g) => {
+          const homeConf = confByTgid.get(String(g.homeTgid));
+          const awayConf = confByTgid.get(String(g.awayTgid));
+          return String(homeConf) === String(confFilter) || String(awayConf) === String(confFilter);
+        });
       }
 
       const sorted = games
@@ -245,6 +261,16 @@ export default function Home() {
           const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const hasScore = g.homeScore != null && g.awayScore != null;
+          const homeScoreNum = hasScore ? Number(g.homeScore) : null;
+          const awayScoreNum = hasScore ? Number(g.awayScore) : null;
+          const winner =
+            hasScore && Number.isFinite(homeScoreNum) && Number.isFinite(awayScoreNum)
+              ? homeScoreNum === awayScoreNum
+                ? null
+                : homeScoreNum > awayScoreNum
+                  ? "home"
+                  : "away"
+              : null;
           return {
             week: g.week,
             homeTgid: g.homeTgid,
@@ -257,6 +283,7 @@ export default function Home() {
             awayLogo: logoFor(g.awayTgid),
             homeScore: hasScore ? g.homeScore : "-",
             awayScore: hasScore ? g.awayScore : "-",
+            winner,
             homeRecord: formatRecord(homeRec),
             awayRecord: formatRecord(awayRec),
             homeConfRecord: formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct }),
@@ -268,7 +295,7 @@ export default function Home() {
 
       setRows(sorted);
     })();
-  }, [dynastyId, seasonYear, weekFilter, location.search]);
+  }, [dynastyId, seasonYear, weekFilter, confFilter, location.search]);
 
   const hasSeasons = availableSeasons.length > 0;
   const seasonOptions = useMemo(() => availableSeasons.map(String), [availableSeasons]);
@@ -326,6 +353,22 @@ export default function Home() {
               ))}
             </select>
           </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Conference</span>
+            <select
+              value={confFilter}
+              onChange={(e) => setConfFilter(e.target.value)}
+              disabled={!hasSeasons}
+            >
+              <option value="All">All</option>
+              {confOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -346,7 +389,10 @@ export default function Home() {
                   <img className="matchupLogo" src={r.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
                   <span className="matchupTeamName">{r.awayName}</span>
                 </Link>
-                <span className="matchupScore">{r.awayScore}</span>
+                <span className="matchupScore">
+                  {r.awayScore}
+                  {r.winner === "away" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                </span>
               </div>
               <div className="matchupMeta">
                 ({r.awayRecord}, {r.awayConfRecord} {r.awayConfName})
@@ -361,7 +407,10 @@ export default function Home() {
                   <img className="matchupLogo" src={r.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
                   <span className="matchupTeamName">{r.homeName}</span>
                 </Link>
-                <span className="matchupScore">{r.homeScore}</span>
+                <span className="matchupScore">
+                  {r.homeScore}
+                  {r.winner === "home" ? <span className="winnerCaret" aria-hidden="true" /> : null}
+                </span>
               </div>
               <div className="matchupMeta">
                 ({r.homeRecord}, {r.homeConfRecord} {r.homeConfName})
