@@ -82,13 +82,22 @@ function playoffRoundForGame(game) {
 export default function Postseason() {
   const location = useLocation();
   const navigate = useNavigate();
+  const initialParams = new URLSearchParams(location.search);
+  const initialTabParam = String(initialParams.get("tab") || "").trim();
+  const initialTab =
+    initialTabParam === "confChamp" || initialTabParam === "bowls" || initialTabParam === "bracket"
+      ? initialTabParam
+      : "confChamp";
+  const initialSeasonParam = initialParams.get("season");
+  const initialSeasonYear = initialSeasonParam === "All" ? "All" : initialSeasonParam || "";
+  const initialView = readViewFromSearch(location.search) || "cards";
   const [dynastyId, setDynastyId] = useState(null);
   const [availableSeasons, setAvailableSeasons] = useState([]);
-  const [seasonYear, setSeasonYear] = useState("");
-  const [tab, setTab] = useState("confChamp");
+  const [seasonYear, setSeasonYear] = useState(initialSeasonYear);
+  const [tab, setTab] = useState(initialTab);
   const [bowlFilter, setBowlFilter] = useState("All");
   const [confFilter, setConfFilter] = useState("All");
-  const [view, setView] = useState("cards");
+  const [view, setView] = useState(initialView);
   const [rows, setRows] = useState([]);
   const [playoffCols, setPlayoffCols] = useState({
     "CFP - Round 1": [],
@@ -979,6 +988,8 @@ export default function Postseason() {
           const bowlHeaderName = normalizeBowlLabel(bowlFilter) || bowlFilter;
           const showWinningCoach = /national championship/i.test(bowlFilter);
 
+          const showViewToggle = !forcedTable;
+
           return (
             <>
               <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
@@ -1007,24 +1018,26 @@ export default function Postseason() {
                   </select>
                 </label>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      className="toggleBtn"
-                      style={viewButtonStyle(view === "cards")}
-                      onClick={() => setView("cards")}
-                    >
-                      Cards
-                    </button>
-                    <button
-                      className="toggleBtn"
-                      style={viewButtonStyle(view === "table")}
-                      onClick={() => setView("table")}
-                    >
-                      Table
-                    </button>
+                {showViewToggle ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        className="toggleBtn"
+                        style={viewButtonStyle(view === "cards")}
+                        onClick={() => setView("cards")}
+                      >
+                        Cards
+                      </button>
+                      <button
+                        className="toggleBtn"
+                        style={viewButtonStyle(view === "table")}
+                        onClick={() => setView("table")}
+                      >
+                        Table
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for that bowl.</p>
@@ -1070,6 +1083,8 @@ export default function Postseason() {
 
           const confHeaderLogo = confLogoMap.get(normalizeConfKey(confFilter)) || "";
 
+          const showViewToggle = !forcedTable;
+
           return (
             <>
               <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
@@ -1102,24 +1117,26 @@ export default function Postseason() {
                   </select>
                 </label>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      className="toggleBtn"
-                      style={viewButtonStyle(view === "cards")}
-                      onClick={() => setView("cards")}
-                    >
-                      Cards
-                    </button>
-                    <button
-                      className="toggleBtn"
-                      style={viewButtonStyle(view === "table")}
-                      onClick={() => setView("table")}
-                    >
-                      Table
-                    </button>
+                {showViewToggle ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        className="toggleBtn"
+                        style={viewButtonStyle(view === "cards")}
+                        onClick={() => setView("cards")}
+                      >
+                        Cards
+                      </button>
+                      <button
+                        className="toggleBtn"
+                        style={viewButtonStyle(view === "table")}
+                        onClick={() => setView("table")}
+                      >
+                        Table
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for this season.</p>
