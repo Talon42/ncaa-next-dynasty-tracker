@@ -153,6 +153,9 @@ export default function Coach() {
           return [`${t.seasonYear}|${t.tgid}`, name || `TGID ${t.tgid}`];
         })
       );
+      const confBySeasonTgid = new Map(
+        teamSeasons.map((t) => [`${t.seasonYear}|${t.tgid}`, String(t.cgid ?? "")])
+      );
 
       const bowlByKey = buildSeasonBowlNameMap(bowlRows);
       const bowlNameFor = (seasonYearValue, sewnValue, sgnmValue) =>
@@ -192,6 +195,37 @@ export default function Coach() {
         const list = postseasonByYear.get(seasonYear) || [];
         list.push({ bowlName, bowlLogoUrl, outcome, week: Number(g.week) });
         postseasonByYear.set(seasonYear, list);
+      }
+
+      const confRecordByKey = new Map();
+      for (const g of games) {
+        const seasonYear = Number(g.seasonYear);
+        const homeKey = `${seasonYear}|${g.homeTgid}`;
+        const awayKey = `${seasonYear}|${g.awayTgid}`;
+        const homeConf = confBySeasonTgid.get(homeKey) || "";
+        const awayConf = confBySeasonTgid.get(awayKey) || "";
+        if (!homeConf || homeConf !== awayConf) continue;
+
+        const hs = g.homeScore;
+        const as = g.awayScore;
+        if (hs == null || as == null) continue;
+
+        const homeRec = confRecordByKey.get(homeKey) || { w: 0, l: 0, t: 0 };
+        const awayRec = confRecordByKey.get(awayKey) || { w: 0, l: 0, t: 0 };
+
+        if (Number(hs) > Number(as)) {
+          homeRec.w += 1;
+          awayRec.l += 1;
+        } else if (Number(hs) < Number(as)) {
+          homeRec.l += 1;
+          awayRec.w += 1;
+        } else {
+          homeRec.t += 1;
+          awayRec.t += 1;
+        }
+
+        confRecordByKey.set(homeKey, homeRec);
+        confRecordByKey.set(awayKey, awayRec);
       }
 
       const latest = sorted[0];
@@ -255,6 +289,10 @@ export default function Coach() {
           Number.isFinite(Number(r.seasonWins)) ? Number(r.seasonWins) : "-",
           Number.isFinite(Number(r.seasonLosses)) ? Number(r.seasonLosses) : "-",
         ];
+        const confRec = confRecordByKey.get(seasonKey) || null;
+        const confRecordText = confRec
+          ? `(${confRec.w}-${confRec.l}${confRec.t ? `-${confRec.t}` : ""})`
+          : "-";
         const postseason =
           postseasonByYear.get(Number(r.seasonYear))?.slice().sort((a, b) => a.week - b.week) || [];
 
@@ -264,6 +302,7 @@ export default function Coach() {
           teamName,
           teamLogo: logoFor(tgid),
           record: `(${recordParts[0]}-${recordParts[1]})`,
+          confRecord: confRecordText,
           postseason: postseason.map(({ bowlName, bowlLogoUrl, outcome }) => ({
             bowlName,
             bowlLogoUrl,
@@ -406,20 +445,13 @@ export default function Coach() {
         </div>
       </div>
 
-      <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <div>
-          <Link to="/coaches" className="kicker" style={{ display: "inline-block", marginBottom: 10 }}>
-            Back to Coaches
-          </Link>
-        </div>
-      </div>
-
       <table className="table">
         <thead>
           <tr>
             <th style={{ width: 100 }}>Year</th>
             <th>Team</th>
             <th style={{ width: 120 }}>Record</th>
+            <th style={{ width: 120 }}>Conf Record</th>
             <th>Postseason</th>
           </tr>
         </thead>
@@ -448,6 +480,7 @@ export default function Coach() {
                 </Link>
               </td>
               <td data-label="Record">{r.record}</td>
+              <td data-label="Conf Record">{r.confRecord}</td>
               <td data-label="Postseason">
                 {r.postseason.length ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
