@@ -695,6 +695,41 @@ button:disabled {
   font-size: 12px;
 }
 
+.scheduleWeekHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scheduleViewToggle {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.scheduleFilters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.scheduleHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scheduleControlsDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  opacity: 0.8;
+}
+
 
 
 .kicker {

@@ -59,6 +59,25 @@ export default function Home() {
     boxShadow: active ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
   });
 
+  const viewToggle = (
+    <>
+      <button
+        className="toggleBtn"
+        style={viewButtonStyle(view === "cards")}
+        onClick={() => setView("cards")}
+      >
+        Cards
+      </button>
+      <button
+        className="toggleBtn"
+        style={viewButtonStyle(view === "table")}
+        onClick={() => setView("table")}
+      >
+        Table
+      </button>
+    </>
+  );
+
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
@@ -128,8 +147,8 @@ export default function Home() {
           {groups.map((group, groupIdx) => (
             <Fragment key={group.week ?? "week"}>
               <tr className="scheduleWeekRow">
-                <th colSpan={5} className="scheduleWeekHeaderTop">
-                  Week {group.week ?? "-"}
+                <th colSpan={5}>
+                  <span className="scheduleWeekHeaderTop">Week {group.week ?? "-"}</span>
                 </th>
               </tr>
               <tr className="scheduleWeekHeader">
@@ -391,6 +410,64 @@ export default function Home() {
     return groups;
   }, [rows, weekFilter]);
 
+  const filterControls = (
+    <>
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span>Conference</span>
+        <select
+          value={confFilter}
+          onChange={(e) => setConfFilter(e.target.value)}
+          disabled={!hasSeasons}
+        >
+          <option value="All">All</option>
+          {confOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span>Week</span>
+        <select
+          value={weekFilter}
+          onChange={(e) => setWeekFilter(e.target.value)}
+          disabled={!hasSeasons || availableWeeks.length === 0}
+        >
+          {weekOptions.map((w) => (
+            <option key={w} value={w}>
+              {w}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span>Season</span>
+        <select
+          value={seasonYear}
+          onChange={(e) => {
+            const next = e.target.value;
+            setSeasonYear(next);
+            writeSeasonFilter(next);
+          }}
+          disabled={!hasSeasons}
+        >
+          {!hasSeasons ? (
+            <option value="">No seasons uploaded</option>
+          ) : (
+            seasonOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))
+          )}
+        </select>
+      </label>
+    </>
+  );
+
   if (!dynastyId) {
     return (
       <div>
@@ -404,80 +481,10 @@ export default function Home() {
     <div>
       <div className="hrow">
         <h2>Schedule / Results</h2>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, minWidth: 0 }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span>Conference</span>
-              <select
-                value={confFilter}
-                onChange={(e) => setConfFilter(e.target.value)}
-                disabled={!hasSeasons}
-              >
-                <option value="All">All</option>
-                {confOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span>Week</span>
-              <select
-                value={weekFilter}
-                onChange={(e) => setWeekFilter(e.target.value)}
-                disabled={!hasSeasons || availableWeeks.length === 0}
-              >
-                {weekOptions.map((w) => (
-                  <option key={w} value={w}>
-                    {w}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span>Season</span>
-              <select
-                value={seasonYear}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setSeasonYear(next);
-                  writeSeasonFilter(next);
-                }}
-                disabled={!hasSeasons}
-              >
-                {!hasSeasons ? (
-                  <option value="">No seasons uploaded</option>
-                ) : (
-                  seasonOptions.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          </div>
-
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              className="toggleBtn"
-              style={viewButtonStyle(view === "cards")}
-              onClick={() => setView("cards")}
-            >
-              Cards
-            </button>
-            <button
-              className="toggleBtn"
-              style={viewButtonStyle(view === "table")}
-              onClick={() => setView("table")}
-            >
-              Table
-            </button>
-          </div>
+        <div className="scheduleHeaderControls">
+          <div className="scheduleFilters">{filterControls}</div>
+          <div className="scheduleControlsDivider" />
+          <div className="scheduleViewToggle">{viewToggle}</div>
         </div>
       </div>
 
@@ -489,7 +496,7 @@ export default function Home() {
         renderScheduleTable(groupedRows)
       ) : (
         <div className="matchupWeekGroups">
-          {groupedRows.map((group) => (
+          {groupedRows.map((group, groupIdx) => (
             <section key={group.week ?? "week"} className="matchupWeekGroup">
               <div className="matchupWeekHeader">Week {group.week ?? "-"}</div>
               <div className="matchupGrid">
