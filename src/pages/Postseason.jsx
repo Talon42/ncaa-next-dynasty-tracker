@@ -1,10 +1,10 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { loadConferenceLogoMap, loadPostseasonLogoMap, normalizeConfKey } from "../logoService";
-import { readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
+import { readCachedViewPreference, readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
 import { buildRunningRecords, formatRecord } from "../runningRecords";
 
 const FALLBACK_LOGO =
@@ -98,6 +98,7 @@ export default function Postseason() {
   const [bowlFilter, setBowlFilter] = useState("All");
   const [confFilter, setConfFilter] = useState("All");
   const [view, setView] = useState(initialView);
+  const [viewReady, setViewReady] = useState(false);
   const [rows, setRows] = useState([]);
   const [playoffCols, setPlayoffCols] = useState({
     "CFP - Round 1": [],
@@ -566,19 +567,38 @@ export default function Postseason() {
 
   useEffect(() => {
     if (!dynastyId) return;
+    setViewReady(false);
+    let alive = true;
     (async () => {
       const fromSearch = readViewFromSearch(location.search);
       if (fromSearch) {
         setView(fromSearch);
+        if (alive) setViewReady(true);
         return;
       }
       const saved = await readViewPreference({ page: "postseason", dynastyId });
+      if (!alive) return;
       if (saved) setView(saved);
+      setViewReady(true);
     })();
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId, location.search]);
+
+  useLayoutEffect(() => {
+    if (!dynastyId) return;
+    const fromSearch = readViewFromSearch(location.search);
+    if (fromSearch) {
+      setView(fromSearch);
+      return;
+    }
+    const cached = readCachedViewPreference({ dynastyId });
+    if (cached) setView(cached);
   }, [dynastyId, location.search]);
 
   useEffect(() => {
-    if (!dynastyId) return;
+    if (!dynastyId || !viewReady) return;
     const normalizedView = view === "table" ? "table" : "cards";
     const params = new URLSearchParams(location.search);
     const current = params.get("view");
