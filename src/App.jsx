@@ -1,6 +1,7 @@
 // src/App.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import BackBreadcrumb from "./components/BackBreadcrumb";
 import Home from "./pages/Home";
 import ImportSeason from "./pages/ImportSeason";
 import Team from "./pages/Team";
@@ -11,6 +12,7 @@ import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
 import Coaches from "./pages/Coaches";
 import Coach from "./pages/Coach";
+import { writePreviousRoute } from "./previousRoute";
 
 import {
   createDynasty,
@@ -87,6 +89,7 @@ export default function App() {
   const [importBusy, setImportBusy] = useState(false);
   const [importFileName, setImportFileName] = useState("");
   const [openHeaderPanel, setOpenHeaderPanel] = useState(null);
+  const lastRouteRef = useRef("");
 
   async function refresh() {
     const list = await listDynasties();
@@ -111,6 +114,15 @@ export default function App() {
 
   useEffect(() => {
     setOpenHeaderPanel(null);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const next = `${location.pathname}${location.search}`;
+    const prev = lastRouteRef.current;
+    if (prev && prev !== next) {
+      writePreviousRoute(prev);
+    }
+    lastRouteRef.current = next;
   }, [location.pathname, location.search]);
 
   const activeDynasty = useMemo(
@@ -578,6 +590,9 @@ export default function App() {
                 .filter(Boolean)
                 .join(" ")}
             >
+              <div className="breadcrumbRow">
+                <BackBreadcrumb />
+              </div>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/teams" element={<TeamsIndex />} />
