@@ -325,7 +325,7 @@ export default function Coach() {
         />
       </div>
 
-      <h2 style={{ marginTop: 0, marginBottom: 6, textAlign: "center" }}>
+      <h2 style={{ marginTop: 6, marginBottom: 6, textAlign: "center" }}>
         {header.name || `Coach ${coachId}`}
       </h2>
 

@@ -146,6 +146,7 @@ export default function Team() {
   const [teamName, setTeamName] = useState("");
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
   const [coachName, setCoachName] = useState("");
+  const [coachId, setCoachId] = useState("");
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
 
   // ✅ NEW: latest-season prestige (TMPR)
@@ -308,6 +309,7 @@ useEffect(() => {
           ? `${String(coachRow.firstName ?? "").trim()} ${String(coachRow.lastName ?? "").trim()}`.trim()
           : "";
       setCoachName(coachDisplay);
+      setCoachId(coachRow ? String(coachRow.ccid ?? "") : "");
 
       // ✅ NEW: set prestige from latest season team row (TMPR)
       // Stored as `tmpr` on teamSeasons rows (recommended). If missing, prestige won't show.
@@ -476,7 +478,14 @@ useEffect(() => {
 
       {coachName ? (
         <div className="kicker" style={{ textAlign: "center", marginBottom: 6 }}>
-          Coach: {coachName}
+          Coach:{" "}
+          {coachId ? (
+            <Link to={`/coach/${coachId}`} style={{ color: "inherit", textDecoration: "none" }}>
+              {coachName}
+            </Link>
+          ) : (
+            coachName
+          )}
         </div>
       ) : null}
 
