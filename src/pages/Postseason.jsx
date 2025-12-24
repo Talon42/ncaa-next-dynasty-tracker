@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
-import { loadPostseasonLogoMap } from "../logoService";
+import { loadConferenceLogoMap, loadPostseasonLogoMap, normalizeConfKey } from "../logoService";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -90,6 +90,7 @@ export default function Postseason() {
   const [seasonYear, setSeasonYear] = useState("");
   const [tab, setTab] = useState("confChamp");
   const [bowlFilter, setBowlFilter] = useState("All");
+  const [confFilter, setConfFilter] = useState("All");
   const [rows, setRows] = useState([]);
   const [playoffCols, setPlayoffCols] = useState({
     "CFP - Round 1": [],
@@ -98,6 +99,7 @@ export default function Postseason() {
     "National Championship": [],
   });
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
+  const [confLogoMap, setConfLogoMap] = useState(new Map());
 
   function renderMatchupCards(list, seasonValue) {
     if (seasonValue === "All") {
@@ -302,7 +304,7 @@ export default function Postseason() {
     );
   }
 
-  function renderBowlFilteredTable(list) {
+  function renderBowlFilteredTable(list, { showWinningCoach }) {
     const sorted = list
       .slice()
       .sort((a, b) => {
@@ -311,14 +313,38 @@ export default function Postseason() {
         return String(a.homeTgid).localeCompare(String(b.homeTgid));
       });
 
+    const seasonWidth = showWinningCoach ? 8 : 10;
+    const resultWidth = showWinningCoach ? 8 : 10;
+    const recordWidth = showWinningCoach ? 10 : 12;
+    const winningCoachWidth = showWinningCoach ? 20 : 0;
+    const teamWidth =
+      (100 -
+        seasonWidth -
+        resultWidth -
+        recordWidth * 2 -
+        (showWinningCoach ? winningCoachWidth : 0)) /
+      2;
+
     return (
       <table className="table postseasonTable">
+        <colgroup>
+          <col style={{ width: `${seasonWidth}%` }} />
+          <col style={{ width: `${teamWidth}%` }} />
+          <col style={{ width: `${recordWidth}%` }} />
+          <col style={{ width: `${resultWidth}%` }} />
+          <col style={{ width: `${teamWidth}%` }} />
+          <col style={{ width: `${recordWidth}%` }} />
+          {showWinningCoach ? <col style={{ width: `${winningCoachWidth}%` }} /> : null}
+        </colgroup>
         <thead>
           <tr>
             <th>Season</th>
-            <th>Team (Winner)</th>
+            <th>Champion</th>
+            <th>Record</th>
             <th>Result</th>
-            <th>Team</th>
+            <th>Opponent</th>
+            <th>Record</th>
+            {showWinningCoach ? <th>Winning Coach</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -330,6 +356,7 @@ export default function Postseason() {
                   <TeamCell name={r.leftName || r.awayName} logoUrl={r.leftLogo || r.awayLogo} />
                 </Link>
               </td>
+              <td>{r.leftRecord || "-"}</td>
               <td>
                 {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
               </td>
@@ -338,6 +365,8 @@ export default function Postseason() {
                   <TeamCell name={r.rightName || r.homeName} logoUrl={r.rightLogo || r.homeLogo} />
                 </Link>
               </td>
+              <td>{r.rightRecord || "-"}</td>
+              {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
             </tr>
           ))}
         </tbody>
@@ -386,6 +415,18 @@ export default function Postseason() {
   }, []);
 
   useEffect(() => {
+    let alive = true;
+    (async () => {
+      const map = await loadConferenceLogoMap();
+      if (!alive) return;
+      setConfLogoMap(map);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!dynastyId) {
       setAvailableSeasons([]);
       setSeasonYear("");
@@ -413,6 +454,10 @@ export default function Postseason() {
   }, [tab]);
 
   useEffect(() => {
+    setConfFilter("All");
+  }, [tab]);
+
+  useEffect(() => {
     if (!dynastyId || seasonYear === "") {
       setRows([]);
       setPlayoffCols({
@@ -429,7 +474,7 @@ export default function Postseason() {
     (async () => {
       const isAllSeasons = seasonYear === "All";
       const year = Number(seasonYear);
-      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
+      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
         isAllSeasons
           ? db.games.where({ dynastyId }).toArray()
           : db.games.where({ dynastyId, seasonYear: year }).toArray(),
@@ -441,6 +486,9 @@ export default function Postseason() {
         isAllSeasons
           ? db.bowlGames.where({ dynastyId }).toArray()
           : db.bowlGames.where({ dynastyId, seasonYear: year }).toArray(),
+        isAllSeasons
+          ? db.coaches.where({ dynastyId }).toArray()
+          : db.coaches.where({ dynastyId, seasonYear: year }).toArray(),
       ]);
 
       if (!alive) return;
@@ -455,6 +503,15 @@ export default function Postseason() {
       const overrideByTgid = new Map(overrideRows.map((r) => [r.tgid, r.url]));
       const logoFor = (tgid) =>
         overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
+
+      const coachNameByKey = new Map(
+        coachRows.map((c) => {
+          const name = `${String(c.firstName ?? "").trim()} ${String(c.lastName ?? "").trim()}`.trim();
+          return [`${c.seasonYear}|${c.tgid}`, name || "-"];
+        })
+      );
+      const coachNameFor = (season, tgid) =>
+        coachNameByKey.get(`${season}|${tgid}`) || "-";
 
       const bowlByKey = new Map();
       for (const r of bowlRows) {
@@ -539,6 +596,8 @@ export default function Postseason() {
           const awayConfName = getConferenceName(awayConfId);
           const homeRec = recordMap.get(homeKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const awayRec = recordMap.get(awayKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const homeRecordText = formatRecord(homeRec);
+          const awayRecordText = formatRecord(awayRec);
 
           const leftIsHome = homeWins || (!homeWins && !awayWins);
           const leftTgid = leftIsHome ? g.homeTgid : g.awayTgid;
@@ -549,6 +608,8 @@ export default function Postseason() {
           const rightLogo = leftIsHome ? logoFor(g.awayTgid) : logoFor(g.homeTgid);
           const leftScore = leftIsHome ? g.homeScore : g.awayScore;
           const rightScore = leftIsHome ? g.awayScore : g.homeScore;
+          const leftRecord = leftIsHome ? homeRecordText : awayRecordText;
+          const rightRecord = leftIsHome ? awayRecordText : homeRecordText;
 
           return {
             seasonYear: g.seasonYear,
@@ -562,8 +623,10 @@ export default function Postseason() {
             homeScore: g.homeScore,
             awayScore: g.awayScore,
             winner,
-            homeRecord: formatRecord(homeRec),
-            awayRecord: formatRecord(awayRec),
+            homeRecord: homeRecordText,
+            awayRecord: awayRecordText,
+            leftRecord,
+            rightRecord,
             homeConfRecord: formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct }),
             awayConfRecord: formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct }),
             homeConfName,
@@ -577,6 +640,7 @@ export default function Postseason() {
             leftScore,
             rightScore,
             result: hasScore ? `${leftScore} - ${rightScore}` : "—",
+            leftCoachName: coachNameFor(g.seasonYear, leftTgid),
             bowlName,
             bowlLogoUrl,
           };
@@ -609,7 +673,10 @@ export default function Postseason() {
   }, [dynastyId, seasonYear, postseasonLogoMap]);
 
   const hasSeasons = availableSeasons.length > 0;
-  const seasonOptions = useMemo(() => ["All", ...availableSeasons.map(String)], [availableSeasons]);
+  const seasonOptions = useMemo(() => {
+    if (tab === "bracket") return availableSeasons.map(String);
+    return ["All", ...availableSeasons.map(String)];
+  }, [availableSeasons, tab]);
 
   if (!dynastyId) {
     return (
@@ -679,6 +746,7 @@ export default function Postseason() {
                 const next = e.target.value;
                 setSeasonYear(next);
                 setBowlFilter("All");
+                setConfFilter("All");
                 if (next !== "All") {
                   writeSeasonFilter(next);
                 }
@@ -721,7 +789,7 @@ export default function Postseason() {
               <h3 className="bracketRoundTitle">{round}</h3>
               <div className="bracketColBody">
                 {playoffCols[round].length === 0 ? (
-                  <div className="bracketCard bracketCardEmpty">
+                  <div className="bracketCard bracketCardEmpty matchupCard">
                     <div className="bracketMeta">
                       <span className="kicker">No game for this round</span>
                     </div>
@@ -740,9 +808,9 @@ export default function Postseason() {
                     return (
                       <div
                         key={`${round}-${idx}`}
-                        className={`bracketCard ${isFinal ? "bracketCardFinal" : ""}`}
+                        className={`bracketCard matchupCard ${isFinal ? "bracketCardFinal" : ""}`}
                       >
-                    <div className="bracketMeta">
+                    <div className="bracketMeta matchupMeta">
                       {g.bowlLogoUrl ? (
                         <img src={g.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
                       ) : null}
@@ -755,33 +823,38 @@ export default function Postseason() {
                       </Link>
                     </div>
 
-                        <div className={`bracketMatch ${homeWins ? "isWinner" : awayWins ? "isLoser" : ""}`}>
-                          <Link to={`/team/${g.homeTgid}`} className="bracketTeamLink" title="View team page">
+                        <div className="matchupRow">
+                          <Link to={`/team/${g.homeTgid}`} className="matchupTeam" title="View team page">
                             <div className="bracketTeam">
-                              <img src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                              <span className="bracketTeamName">{g.homeName}</span>
+                              <img className="matchupLogo" src={g.homeLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                              <span className="matchupTeamName">{g.homeName}</span>
                               {isFinal && homeWins ? <span className="bracketPill">Champion</span> : null}
                             </div>
                           </Link>
-                          <span
-                            className={`bracketScore ${homeWins ? "scoreWinner" : awayWins ? "scoreLoser" : ""}`}
-                          >
+                          <span className="matchupScore">
                             {g.homeScore ?? "-"}
+                            {homeWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
                           </span>
                         </div>
-                        <div className={`bracketMatch ${awayWins ? "isWinner" : homeWins ? "isLoser" : ""}`}>
-                          <Link to={`/team/${g.awayTgid}`} className="bracketTeamLink" title="View team page">
+                        <div className="matchupMeta">
+                          ({g.homeRecord}, {g.homeConfRecord} {g.homeConfName})
+                        </div>
+
+                        <div className="matchupRow">
+                          <Link to={`/team/${g.awayTgid}`} className="matchupTeam" title="View team page">
                             <div className="bracketTeam">
-                              <img src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                              <span className="bracketTeamName">{g.awayName}</span>
+                              <img className="matchupLogo" src={g.awayLogo} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                              <span className="matchupTeamName">{g.awayName}</span>
                               {isFinal && awayWins ? <span className="bracketPill">Champion</span> : null}
                             </div>
                           </Link>
-                          <span
-                            className={`bracketScore ${awayWins ? "scoreWinner" : homeWins ? "scoreLoser" : ""}`}
-                          >
+                          <span className="matchupScore">
                             {g.awayScore ?? "-"}
+                            {awayWins ? <span className="winnerCaret" aria-hidden="true" /> : null}
                           </span>
+                        </div>
+                        <div className="matchupMeta">
+                          ({g.awayRecord}, {g.awayConfRecord} {g.awayConfName})
                         </div>
                       </div>
                     );
@@ -817,10 +890,6 @@ export default function Postseason() {
           filtered = [...nonPlayoff, ...playoffSorted];
         }
 
-        if (filtered.length === 0) {
-          return <p className="kicker">No games found for this season.</p>;
-        }
-
         if (tab === "bowls") {
           const normalizeBowlLabel = (name) =>
             String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim();
@@ -845,6 +914,7 @@ export default function Postseason() {
 
           const bowlHeaderLogo = filtered.find((r) => r.bowlLogoUrl)?.bowlLogoUrl || "";
           const bowlHeaderName = normalizeBowlLabel(bowlFilter) || bowlFilter;
+          const showWinningCoach = /national championship/i.test(bowlFilter);
 
           return (
             <>
@@ -885,15 +955,85 @@ export default function Postseason() {
                         referrerPolicy="no-referrer"
                       />
                     ) : null}
-                    <div className="bowlFilterTitle">{bowlHeaderName}</div>
                   </div>
-                  {renderBowlFilteredTable(filtered)}
+                  {renderBowlFilteredTable(filtered, { showWinningCoach })}
                 </>
               ) : (
                 renderMatchupCards(filtered, seasonYear)
               )}
             </>
           );
+        }
+
+        if (tab === "confChamp") {
+          const confOptions = Array.from(
+            new Set(
+              filtered
+                .map((r) => r.homeConfName || r.awayConfName)
+                .filter((name) => name && String(name).trim())
+            )
+          ).sort((a, b) => String(a).localeCompare(String(b)));
+
+          if (confFilter !== "All") {
+            filtered = filtered.filter((r) => {
+              const confName = r.homeConfName || r.awayConfName;
+              return confName === confFilter;
+            });
+          }
+
+          const confHeaderLogo = confLogoMap.get(normalizeConfKey(confFilter)) || "";
+
+          return (
+            <>
+              <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span>Conference</span>
+                  <select
+                    value={confFilter}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (next !== "All" && seasonYear !== "All") {
+                        setSeasonYear("All");
+                      }
+                      setConfFilter(next);
+                    }}
+                    disabled={!confOptions.length}
+                  >
+                    <option value="All">All</option>
+                    {confOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {filtered.length === 0 ? (
+                <p className="kicker">No games found for this season.</p>
+              ) : confFilter !== "All" ? (
+                <>
+                  <div className="bowlFilterHeader">
+                    {confHeaderLogo ? (
+                      <img
+                        className="bowlFilterLogo"
+                        src={confHeaderLogo}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                  </div>
+                  {renderBowlFilteredTable(filtered, { showWinningCoach: false })}
+                </>
+              ) : (
+                renderMatchupCards(filtered, seasonYear)
+              )}
+            </>
+          );
+        }
+
+        if (filtered.length === 0) {
+          return <p className="kicker">No games found for this season.</p>;
         }
 
         return renderMatchupCards(filtered, seasonYear);

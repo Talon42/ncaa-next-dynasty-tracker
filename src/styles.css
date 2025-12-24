@@ -707,22 +707,26 @@ button:disabled {
   user-select: text;
 }
 
+.postseasonTable {
+  table-layout: fixed;
+}
+
 .bowlFilterHeader {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin: 6px 0 14px;
 }
 
 .bowlFilterLogo {
-  width: 108px;
-  height: 108px;
+  width: 180px;
+  height: 180px;
   object-fit: contain;
 }
 
 .bowlFilterTitle {
-  font-size: 21.6px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
@@ -780,18 +784,20 @@ button:disabled {
 
 .bracketCard {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 10px 12px;
   background: rgba(255, 255, 255, 0.02);
-  margin-bottom: 12px;
-  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  margin-bottom: 0;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .bracketCard:hover {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.03);
-  transform: translateY(-1px);
 }
 
 .bracketCardFinal {
@@ -807,11 +813,11 @@ button:disabled {
 .bracketMeta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--muted);
   font-size: 12px;
-  margin-bottom: 8px;
-  justify-content: center;
+  margin-bottom: 0;
+  justify-content: flex-start;
 }
 
 .bracketMeta img {
@@ -824,9 +830,9 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 0;
+  border-radius: 0;
 }
 
 .bracketMatch + .bracketMatch {
@@ -834,8 +840,10 @@ button:disabled {
 }
 
 .bracketMatch.isWinner {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 4px 6px;
 }
 
 .bracketMatch.isLoser {
@@ -867,9 +875,9 @@ button:disabled {
 .bracketTeamName {
   flex: 1 1 auto;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
 }
 
 .bracketTeam img {
@@ -880,7 +888,7 @@ button:disabled {
 
 .bracketScore {
   font-weight: 800;
-  min-width: 20px;
+  min-width: 56px;
   text-align: right;
 }
 
@@ -1319,33 +1327,6 @@ button:disabled {
   }
 
   /* Postseason results spacing */
-  .postseasonTable {
-    table-layout: fixed;
-  }
-
-  .postseasonTable th:nth-child(1),
-  .postseasonTable td:nth-child(1) {
-    width: 28%;
-  }
-
-  .postseasonTable th:nth-child(2),
-  .postseasonTable td:nth-child(2) {
-    width: 31%;
-    text-align: left;
-  }
-
-  .postseasonTable th:nth-child(3),
-  .postseasonTable td:nth-child(3) {
-    width: 10%;
-    text-align: center;
-  }
-
-  .postseasonTable th:nth-child(4),
-  .postseasonTable td:nth-child(4) {
-    width: 31%;
-    text-align: left;
-  }
-
   .postseasonTable .postseasonBowlCell,
   .postseasonTable .postseasonBowlCell a,
   .postseasonTable .postseasonBowlCell span {
