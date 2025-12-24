@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
+import { buildRunningRecords, formatRecord } from "../runningRecords";
 import { readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
 
 const FALLBACK_LOGO =
@@ -30,11 +31,6 @@ function TeamCell({ name, logoUrl }) {
       <span>{name}</span>
     </div>
   );
-}
-
-function formatRecord({ w, l, t }) {
-  if (!Number.isFinite(w) || !Number.isFinite(l)) return "-";
-  return t ? `${w}-${l}-${t}` : `${w}-${l}`;
 }
 
 export default function Home() {
@@ -276,52 +272,7 @@ export default function Home() {
       const logoFor = (tgid) =>
         overrideByTgid.get(tgid) || baseLogoByTgid.get(tgid) || FALLBACK_LOGO;
 
-      const recordMap = new Map();
-      for (const g of gamesRaw) {
-        const hasScore = g.homeScore != null && g.awayScore != null;
-        if (!hasScore) continue;
-
-        const homeId = String(g.homeTgid);
-        const awayId = String(g.awayTgid);
-        const hs = Number(g.homeScore);
-        const as = Number(g.awayScore);
-
-        if (!recordMap.has(homeId)) {
-          recordMap.set(homeId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
-        }
-        if (!recordMap.has(awayId)) {
-          recordMap.set(awayId, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
-        }
-
-        const homeRec = recordMap.get(homeId);
-        const awayRec = recordMap.get(awayId);
-
-        if (hs > as) {
-          homeRec.w += 1;
-          awayRec.l += 1;
-        } else if (hs < as) {
-          homeRec.l += 1;
-          awayRec.w += 1;
-        } else {
-          homeRec.t += 1;
-          awayRec.t += 1;
-        }
-
-        const homeConf = confByTgid.get(homeId);
-        const awayConf = confByTgid.get(awayId);
-        if (homeConf && awayConf && homeConf === awayConf) {
-          if (hs > as) {
-            homeRec.cw += 1;
-            awayRec.cl += 1;
-          } else if (hs < as) {
-            homeRec.cl += 1;
-            awayRec.cw += 1;
-          } else {
-            homeRec.ct += 1;
-            awayRec.ct += 1;
-          }
-        }
-      }
+      const running = buildRunningRecords({ games: gamesRaw, confByTgid });
 
       let games = gamesRaw;
       if (weekFilter !== "All") {
@@ -346,8 +297,8 @@ export default function Home() {
           const awayConfId = confByTgid.get(awayId);
           const homeConfName = getConferenceName(homeConfId);
           const awayConfName = getConferenceName(awayConfId);
-          const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
-          const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const homeRec = running.getRecordAtWeek(homeId, g.week) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const awayRec = running.getRecordAtWeek(awayId, g.week) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const homeRecordText = formatRecord(homeRec);
           const awayRecordText = formatRecord(awayRec);
           const hasScore = g.homeScore != null && g.awayScore != null;

@@ -5,6 +5,7 @@ import { getConferenceName } from "../conferences";
 import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { loadConferenceLogoMap, loadPostseasonLogoMap, normalizeConfKey } from "../logoService";
 import { readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
+import { buildRunningRecords, formatRecord } from "../runningRecords";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -76,11 +77,6 @@ function playoffRoundForGame(game) {
   if (week === 18 && lower.includes("cfp - round 1")) return "CFP - Round 1";
 
   return null;
-}
-
-function formatRecord({ w, l, t }) {
-  if (!Number.isFinite(w) || !Number.isFinite(l)) return "-";
-  return t ? `${w}-${l}-${t}` : `${w}-${l}`;
 }
 
 export default function Postseason() {
@@ -587,50 +583,20 @@ export default function Postseason() {
 
       const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
 
-      const recordMap = new Map();
+      const runningBySeason = new Map();
+      const gamesBySeason = new Map();
       for (const g of gamesRaw) {
-        const hasScore = g.homeScore != null && g.awayScore != null;
-        if (!hasScore) continue;
-
-        const homeId = String(g.homeTgid);
-        const awayId = String(g.awayTgid);
-        const keyHome = `${g.seasonYear}|${homeId}`;
-        const keyAway = `${g.seasonYear}|${awayId}`;
-        const hs = Number(g.homeScore);
-        const as = Number(g.awayScore);
-        if (!Number.isFinite(hs) || !Number.isFinite(as)) continue;
-
-        if (!recordMap.has(keyHome)) recordMap.set(keyHome, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
-        if (!recordMap.has(keyAway)) recordMap.set(keyAway, { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 });
-
-        const homeRec = recordMap.get(keyHome);
-        const awayRec = recordMap.get(keyAway);
-
-        if (hs > as) {
-          homeRec.w += 1;
-          awayRec.l += 1;
-        } else if (hs < as) {
-          homeRec.l += 1;
-          awayRec.w += 1;
-        } else {
-          homeRec.t += 1;
-          awayRec.t += 1;
-        }
-
-        const homeConf = confByKey.get(keyHome);
-        const awayConf = confByKey.get(keyAway);
-        if (homeConf && awayConf && homeConf === awayConf) {
-          if (hs > as) {
-            homeRec.cw += 1;
-            awayRec.cl += 1;
-          } else if (hs < as) {
-            homeRec.cl += 1;
-            awayRec.cw += 1;
-          } else {
-            homeRec.ct += 1;
-            awayRec.ct += 1;
-          }
-        }
+        const seasonKey = String(g.seasonYear);
+        if (!gamesBySeason.has(seasonKey)) gamesBySeason.set(seasonKey, []);
+        gamesBySeason.get(seasonKey).push(g);
+      }
+      for (const [seasonKey, seasonGames] of gamesBySeason.entries()) {
+        const confByTgid = new Map(
+          teamSeasonRows
+            .filter((t) => String(t.seasonYear) === seasonKey)
+            .map((t) => [String(t.tgid), String(t.cgid ?? "")])
+        );
+        runningBySeason.set(seasonKey, buildRunningRecords({ games: seasonGames, confByTgid }));
       }
 
       const postseasonGames = gamesRaw
@@ -659,8 +625,11 @@ export default function Postseason() {
           const awayConfId = confByKey.get(awayKey);
           const homeConfName = getConferenceName(homeConfId);
           const awayConfName = getConferenceName(awayConfId);
-          const homeRec = recordMap.get(homeKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
-          const awayRec = recordMap.get(awayKey) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const runningForSeason = runningBySeason.get(String(g.seasonYear));
+          const homeRec =
+            runningForSeason?.getRecordAtWeek(homeId, g.week) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const awayRec =
+            runningForSeason?.getRecordAtWeek(awayId, g.week) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const homeRecordText = formatRecord(homeRec);
           const awayRecordText = formatRecord(awayRec);
 
