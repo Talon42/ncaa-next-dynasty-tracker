@@ -7,7 +7,7 @@ Format:
 ```json
 {
   "sources": [
-    { "type": "team", "path": "logos/fbs_logos.csv" },
+    { "type": "team", "path": "logos/ncaa_team_logos.csv" },
     { "type": "conference", "path": "logos/conference_logos.csv" }
   ]
 }

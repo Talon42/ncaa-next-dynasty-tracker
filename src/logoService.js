@@ -1,11 +1,11 @@
 import Papa from "papaparse";
 import { db } from "./db";
 
-const CSV_PATH = `${import.meta.env.BASE_URL}logos/fbs_logos.csv`;
+const CSV_PATH = `${import.meta.env.BASE_URL}logos/ncaa_team_logos.csv`;
 const CONF_CSV_PATH = `${import.meta.env.BASE_URL}logos/conference_logos.csv`;
 const POSTSEASON_CSV_PATH = `${import.meta.env.BASE_URL}logos/postseason.csv`;
 const LOGO_INDEX_PATH = `${import.meta.env.BASE_URL}logos/index.json`;
-const CSV_HASH_KEY = "logosCsvHash";
+const CSV_HASH_KEY = "logosCsvHashV2";
 
 /** Normalize a team display name to a stable key */
 export function toNameKey(name) {
@@ -206,65 +206,6 @@ function hashString(str) {
 }
 
 /**
- * Expand a team display name into possible alias keys.
- * This solves cases like:
- * - "USF Bulls" (game) vs "South Florida Bulls" (logo CSV)
- *
- * We keep this explicit + safe (no fuzzy matching).
- */
-function expandAliasKeys(displayName) {
-  const raw = String(displayName ?? "").trim();
-  if (!raw) return [];
-
-  const keys = new Set();
-
-  // Always try the exact display name
-  keys.add(toNameKey(raw));
-
-  // Normalize common punctuation variations (e.g. UConn vs U-Conn, Florida Intl vs Florida Int'l)
-  keys.add(toNameKey(raw.replace(/\./g, "")));
-  keys.add(toNameKey(raw.replace(/-/g, " ")));
-
-  // Split into school + nickname (nickname assumed to be last token)
-  const parts = raw.split(/\s+/).filter(Boolean);
-  if (parts.length < 2) return Array.from(keys);
-
-  const nickname = parts[parts.length - 1];
-  const school = parts.slice(0, -1).join(" ");
-  const schoolKey = toNameKey(school);
-
-  // Acronym → possible full school names (multiple allowed)
-  // NOTE: these are ONLY applied to the "school" part; nickname stays from TEAM row.
-  const schoolAliasMap = new Map([
-    ["usf", ["south florida"]],
-    ["ucf", ["central florida"]],
-    ["utsa", ["texas san antonio"]],
-    ["uab", ["alabama birmingham"]],
-    ["uconn", ["connecticut"]],
-    ["ull", ["louisiana", "louisiana lafayette"]],
-    ["ulm", ["louisiana monroe"]],
-    ["fiu", ["florida intl", "florida international"]],
-  ]);
-
-  const expansions = schoolAliasMap.get(schoolKey);
-  if (expansions?.length) {
-    for (const expandedSchool of expansions) {
-      keys.add(toNameKey(`${expandedSchool} ${nickname}`));
-    }
-  }
-
-  // Also try a few “normalization” attempts on the school piece:
-  // - remove periods
-  // - remove hyphens
-  const schoolNoDots = school.replace(/\./g, "");
-  const schoolNoHyphens = school.replace(/-/g, " ");
-  keys.add(toNameKey(`${schoolNoDots} ${nickname}`));
-  keys.add(toNameKey(`${schoolNoHyphens} ${nickname}`));
-
-  return Array.from(keys);
-}
-
-/**
  * Loads bundled logo CSV into logoBaseByName if:
  * - CSV exists, and
  * - content hash differs from last time
@@ -316,14 +257,15 @@ export async function ensureBundledLogoBaseLoaded() {
     const rows = parsed.data || [];
 
     for (const r of rows) {
-      const team = r.Team ?? r.team ?? r.TEAM ?? "";
+      const team = r.Team ?? r.team ?? r.TEAM ?? r.Name ?? r.name ?? r.NAME ?? "";
       const url = r.URL ?? r.url ?? r.Url ?? "";
 
-      const nameKey = toNameKey(team);
+      const rawName = String(team ?? "").trim();
+      const nameKey = toNameKey(rawName);
       const normUrl = normalizeGithubUrl(url);
 
-      if (!nameKey || !normUrl) continue;
-      records.push({ nameKey, url: normUrl });
+      if (!rawName || !nameKey || !normUrl) continue;
+      records.push({ nameKey, rawName, url: normUrl });
     }
   }
 
@@ -347,22 +289,14 @@ export async function upsertTeamLogosFromSeasonTeams({ dynastyId, seasonYear }) 
   if (!teams.length) return { updated: 0 };
 
   const base = await db.logoBaseByName.toArray();
-  const baseMap = new Map(base.map((x) => [x.nameKey, x.url]));
+  const baseMap = new Map(base.map((x) => [x.rawName, x.url]));
 
   const toUpsert = [];
 
   for (const t of teams) {
-    const display = `${t.tdna} ${t.tmna}`.trim();
-
-    // Try multiple alias keys (exact + acronym expansions)
-    const keys = expandAliasKeys(display);
-
-    let url = "";
-    for (const k of keys) {
-      url = baseMap.get(k) || "";
-      if (url) break;
-    }
-
+    const schoolName = String(t.tdna ?? "").trim();
+    if (!schoolName) continue;
+    const url = baseMap.get(schoolName) || "";
     if (!url) continue;
 
     toUpsert.push({
@@ -380,7 +314,7 @@ export async function upsertTeamLogosFromSeasonTeams({ dynastyId, seasonYear }) 
 
 /**
  * Silent helper: refresh logos for the active dynasty using the most recent season.
- * This fixes cases where you updated the CSV or alias logic after seasons were already imported.
+ * This fixes cases where you updated the CSV after seasons were already imported.
  */
 export async function refreshTeamLogosForActiveDynastyMostRecentSeason() {
   const active = await db.settings.get("activeDynastyId");
