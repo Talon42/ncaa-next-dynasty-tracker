@@ -4,6 +4,7 @@ import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import { loadConferenceLogoMap, loadPostseasonLogoMap, normalizeConfKey } from "../logoService";
+import { readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -91,6 +92,7 @@ export default function Postseason() {
   const [tab, setTab] = useState("confChamp");
   const [bowlFilter, setBowlFilter] = useState("All");
   const [confFilter, setConfFilter] = useState("All");
+  const [view, setView] = useState("cards");
   const [rows, setRows] = useState([]);
   const [playoffCols, setPlayoffCols] = useState({
     "CFP - Round 1": [],
@@ -100,6 +102,15 @@ export default function Postseason() {
   });
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
   const [confLogoMap, setConfLogoMap] = useState(new Map());
+
+  const viewButtonStyle = (active) => ({
+    fontWeight: active ? 800 : 600,
+    opacity: 1,
+    color: active ? "var(--text)" : "var(--muted)",
+    borderColor: active ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
+    background: active ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
+    boxShadow: active ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
+  });
 
   function renderMatchupCards(list, seasonValue) {
     if (seasonValue === "All") {
@@ -423,6 +434,31 @@ export default function Postseason() {
       setSeasonYear(seasonParam);
     }
   }, [location.search]);
+
+  useEffect(() => {
+    if (!dynastyId) return;
+    (async () => {
+      const fromSearch = readViewFromSearch(location.search);
+      if (fromSearch) {
+        setView(fromSearch);
+        return;
+      }
+      const saved = await readViewPreference({ page: "postseason", dynastyId });
+      if (saved) setView(saved);
+    })();
+  }, [dynastyId, location.search]);
+
+  useEffect(() => {
+    if (!dynastyId) return;
+    const normalizedView = view === "table" ? "table" : "cards";
+    const params = new URLSearchParams(location.search);
+    const current = params.get("view");
+    if (normalizedView !== current) {
+      params.set("view", normalizedView);
+      navigate({ pathname: "/postseason", search: `?${params.toString()}` }, { replace: true });
+    }
+    writeViewPreference({ page: "postseason", dynastyId, view: normalizedView });
+  }, [dynastyId, view, navigate, location.search]);
 
   function setTabAndUrl(nextTab) {
     setTab(nextTab);
@@ -943,6 +979,11 @@ export default function Postseason() {
           filtered = [...nonPlayoff, ...playoffSorted];
         }
 
+        const forcedTable =
+          (tab === "confChamp" && confFilter !== "All") ||
+          (tab === "bowls" && bowlFilter !== "All");
+        const effectiveView = forcedTable ? "table" : view;
+
         if (tab === "bowls") {
           const normalizeBowlLabel = (name) =>
             String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim();
@@ -981,6 +1022,9 @@ export default function Postseason() {
                       if (next !== "All" && seasonYear !== "All") {
                         setSeasonYear("All");
                       }
+                      if (next !== "All") {
+                        setView("table");
+                      }
                       setBowlFilter(next);
                     }}
                     disabled={!bowlOptions.length}
@@ -993,6 +1037,25 @@ export default function Postseason() {
                     ))}
                   </select>
                 </label>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "cards")}
+                      onClick={() => setView("cards")}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "table")}
+                      onClick={() => setView("table")}
+                    >
+                      Table
+                    </button>
+                  </div>
+                </div>
               </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for that bowl.</p>
@@ -1011,6 +1074,8 @@ export default function Postseason() {
                   </div>
                   {renderBowlFilteredTable(filtered, { showWinningCoach })}
                 </>
+              ) : effectiveView === "table" ? (
+                renderBowlFilteredTable(filtered, { showWinningCoach: false })
               ) : (
                 renderMatchupCards(filtered, seasonYear)
               )}
@@ -1048,6 +1113,13 @@ export default function Postseason() {
                       if (next !== "All" && seasonYear !== "All") {
                         setSeasonYear("All");
                       }
+                      if (next === "All") {
+                        const latest = availableSeasons[0];
+                        if (latest != null) setSeasonYear(String(latest));
+                      }
+                      if (next !== "All") {
+                        setView("table");
+                      }
                       setConfFilter(next);
                     }}
                     disabled={!confOptions.length}
@@ -1060,6 +1132,25 @@ export default function Postseason() {
                     ))}
                   </select>
                 </label>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "cards")}
+                      onClick={() => setView("cards")}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "table")}
+                      onClick={() => setView("table")}
+                    >
+                      Table
+                    </button>
+                  </div>
+                </div>
               </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for this season.</p>
@@ -1076,8 +1167,10 @@ export default function Postseason() {
                       />
                     ) : null}
                   </div>
-                  {renderBowlFilteredTable(filtered, { showWinningCoach: false })}
+                  {renderBowlFilteredTable(filtered, { showWinningCoach: false, showBowlNameRows: false })}
                 </>
+              ) : effectiveView === "table" ? (
+                renderBowlFilteredTable(filtered, { showWinningCoach: false, showBowlNameRows: true })
               ) : (
                 renderMatchupCards(filtered, seasonYear)
               )}

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
+import { readViewFromSearch, readViewPreference, writeViewPreference } from "../viewPreference";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -48,9 +49,19 @@ export default function Home() {
   const [availableWeeks, setAvailableWeeks] = useState([]);
   const [weekFilter, setWeekFilter] = useState("All");
   const [confFilter, setConfFilter] = useState("All");
+  const [view, setView] = useState("cards");
 
   const [rows, setRows] = useState([]);
   const [confOptions, setConfOptions] = useState([]);
+
+  const viewButtonStyle = (active) => ({
+    fontWeight: active ? 800 : 600,
+    opacity: 1,
+    color: active ? "var(--text)" : "var(--muted)",
+    borderColor: active ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
+    background: active ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
+    boxShadow: active ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
+  });
 
   useEffect(() => {
     (async () => {
@@ -76,6 +87,83 @@ export default function Home() {
     if (week != null) setWeekFilter(week);
     if (conf) setConfFilter(conf);
   }, [location.search]);
+
+  useEffect(() => {
+    if (!dynastyId) return;
+    (async () => {
+      const fromSearch = readViewFromSearch(location.search);
+      if (fromSearch) {
+        setView(fromSearch);
+        return;
+      }
+      const saved = await readViewPreference({ page: "home", dynastyId });
+      if (saved) setView(saved);
+    })();
+  }, [dynastyId, location.search]);
+
+  useEffect(() => {
+    if (!dynastyId) return;
+    const normalizedView = view === "table" ? "table" : "cards";
+    const params = new URLSearchParams(location.search);
+    const current = params.get("view");
+    if (normalizedView !== current) {
+      params.set("view", normalizedView);
+      navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: true });
+    }
+    writeViewPreference({ page: "home", dynastyId, view: normalizedView });
+  }, [dynastyId, view, navigate, location.search]);
+
+  function renderScheduleTable(list) {
+    const seasonWidth = 10;
+    const resultWidth = 10;
+    const recordWidth = 12;
+    const teamWidth = (100 - seasonWidth - resultWidth - recordWidth * 2) / 2;
+
+    return (
+      <table className="table postseasonTable">
+        <colgroup>
+          <col style={{ width: `${seasonWidth}%` }} />
+          <col style={{ width: `${teamWidth}%` }} />
+          <col style={{ width: `${recordWidth}%` }} />
+          <col style={{ width: `${resultWidth}%` }} />
+          <col style={{ width: `${teamWidth}%` }} />
+          <col style={{ width: `${recordWidth}%` }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Season</th>
+            <th>Champion</th>
+            <th>Record</th>
+            <th>Result</th>
+            <th>Opponent</th>
+            <th>Record</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((r, idx) => (
+            <tr key={`${r.week}-${idx}`}>
+              <td>{seasonYear}</td>
+              <td>
+                <Link to={`/team/${r.leftTgid}`} className="matchupTeam" title="View team page">
+                  <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
+                </Link>
+              </td>
+              <td>{r.leftRecord || "-"}</td>
+              <td>
+                {r.leftScore ?? "-"} - {r.rightScore ?? "-"}
+              </td>
+              <td>
+                <Link to={`/team/${r.rightTgid}`} className="matchupTeam" title="View team page">
+                  <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
+                </Link>
+              </td>
+              <td>{r.rightRecord || "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
 
   useEffect(() => {
     if (!dynastyId) return;
@@ -260,6 +348,8 @@ export default function Home() {
           const awayConfName = getConferenceName(awayConfId);
           const homeRec = recordMap.get(homeId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
           const awayRec = recordMap.get(awayId) || { w: 0, l: 0, t: 0, cw: 0, cl: 0, ct: 0 };
+          const homeRecordText = formatRecord(homeRec);
+          const awayRecordText = formatRecord(awayRec);
           const hasScore = g.homeScore != null && g.awayScore != null;
           const homeScoreNum = hasScore ? Number(g.homeScore) : null;
           const awayScoreNum = hasScore ? Number(g.awayScore) : null;
@@ -271,6 +361,19 @@ export default function Home() {
                   ? "home"
                   : "away"
               : null;
+          const homeWins = winner === "home";
+          const awayWins = winner === "away";
+          const leftIsHome = homeWins || (!homeWins && !awayWins);
+          const leftTgid = leftIsHome ? g.homeTgid : g.awayTgid;
+          const rightTgid = leftIsHome ? g.awayTgid : g.homeTgid;
+          const leftName = leftIsHome ? (nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`) : (nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`);
+          const rightName = leftIsHome ? (nameByTgid.get(g.awayTgid) || `TGID ${g.awayTgid}`) : (nameByTgid.get(g.homeTgid) || `TGID ${g.homeTgid}`);
+          const leftLogo = leftIsHome ? logoFor(g.homeTgid) : logoFor(g.awayTgid);
+          const rightLogo = leftIsHome ? logoFor(g.awayTgid) : logoFor(g.homeTgid);
+          const leftScore = leftIsHome ? (hasScore ? g.homeScore : "-") : (hasScore ? g.awayScore : "-");
+          const rightScore = leftIsHome ? (hasScore ? g.awayScore : "-") : (hasScore ? g.homeScore : "-");
+          const leftRecord = leftIsHome ? homeRecordText : awayRecordText;
+          const rightRecord = leftIsHome ? awayRecordText : homeRecordText;
           return {
             week: g.week,
             homeTgid: g.homeTgid,
@@ -284,12 +387,22 @@ export default function Home() {
             homeScore: hasScore ? g.homeScore : "-",
             awayScore: hasScore ? g.awayScore : "-",
             winner,
-            homeRecord: formatRecord(homeRec),
-            awayRecord: formatRecord(awayRec),
+            homeRecord: homeRecordText,
+            awayRecord: awayRecordText,
             homeConfRecord: formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct }),
             awayConfRecord: formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct }),
             homeConfName,
             awayConfName,
+            leftTgid,
+            rightTgid,
+            leftName,
+            rightName,
+            leftLogo,
+            rightLogo,
+            leftScore,
+            rightScore,
+            leftRecord,
+            rightRecord,
           };
         });
 
@@ -315,60 +428,79 @@ export default function Home() {
       <div className="hrow">
         <h2>Schedule / Results</h2>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Conference</span>
-            <select
-              value={confFilter}
-              onChange={(e) => setConfFilter(e.target.value)}
-              disabled={!hasSeasons}
-            >
-              <option value="All">All</option>
-              {confOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Week</span>
-            <select
-              value={weekFilter}
-              onChange={(e) => setWeekFilter(e.target.value)}
-              disabled={!hasSeasons || availableWeeks.length === 0}
-            >
-              {weekOptions.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
-            <span>Season</span>
-            <select
-              value={seasonYear}
-              onChange={(e) => {
-                const next = e.target.value;
-                setSeasonYear(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasSeasons}
-            >
-              {!hasSeasons ? (
-                <option value="">No seasons uploaded</option>
-              ) : (
-                seasonOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, minWidth: 0 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span>Conference</span>
+              <select
+                value={confFilter}
+                onChange={(e) => setConfFilter(e.target.value)}
+                disabled={!hasSeasons}
+              >
+                <option value="All">All</option>
+                {confOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
-                ))
-              )}
-            </select>
-          </label>
+                ))}
+              </select>
+            </label>
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span>Week</span>
+              <select
+                value={weekFilter}
+                onChange={(e) => setWeekFilter(e.target.value)}
+                disabled={!hasSeasons || availableWeeks.length === 0}
+              >
+                {weekOptions.map((w) => (
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span>Season</span>
+              <select
+                value={seasonYear}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setSeasonYear(next);
+                  writeSeasonFilter(next);
+                }}
+                disabled={!hasSeasons}
+              >
+                {!hasSeasons ? (
+                  <option value="">No seasons uploaded</option>
+                ) : (
+                  seasonOptions.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              className="toggleBtn"
+              style={viewButtonStyle(view === "cards")}
+              onClick={() => setView("cards")}
+            >
+              Cards
+            </button>
+            <button
+              className="toggleBtn"
+              style={viewButtonStyle(view === "table")}
+              onClick={() => setView("table")}
+            >
+              Table
+            </button>
+          </div>
         </div>
       </div>
 
@@ -376,6 +508,8 @@ export default function Home() {
         <p className="kicker">
           No seasons uploaded yet for this dynasty. Use <b>Upload New Season</b> in the sidebar.
         </p>
+      ) : view === "table" ? (
+        renderScheduleTable(rows)
       ) : (
         <div className="matchupGrid">
           {rows.map((r, idx) => (

@@ -714,9 +714,10 @@ button:disabled {
 .postseasonBowlRow td {
   padding: 6px 12px;
   border-bottom: 1px solid rgba(42, 42, 42, 0.6);
-  font-size: 12px;
-  letter-spacing: 0.35px;
-  color: var(--muted);
+  font-size: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  font-weight: 700;
 }
 
 .postseasonBowlLabel {
@@ -1375,7 +1376,7 @@ button:disabled {
   }
 
   .postseasonBowlRow td {
-    font-size: 16px;
-    letter-spacing: 0.2px;
+    font-size: inherit;
+    letter-spacing: inherit;
   }
 }
