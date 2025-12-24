@@ -317,6 +317,37 @@ export default function Home() {
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Conference</span>
+            <select
+              value={confFilter}
+              onChange={(e) => setConfFilter(e.target.value)}
+              disabled={!hasSeasons}
+            >
+              <option value="All">All</option>
+              {confOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Week</span>
+            <select
+              value={weekFilter}
+              onChange={(e) => setWeekFilter(e.target.value)}
+              disabled={!hasSeasons || availableWeeks.length === 0}
+            >
+              {weekOptions.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
             <span>Season</span>
             <select
               value={seasonYear}
@@ -336,37 +367,6 @@ export default function Home() {
                   </option>
                 ))
               )}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Week</span>
-            <select
-              value={weekFilter}
-              onChange={(e) => setWeekFilter(e.target.value)}
-              disabled={!hasSeasons || availableWeeks.length === 0}
-            >
-              {weekOptions.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Conference</span>
-            <select
-              value={confFilter}
-              onChange={(e) => setConfFilter(e.target.value)}
-              disabled={!hasSeasons}
-            >
-              <option value="All">All</option>
-              {confOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
             </select>
           </label>
         </div>

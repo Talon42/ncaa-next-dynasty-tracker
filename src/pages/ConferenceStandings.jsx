@@ -491,6 +491,18 @@ useEffect(() => {
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Conference</span>
+            <select value={cgid} onChange={(e) => setCgid(e.target.value)} disabled={!teamsById.size}>
+              <option value="All">All</option>
+              {availableConfs.map((id) => (
+                <option key={id} value={id}>
+                  {getConferenceName(id)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
             <span>Season</span>
             <select
               value={season}
@@ -510,18 +522,6 @@ useEffect(() => {
                   </option>
                 ))
               )}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Conference</span>
-            <select value={cgid} onChange={(e) => setCgid(e.target.value)} disabled={!teamsById.size}>
-              <option value="All">All</option>
-              {availableConfs.map((id) => (
-                <option key={id} value={id}>
-                  {getConferenceName(id)}
-                </option>
-              ))}
             </select>
           </label>
         </div>

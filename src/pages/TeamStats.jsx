@@ -398,31 +398,6 @@ export default function TeamStats() {
         <h2>Team Stats - {tab}</h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Season
-            </span>
-            <select
-              value={seasonYear ?? ""}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setSeasonYear(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasAnyYears}
-            >
-              {!hasAnyYears ? (
-                <option value="">No stats imported</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-
           <div style={{ display: "flex", gap: 6 }}>
             {TAB_ORDER.map((t) => (
               <button
@@ -451,6 +426,31 @@ export default function TeamStats() {
               </button>
             ))}
           </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            <span className="muted" style={{ fontSize: 12 }}>
+              Season
+            </span>
+            <select
+              value={seasonYear ?? ""}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setSeasonYear(next);
+                writeSeasonFilter(next);
+              }}
+              disabled={!hasAnyYears}
+            >
+              {!hasAnyYears ? (
+                <option value="">No stats imported</option>
+              ) : (
+                availableYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
         </div>
       </div>
 

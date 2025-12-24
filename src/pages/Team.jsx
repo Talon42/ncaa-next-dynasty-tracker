@@ -470,7 +470,7 @@ useEffect(() => {
 
       {/* Season filter row */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginLeft: "auto" }}>
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <span>Season</span>
             <select

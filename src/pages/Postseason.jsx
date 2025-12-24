@@ -767,7 +767,7 @@ export default function Postseason() {
             </button>
           </div>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
             <span>Season</span>
             <select
               value={seasonYear}
