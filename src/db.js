@@ -151,6 +151,79 @@ db.version(10).stores({
   coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
 });
 
+// v11 (coach career baselines)
+db.version(11)
+  .stores({
+    dynasties: "id, name, startYear, currentYear",
+    teams: "[dynastyId+tgid], dynastyId, tgid",
+    teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+    games:
+      "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+    settings: "key",
+    logoBaseByName: "nameKey",
+    teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+    logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+    teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+    bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
+    coaches:
+      "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+    coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+    coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+  })
+  .upgrade(async (tx) => {
+    const coachRows = await tx.table("coaches").toArray();
+    if (!coachRows.length) return;
+
+    const rowsByDynasty = new Map();
+    for (const r of coachRows) {
+      const dynastyId = r.dynastyId;
+      if (!dynastyId) continue;
+      const list = rowsByDynasty.get(dynastyId) || [];
+      list.push(r);
+      rowsByDynasty.set(dynastyId, list);
+    }
+
+    const baseRows = [];
+
+    for (const [dynastyId, list] of rowsByDynasty.entries()) {
+      let baseSeasonYear = null;
+      const ccids = new Set();
+
+      for (const r of list) {
+        const yr = Number(r.seasonYear);
+        if (Number.isFinite(yr)) baseSeasonYear = baseSeasonYear == null ? yr : Math.min(baseSeasonYear, yr);
+        const ccid = String(r.ccid ?? "");
+        if (ccid) ccids.add(ccid);
+      }
+
+      if (baseSeasonYear == null) continue;
+
+      const baseCoachByCcid = new Map(
+        list
+          .filter((r) => Number(r.seasonYear) === baseSeasonYear)
+          .map((r) => [String(r.ccid ?? ""), r])
+      );
+
+      for (const ccid of ccids) {
+        const source = baseCoachByCcid.get(ccid) || null;
+        const baseWins = Number(source?.careerWins);
+        const baseLosses = Number(source?.careerLosses);
+
+        baseRows.push({
+          dynastyId,
+          ccid,
+          baseSeasonYear,
+          baseWins: Number.isFinite(baseWins) ? baseWins : 0,
+          baseLosses: Number.isFinite(baseLosses) ? baseLosses : 0,
+        });
+      }
+    }
+
+    if (baseRows.length) {
+      await tx.table("coachCareerBases").bulkPut(baseRows);
+    }
+  });
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -209,6 +282,7 @@ export async function deleteDynasty(id) {
     db.bowlGames.where("dynastyId").equals(id).delete(),
     db.coaches.where("dynastyId").equals(id).delete(),
     db.coachQuotes.where("dynastyId").equals(id).delete(),
+    db.coachCareerBases.where("dynastyId").equals(id).delete(),
   ]);
 
   const active = await getActiveDynastyId();

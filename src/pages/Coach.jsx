@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getOrCreateCoachQuote } from "../coachQuotes";
 import { db, getActiveDynastyId } from "../db";
 import { loadPostseasonLogoMap } from "../logoService";
+import { buildTeamSeasonWinLossMap, computeCoachCareerRecord } from "../coachRecords";
 import {
   buildSeasonBowlNameMap,
   createPostseasonLogoResolver,
@@ -142,6 +143,18 @@ export default function Coach() {
         db.games.where({ dynastyId }).toArray(),
       ]);
 
+      const teamSeasonWinLossByKey = buildTeamSeasonWinLossMap(games);
+      const baseRow = await db.coachCareerBases.get([dynastyId, coachId]);
+      const fallbackBaseSeasonYear = await (async () => {
+        const anyBase = await db.coachCareerBases.where({ dynastyId }).first();
+        const yrFromBase = Number(anyBase?.baseSeasonYear);
+        if (Number.isFinite(yrFromBase)) return yrFromBase;
+
+        const all = await db.coaches.where({ dynastyId }).toArray();
+        const years = all.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n));
+        return years.length ? Math.min(...years) : Number(sorted[sorted.length - 1]?.seasonYear);
+      })();
+
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
       const logoFor = (id) =>
@@ -240,12 +253,20 @@ export default function Coach() {
         prestige: latest.hcPrestige,
       });
 
-      const winningSeasons = sorted.reduce((count, r) => {
-        const w = Number(r.seasonWins);
-        const l = Number(r.seasonLosses);
-        if (Number.isFinite(w) && Number.isFinite(l) && w > l) return count + 1;
-        return count;
-      }, 0);
+      const career = computeCoachCareerRecord({
+        coachSeasons: sorted.map((r) => ({ seasonYear: r.seasonYear, tgid: String(r.tgid ?? "") })),
+        teamSeasonWinLossByKey,
+        baseSeasonYear: baseRow?.baseSeasonYear ?? fallbackBaseSeasonYear,
+        baseWins: baseRow?.baseWins ?? 0,
+        baseLosses: baseRow?.baseLosses ?? 0,
+        asOfSeasonYear: latest.seasonYear,
+      });
+
+      const latestWinningSeasons = Number.isFinite(Number(latest.winningSeasons))
+        ? Number(latest.winningSeasons)
+        : null;
+      const latestTop25Wins = Number.isFinite(Number(latest.top25Wins)) ? Number(latest.top25Wins) : null;
+      const latestTop25Losses = Number.isFinite(Number(latest.top25Losses)) ? Number(latest.top25Losses) : null;
 
       const conferenceTitleSeasons = new Set();
       const nationalTitleSeasons = new Set();
@@ -259,15 +280,21 @@ export default function Coach() {
           }
         }
       }
+      const latestConferenceTitles = Number.isFinite(Number(latest.conferenceTitles))
+        ? Number(latest.conferenceTitles)
+        : null;
+      const latestNationalTitles = Number.isFinite(Number(latest.nationalTitles))
+        ? Number(latest.nationalTitles)
+        : null;
 
       setCoachStats({
-        careerWins: Number.isFinite(Number(latest.careerWins)) ? Number(latest.careerWins) : null,
-        careerLosses: Number.isFinite(Number(latest.careerLosses)) ? Number(latest.careerLosses) : null,
-        top25Wins: null,
-        top25Losses: null,
-        winningSeasons,
-        conferenceTitles: conferenceTitleSeasons.size,
-        nationalTitles: nationalTitleSeasons.size,
+        careerWins: Number.isFinite(Number(career.wins)) ? Number(career.wins) : null,
+        careerLosses: Number.isFinite(Number(career.losses)) ? Number(career.losses) : null,
+        top25Wins: latestTop25Wins,
+        top25Losses: latestTop25Losses,
+        winningSeasons: latestWinningSeasons,
+        conferenceTitles: latestConferenceTitles,
+        nationalTitles: latestNationalTitles,
       });
 
       const yearsWithTeam = sorted.reduce((count, r) => {
@@ -285,10 +312,7 @@ export default function Coach() {
         const tgid = String(r.tgid ?? "");
         const seasonKey = `${r.seasonYear}|${tgid}`;
         const teamName = teamNameBySeasonTgid.get(seasonKey) || `TGID ${tgid}`;
-        const recordParts = [
-          Number.isFinite(Number(r.seasonWins)) ? Number(r.seasonWins) : "-",
-          Number.isFinite(Number(r.seasonLosses)) ? Number(r.seasonLosses) : "-",
-        ];
+        const wl = tgid && tgid !== "511" ? teamSeasonWinLossByKey.get(seasonKey) || { w: 0, l: 0 } : { w: 0, l: 0 };
         const confRec = confRecordByKey.get(seasonKey) || null;
         const confRecordText = confRec
           ? `(${confRec.w}-${confRec.l}${confRec.t ? `-${confRec.t}` : ""})`
@@ -301,7 +325,7 @@ export default function Coach() {
           tgid,
           teamName,
           teamLogo: logoFor(tgid),
-          record: `(${recordParts[0]}-${recordParts[1]})`,
+          record: `(${wl.w}-${wl.l})`,
           confRecord: confRecordText,
           postseason: postseason.map(({ bowlName, bowlLogoUrl, outcome }) => ({
             bowlName,

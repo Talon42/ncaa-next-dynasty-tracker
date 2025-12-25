@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
+import { buildTeamSeasonWinLossMap, computeCoachCareerRecord } from "../coachRecords";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -80,12 +81,32 @@ export default function Coaches() {
     }
 
     (async () => {
-      const [coaches, teamSeasons, teamLogoRows, overrideRows] = await Promise.all([
+      const [coaches, allCoachRows, games, baseRows, teamSeasons, teamLogoRows, overrideRows] = await Promise.all([
         db.coaches.where({ dynastyId, seasonYear }).toArray(),
+        db.coaches.where({ dynastyId }).toArray(),
+        db.games.where({ dynastyId }).toArray(),
+        db.coachCareerBases.where({ dynastyId }).toArray(),
         db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);
+
+      const teamSeasonWinLossByKey = buildTeamSeasonWinLossMap(games);
+
+      const coachSeasonsByCcid = new Map();
+      for (const r of allCoachRows) {
+        const ccid = String(r.ccid ?? "");
+        if (!ccid) continue;
+        const list = coachSeasonsByCcid.get(ccid) || [];
+        list.push({ seasonYear: r.seasonYear, tgid: String(r.tgid ?? "") });
+        coachSeasonsByCcid.set(ccid, list);
+      }
+
+      const baseByCcid = new Map(baseRows.map((r) => [String(r.ccid ?? ""), r]));
+      const fallbackBaseSeasonYear = (() => {
+        const years = allCoachRows.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n));
+        return years.length ? Math.min(...years) : Number(seasonYear);
+      })();
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
@@ -106,8 +127,20 @@ export default function Coaches() {
         const lastName = String(c.lastName ?? "").trim();
         const tgid = String(c.tgid ?? "");
         const isNotHired = tgid === "511";
-        const wins = Number(c.careerWins);
-        const losses = Number(c.careerLosses);
+
+        const ccid = String(c.ccid ?? "");
+        const base = baseByCcid.get(ccid) || null;
+        const career = computeCoachCareerRecord({
+          coachSeasons: coachSeasonsByCcid.get(ccid) || [],
+          teamSeasonWinLossByKey,
+          baseSeasonYear: base?.baseSeasonYear ?? fallbackBaseSeasonYear,
+          baseWins: base?.baseWins ?? 0,
+          baseLosses: base?.baseLosses ?? 0,
+          asOfSeasonYear: seasonYear,
+        });
+
+        const wins = Number(career.wins);
+        const losses = Number(career.losses);
         const hasWins = Number.isFinite(wins);
         const hasLosses = Number.isFinite(losses);
         const total = hasWins && hasLosses ? wins + losses : null;
@@ -121,7 +154,7 @@ export default function Coaches() {
         const bowlWinPct =
           bowlTotal != null && bowlTotal > 0 ? bowlWins / bowlTotal : null;
         return {
-          ccid: String(c.ccid ?? ""),
+          ccid,
           firstName,
           lastName,
           name: `${firstName} ${lastName}`.trim(),

@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import { db, getDynasty } from "./db";
 import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
+import { computeCoachCareerBases } from "./coachRecords";
 
 function parseCsvText(text) {
   const res = Papa.parse(text, { header: true, skipEmptyLines: true });
@@ -182,6 +183,11 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     seasonLosses: toNumberOrNull(r.CSLO),
     careerWins: toNumberOrNull(r.CCWI ?? r.ccwi),
     careerLosses: toNumberOrNull(r.CCLO ?? r.cclo),
+    winningSeasons: toNumberOrNull(r.CCWS ?? r.ccws),
+    top25Wins: toNumberOrNull(r.CTTW ?? r.cttw),
+    top25Losses: toNumberOrNull(r.CTTL ?? r.cttl),
+    conferenceTitles: toNumberOrNull(r.CCTW ?? r.cctw),
+    nationalTitles: toNumberOrNull(r.CNTW ?? r.cntw),
     bowlWins: toNumberOrNull(r.CBLW ?? r.cblw),
     bowlLosses: toNumberOrNull(r.CBLL ?? r.cbll),
     contractYear: toNumberOrNull(r.CCYR ?? r.ccyr),
@@ -196,6 +202,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.teamStats,
     db.bowlGames,
     db.coaches,
+    db.coachCareerBases,
     db.dynasties,
     async () => {
       // Overwrite ONLY this season year
@@ -211,6 +218,11 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.teamStats.bulkPut(teamStats);
       await db.bowlGames.bulkPut(bowlGames);
       await db.coaches.bulkPut(coaches);
+
+      const allCoachRows = await db.coaches.where({ dynastyId }).toArray();
+      const baseRows = computeCoachCareerBases({ dynastyId, coachRows: allCoachRows });
+      await db.coachCareerBases.where({ dynastyId }).delete();
+      if (baseRows.length) await db.coachCareerBases.bulkPut(baseRows);
 
       // Option A currentYear advance
       const d = await db.dynasties.get(dynastyId);
