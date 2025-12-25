@@ -27,6 +27,41 @@ function normId(x) {
   const n = Number(s);
   return Number.isFinite(n) ? String(Math.trunc(n)) : s;
 }
+function dedupeCoachRows(rows) {
+  const seen = new Map();
+  for (const row of rows || []) {
+    const ccid = String(row.CCID ?? "").trim();
+    const first = String(row.CLFN ?? "").trim();
+    const last = String(row.CLLN ?? "").trim();
+    const nameKey = `${first}|${last}`.toLowerCase();
+
+    if (!ccid) {
+      if (!nameKey || nameKey === "|") continue;
+      const key = `name:${nameKey}`;
+      if (!seen.has(key)) seen.set(key, row);
+      continue;
+    }
+
+    const key = `ccid:${ccid}|${nameKey}`;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, row);
+      continue;
+    }
+
+    const existingTgid = String(existing.TGID ?? "").trim();
+    const currentTgid = String(row.TGID ?? "").trim();
+    const existingUnassigned = !existingTgid || existingTgid === "511";
+    const currentUnassigned = !currentTgid || currentTgid === "511";
+
+    if (existingUnassigned && !currentUnassigned) {
+      seen.set(key, row);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+
 
 export async function seasonExists({ dynastyId, seasonYear }) {
   const count = await db.games.where({ dynastyId, seasonYear }).count();
@@ -68,14 +103,16 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const schdRows = parseCsvText(schdText);
   const tsseRows = parseCsvText(tsseText);
   const bowlRows = parseCsvText(bowlText);
-  const cochRows = parseCsvText(cochText);
+  const cochRowsRaw = parseCsvText(cochText);
 
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
   requireColumns(tsseRows, ["TGID"], "TSSE");
   requireColumns(bowlRows, ["SEWN", "SGNM", "BNME"], "BOWL");
-  requireColumns(cochRows, ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO"], "COCH");
+  requireColumns(cochRowsRaw, ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO"], "COCH");
+
+  const cochRows = dedupeCoachRows(cochRowsRaw);
 
   const teamSeasons = teamRows.map((r) => ({
     dynastyId,
