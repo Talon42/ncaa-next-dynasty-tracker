@@ -102,6 +102,8 @@ export default function Coaches() {
       const cgidByTgid = new Map(teamSeasons.map((t) => [String(t.tgid), t.cgid]));
 
       const mapped = coaches.map((c) => {
+        const firstName = String(c.firstName ?? "").trim();
+        const lastName = String(c.lastName ?? "").trim();
         const tgid = String(c.tgid ?? "");
         const isNotHired = tgid === "511";
         const wins = Number(c.careerWins);
@@ -120,7 +122,10 @@ export default function Coaches() {
           bowlTotal != null && bowlTotal > 0 ? bowlWins / bowlTotal : null;
         return {
           ccid: String(c.ccid ?? ""),
-          name: `${String(c.firstName ?? "").trim()} ${String(c.lastName ?? "").trim()}`.trim(),
+          firstName,
+          lastName,
+          name: `${firstName} ${lastName}`.trim(),
+          coachSortName: `${lastName} ${firstName}`.trim(),
           tgid,
           teamName: isNotHired ? "Not Hired" : teamNameByTgid.get(tgid) || `TGID ${tgid}`,
           teamLogo: logoFor(tgid),
@@ -189,7 +194,7 @@ export default function Coaches() {
     arr.sort((a, b) => {
       const av =
         key === "coachName"
-          ? a.name
+          ? a.coachSortName || a.name
           : key === "teamName"
             ? a.teamName
             : key === "record"
@@ -207,7 +212,7 @@ export default function Coaches() {
             : a.name;
       const bv =
         key === "coachName"
-          ? b.name
+          ? b.coachSortName || b.name
           : key === "teamName"
             ? b.teamName
             : key === "record"
