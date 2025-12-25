@@ -52,6 +52,8 @@ export default function Coach() {
     prestige: null,
   });
   const [seasonRows, setSeasonRows] = useState([]);
+  const [trophyWins, setTrophyWins] = useState([]);
+  const [tendencyScale, setTendencyScale] = useState({ offMax: 80, defMax: 80 });
   const [coachStats, setCoachStats] = useState({
     careerWins: null,
     careerLosses: null,
@@ -97,6 +99,8 @@ export default function Coach() {
     if (!dynastyId || !coachId) {
       setHeader({ name: "", teamName: "", teamLogo: FALLBACK_LOGO, prestige: null });
       setSeasonRows([]);
+      setTrophyWins([]);
+      setTendencyScale({ offMax: 80, defMax: 80 });
       setCoachStats({
         careerWins: null,
         careerLosses: null,
@@ -130,6 +134,8 @@ export default function Coach() {
       if (!sorted.length) {
         setHeader({ name: "", teamName: "", teamLogo: FALLBACK_LOGO, prestige: null });
         setSeasonRows([]);
+        setTrophyWins([]);
+        setTendencyScale({ offMax: 80, defMax: 80 });
         setCoachStats({
           careerWins: null,
           careerLosses: null,
@@ -173,6 +179,42 @@ export default function Coach() {
         return years.length ? Math.min(...years) : Number(sorted[sorted.length - 1]?.seasonYear);
       })();
 
+      const dynastyLatestYear = (() => {
+        const years = teamSeasons.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n));
+        return years.length ? Math.max(...years) : null;
+      })();
+      if (dynastyLatestYear != null) {
+        const latestSeasonCoachRows = await db.coaches
+          .where("[dynastyId+seasonYear]")
+          .equals([dynastyId, dynastyLatestYear])
+          .toArray();
+
+        const eligible = latestSeasonCoachRows.filter((r) => String(r.tgid ?? "") !== "511");
+
+        const clamp2080 = (n) => Math.min(80, Math.max(20, n));
+        const offMaxRaw = Math.max(
+          20,
+          ...eligible
+            .map((r) => Number(r.runPassTendency))
+            .filter((n) => Number.isFinite(n))
+            .map(clamp2080)
+        );
+        const defMaxRaw = Math.max(
+          20,
+          ...eligible
+            .map((r) => Number(r.defenseRunPassTendency))
+            .filter((n) => Number.isFinite(n))
+            .map(clamp2080)
+        );
+
+        setTendencyScale({
+          offMax: Number.isFinite(offMaxRaw) ? offMaxRaw : 80,
+          defMax: Number.isFinite(defMaxRaw) ? defMaxRaw : 80,
+        });
+      } else {
+        setTendencyScale({ offMax: 80, defMax: 80 });
+      }
+
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
       const logoFor = (id) =>
@@ -212,7 +254,10 @@ export default function Coach() {
         const bowlName = /^nat championship$/i.test(bowlNameRaw)
           ? "CFP - National Championship"
           : bowlNameRaw;
-        const bowlLogoUrl = bowlName ? postseasonLogoFor(bowlName) : "";
+        const isNationalChampionship = /national championship/i.test(bowlName);
+        const bowlLogoUrl = bowlName
+          ? postseasonLogoFor(/national championship/i.test(bowlName) ? "Nat Trophy" : bowlName)
+          : "";
 
         const hasScore = g.homeScore != null && g.awayScore != null;
         let outcome = "";
@@ -224,9 +269,29 @@ export default function Coach() {
         }
 
         const list = postseasonByYear.get(seasonYear) || [];
-        list.push({ bowlName, bowlLogoUrl, outcome, week: Number(g.week) });
+        list.push({ bowlName, bowlLogoUrl, outcome, week: Number(g.week), isNationalChampionship });
         postseasonByYear.set(seasonYear, list);
       }
+
+      const wins = [];
+      for (const [seasonYear, list] of postseasonByYear.entries()) {
+        for (const p of list) {
+          if (p.outcome !== "W") continue;
+          wins.push({
+            seasonYear,
+            week: Number(p.week),
+            bowlName: p.bowlName,
+            bowlLogoUrl: p.bowlLogoUrl,
+            isNationalChampionship: Boolean(p.isNationalChampionship),
+          });
+        }
+      }
+      wins.sort((a, b) => {
+        const yd = Number(a.seasonYear) - Number(b.seasonYear);
+        if (yd !== 0) return yd;
+        return Number(a.week) - Number(b.week);
+      });
+      setTrophyWins(wins);
 
       const confRecordByKey = new Map();
       for (const g of games) {
@@ -500,173 +565,375 @@ export default function Coach() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-          <div className="kicker" style={{ fontWeight: 700 }}>
-            Run/Pass Tendency
+      <div
+        style={{
+          display: "flex",
+          gap: 18,
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "stretch",
+          maxWidth: 1320,
+          marginLeft: "auto",
+          marginRight: "auto",
+          marginBottom: 18,
+        }}
+      >
+        <div className="card" style={{ marginBottom: 0, flex: "1 1 360px", maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div className="kicker" style={{ fontWeight: 700 }}>
+              Career Summary
+            </div>
+          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+              rowGap: 24,
+              columnGap: 12,
+              placeItems: "center",
+              alignContent: "space-between",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Career Record</div>
+              <div style={{ fontWeight: 700 }}>
+                {coachStats.careerWins ?? "-"}-{coachStats.careerLosses ?? "-"}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Postseason Record</div>
+              <div style={{ fontWeight: 700 }}>
+                {coachStats.postseasonWins ?? "-"}-{coachStats.postseasonLosses ?? "-"}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Top-25 Record</div>
+              <div style={{ fontWeight: 700 }}>
+                {coachStats.top25Wins ?? "-"}-{coachStats.top25Losses ?? "-"}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Winning Seasons</div>
+              <div style={{ fontWeight: 700 }}>{coachStats.winningSeasons ?? "-"}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Conf Titles</div>
+              <div style={{ fontWeight: 700 }}>{coachStats.conferenceTitles ?? "-"}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+              <div className="kicker">Nat Titles</div>
+              <div style={{ fontWeight: 700 }}>{coachStats.nationalTitles ?? "-"}</div>
+            </div>
           </div>
         </div>
-        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
 
-        {(() => {
-          const raw = Number(coachStats.runPassTendency);
-          const has = Number.isFinite(raw);
-          const clamped = has ? Math.min(80, Math.max(20, raw)) : 50;
-          const pct = has ? ((clamped - 20) / 60) * 100 : 50;
+        <div className="card" style={{ marginBottom: 0, flex: "1 1 240px", maxWidth: 420 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div className="kicker" style={{ fontWeight: 700 }}>
+              Trophy Room
+            </div>
+          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
 
-          return (
-            <div>
-              <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
-                Offense
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span className="kicker">Run</span>
-                <span className="kicker">Pass</span>
-              </div>
+          {!trophyWins.length ? (
+            <p className="kicker" style={{ margin: 0 }}>
+              No postseason wins yet.
+            </p>
+          ) : (
+            <div style={{ display: "flex" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingLeft: 2, paddingRight: 2 }}>
+                {(() => {
+                  const order = [];
+                  const byKey = new Map();
 
-              <div
-                style={{
-                  position: "relative",
-                  height: 16,
-                  borderRadius: 999,
-                  overflow: "hidden",
-                  background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
-                  outline: "1px solid var(--border)",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${pct}%`,
-                    top: -8,
-                    bottom: -8,
-                    width: 4,
-                    transform: "translateX(-50%)",
-                    background: "rgba(255,255,255,0.98)",
-                    borderRadius: 2,
-                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
-                  }}
-                  aria-hidden="true"
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    left: `${pct}%`,
-                    top: "50%",
-                    width: 12,
-                    height: 12,
-                    transform: "translate(-50%, -50%)",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.98)",
-                    boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
-                  }}
-                  aria-hidden="true"
-                />
-              </div>
+                  for (const t of trophyWins) {
+                    const key = t.bowlLogoUrl || t.bowlName || "W";
+                    if (!byKey.has(key)) {
+                      byKey.set(key, []);
+                      order.push(key);
+                    }
+                    byKey.get(key).push(t);
+                  }
 
-              <div style={{ height: 12 }} />
-
-              {(() => {
-                const rawDef = Number(coachStats.defenseRunPassTendency);
-                const hasDef = Number.isFinite(rawDef);
-                const clampedDef = hasDef ? Math.min(80, Math.max(20, rawDef)) : 50;
-                const pctDef = hasDef ? ((clampedDef - 20) / 60) * 100 : 50;
-
-                return (
-                  <div>
-                    <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
-                      Defense
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span className="kicker">Man</span>
-                      <span className="kicker">Zone</span>
-                    </div>
-
+                  const size = 42;
+                  const renderBadge = ({ key, title, logoUrl, isNationalChampionship, style }) => {
+                    const champBorder = "rgba(216,180,90,0.95)";
+                    return (
                     <div
+                      key={key}
+                      title={title}
                       style={{
-                        position: "relative",
-                        height: 16,
+                        width: size,
+                        height: size,
                         borderRadius: 999,
                         overflow: "hidden",
-                        background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
-                        outline: "1px solid var(--border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        position: "relative",
+                        background: isNationalChampionship
+                          ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
+                          : "rgba(255,255,255,0.06)",
+                        border: isNationalChampionship ? `1px solid ${champBorder}` : "1px solid var(--border)",
+                        boxShadow: isNationalChampionship
+                          ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
+                          : "0 2px 8px rgba(0,0,0,0.25)",
+                        flex: "0 0 auto",
+                        ...style,
                       }}
                     >
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: `${pctDef}%`,
-                          top: -8,
-                          bottom: -8,
-                          width: 4,
-                          transform: "translateX(-50%)",
-                          background: "rgba(255,255,255,0.98)",
-                          borderRadius: 2,
-                          boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
-                        }}
-                        aria-hidden="true"
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: `${pctDef}%`,
-                          top: "50%",
-                          width: 12,
-                          height: 12,
-                          transform: "translate(-50%, -50%)",
-                          borderRadius: 999,
-                          background: "rgba(255,255,255,0.98)",
-                          boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
-                        }}
-                        aria-hidden="true"
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })()}
-      </div>
 
-      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-          <div className="kicker" style={{ fontWeight: 700 }}>
-            Career Summary
-          </div>
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
+                        />
+                      ) : (
+                        <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>W</span>
+                      )}
+                    </div>
+                  );
+                  };
+
+                  const nodes = [];
+
+                  for (const groupKey of order) {
+                    const list = byKey.get(groupKey) || [];
+                    if (list.length <= 3) {
+                      list.forEach((t, idx) => {
+                        const label = `${t.seasonYear} - ${t.bowlName || "Postseason Win"}`;
+                        nodes.push(
+                          renderBadge({
+                            key: `${groupKey}-${t.seasonYear}-${t.week}-${idx}`,
+                            title: label,
+                            logoUrl: t.bowlLogoUrl,
+                            isNationalChampionship: Boolean(t.isNationalChampionship),
+                          })
+                        );
+                      });
+                      continue;
+                    }
+
+                    const first = list[0];
+                    const isNationalChampionship = list.some((t) => t.isNationalChampionship);
+                    const title = `${first.bowlName || "Postseason Win"} (x${list.length})`;
+                    const offset = 12;
+
+                    nodes.push(
+                      <div
+                        key={`${groupKey}-stack`}
+                        title={title}
+                        style={{
+                          position: "relative",
+                          width: size + offset * 2,
+                          height: size,
+                          flex: "0 0 auto",
+                        }}
+                      >
+                        {renderBadge({
+                          key: `${groupKey}-stack-1`,
+                          title,
+                          logoUrl: first.bowlLogoUrl,
+                          isNationalChampionship,
+                          style: {
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            opacity: 0.65,
+                          },
+                        })}
+                        {renderBadge({
+                          key: `${groupKey}-stack-2`,
+                          title,
+                          logoUrl: first.bowlLogoUrl,
+                          isNationalChampionship,
+                          style: {
+                            position: "absolute",
+                            left: offset,
+                            top: 0,
+                            opacity: 0.85,
+                          },
+                        })}
+                        {renderBadge({
+                          key: `${groupKey}-stack-3`,
+                          title,
+                          logoUrl: first.bowlLogoUrl,
+                          isNationalChampionship,
+                          style: {
+                            position: "absolute",
+                            left: offset * 2,
+                            top: 0,
+                          },
+                        })}
+                        <div
+                          style={{
+                            position: "absolute",
+                            right: -6,
+                            top: -6,
+                            padding: "2px 6px",
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            background: "rgba(0,0,0,0.75)",
+                            color: "white",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                          }}
+                          aria-hidden="true"
+                        >
+                          x{list.length}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return nodes;
+                })()}
+              </div>
+            </div>
+          )}
         </div>
-        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-          <div>
-            <div className="kicker">Career Record</div>
-            <div style={{ fontWeight: 700 }}>
-              {coachStats.careerWins ?? "-"}-{coachStats.careerLosses ?? "-"}
+
+        <div className="card" style={{ marginBottom: 0, flex: "1 1 280px", maxWidth: 420 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div className="kicker" style={{ fontWeight: 700 }}>
+              Run/Pass Tendency
             </div>
           </div>
-          <div>
-            <div className="kicker">Postseason Record</div>
-            <div style={{ fontWeight: 700 }}>
-              {coachStats.postseasonWins ?? "-"}-{coachStats.postseasonLosses ?? "-"}
-            </div>
-          </div>
-          <div>
-            <div className="kicker">Top-25 Record</div>
-            <div style={{ fontWeight: 700 }}>
-              {coachStats.top25Wins ?? "-"}-{coachStats.top25Losses ?? "-"}
-            </div>
-          </div>
-          <div>
-            <div className="kicker">Winning Seasons</div>
-            <div style={{ fontWeight: 700 }}>{coachStats.winningSeasons ?? "-"}</div>
-          </div>
-          <div>
-            <div className="kicker">Conf Titles</div>
-            <div style={{ fontWeight: 700 }}>{coachStats.conferenceTitles ?? "-"}</div>
-          </div>
-          <div>
-            <div className="kicker">Nat Titles</div>
-            <div style={{ fontWeight: 700 }}>{coachStats.nationalTitles ?? "-"}</div>
-          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+
+          {(() => {
+            const raw = Number(coachStats.runPassTendency);
+            const has = Number.isFinite(raw);
+            const scaleMax = Number.isFinite(Number(tendencyScale.offMax)) ? Number(tendencyScale.offMax) : 80;
+            const min = 20;
+            const max = Math.max(min, Math.min(80, scaleMax));
+            const clamped = has ? Math.min(max, Math.max(min, raw)) : 50;
+            const pct = has && max > min ? ((clamped - min) / (max - min)) * 100 : 50;
+
+            return (
+              <div>
+                <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                  Offense
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span className="kicker">Run</span>
+                  <span className="kicker">Pass</span>
+                </div>
+
+                <div
+                  style={{
+                    position: "relative",
+                    height: 16,
+                    borderRadius: 999,
+                    overflow: "hidden",
+                    background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
+                    outline: "1px solid var(--border)",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: `${pct}%`,
+                      top: -8,
+                      bottom: -8,
+                      width: 4,
+                      transform: "translateX(-50%)",
+                      background: "rgba(255,255,255,0.98)",
+                      borderRadius: 2,
+                      boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: `${pct}%`,
+                      top: "50%",
+                      width: 12,
+                      height: 12,
+                      transform: "translate(-50%, -50%)",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.98)",
+                      boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
+                    }}
+                    aria-hidden="true"
+                  />
+                </div>
+
+                <div style={{ height: 12 }} />
+
+                {(() => {
+                  const rawDef = Number(coachStats.defenseRunPassTendency);
+                  const hasDef = Number.isFinite(rawDef);
+                  const scaleMaxDef = Number.isFinite(Number(tendencyScale.defMax))
+                    ? Number(tendencyScale.defMax)
+                    : 80;
+                  const minDef = 20;
+                  const maxDef = Math.max(minDef, Math.min(80, scaleMaxDef));
+                  const clampedDef = hasDef ? Math.min(maxDef, Math.max(minDef, rawDef)) : 50;
+                  const pctDef = hasDef && maxDef > minDef ? ((clampedDef - minDef) / (maxDef - minDef)) * 100 : 50;
+
+                  return (
+                    <div>
+                      <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                        Defense
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span className="kicker">Man</span>
+                        <span className="kicker">Zone</span>
+                      </div>
+
+                      <div
+                        style={{
+                          position: "relative",
+                          height: 16,
+                          borderRadius: 999,
+                          overflow: "hidden",
+                          background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
+                          outline: "1px solid var(--border)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${pctDef}%`,
+                            top: -8,
+                            bottom: -8,
+                            width: 4,
+                            transform: "translateX(-50%)",
+                            background: "rgba(255,255,255,0.98)",
+                            borderRadius: 2,
+                            boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
+                          }}
+                          aria-hidden="true"
+                        />
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: `${pctDef}%`,
+                            top: "50%",
+                            width: 12,
+                            height: 12,
+                            transform: "translate(-50%, -50%)",
+                            borderRadius: 999,
+                            background: "rgba(255,255,255,0.98)",
+                            boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
+                          }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
