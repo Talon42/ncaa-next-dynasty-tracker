@@ -188,6 +188,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     top25Losses: toNumberOrNull(r.CTTL ?? r.cttl),
     conferenceTitles: toNumberOrNull(r.CCTW ?? r.cctw),
     nationalTitles: toNumberOrNull(r.CNTW ?? r.cntw),
+    runPassTendency: toNumberOrNull(r.COTR ?? r.cotr),
+    defenseRunPassTendency: toNumberOrNull(r.CDTR ?? r.cdtr),
     bowlWins: toNumberOrNull(r.CBLW ?? r.cblw),
     bowlLosses: toNumberOrNull(r.CBLL ?? r.cbll),
     contractYear: toNumberOrNull(r.CCYR ?? r.ccyr),

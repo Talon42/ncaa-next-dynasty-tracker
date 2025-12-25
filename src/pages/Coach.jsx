@@ -55,16 +55,22 @@ export default function Coach() {
   const [coachStats, setCoachStats] = useState({
     careerWins: null,
     careerLosses: null,
+    postseasonWins: null,
+    postseasonLosses: null,
+    runPassTendency: null,
+    defenseRunPassTendency: null,
     top25Wins: null,
     top25Losses: null,
     winningSeasons: null,
     conferenceTitles: null,
     nationalTitles: null,
   });
-  const [contractStats, setContractStats] = useState({
-    contractYear: null,
-    contractLength: null,
+  const [teamStats, setTeamStats] = useState({
     yearsWithTeam: null,
+    teamWins: null,
+    teamLosses: null,
+    postseasonWins: null,
+    postseasonLosses: null,
   });
   const [coachQuote, setCoachQuote] = useState("");
 
@@ -94,16 +100,22 @@ export default function Coach() {
       setCoachStats({
         careerWins: null,
         careerLosses: null,
+        postseasonWins: null,
+        postseasonLosses: null,
+        runPassTendency: null,
+        defenseRunPassTendency: null,
         top25Wins: null,
         top25Losses: null,
         winningSeasons: null,
         conferenceTitles: null,
         nationalTitles: null,
       });
-      setContractStats({
-        contractYear: null,
-        contractLength: null,
+      setTeamStats({
         yearsWithTeam: null,
+        teamWins: null,
+        teamLosses: null,
+        postseasonWins: null,
+        postseasonLosses: null,
       });
       setCoachQuote("");
       return;
@@ -121,16 +133,22 @@ export default function Coach() {
         setCoachStats({
           careerWins: null,
           careerLosses: null,
+          postseasonWins: null,
+          postseasonLosses: null,
+          runPassTendency: null,
+          defenseRunPassTendency: null,
           top25Wins: null,
           top25Losses: null,
           winningSeasons: null,
           conferenceTitles: null,
           nationalTitles: null,
         });
-        setContractStats({
-          contractYear: null,
-          contractLength: null,
+        setTeamStats({
           yearsWithTeam: null,
+          teamWins: null,
+          teamLosses: null,
+          postseasonWins: null,
+          postseasonLosses: null,
         });
         return;
       }
@@ -267,6 +285,19 @@ export default function Coach() {
         : null;
       const latestTop25Wins = Number.isFinite(Number(latest.top25Wins)) ? Number(latest.top25Wins) : null;
       const latestTop25Losses = Number.isFinite(Number(latest.top25Losses)) ? Number(latest.top25Losses) : null;
+      const latestRunPassTendency = Number.isFinite(Number(latest.runPassTendency))
+        ? Number(latest.runPassTendency)
+        : null;
+      const latestDefenseRunPassTendency = Number.isFinite(Number(latest.defenseRunPassTendency))
+        ? Number(latest.defenseRunPassTendency)
+        : null;
+
+      const latestPostseasonWins = Number.isFinite(Number(latest.bowlWins))
+        ? Number(latest.bowlWins)
+        : null;
+      const latestPostseasonLosses = Number.isFinite(Number(latest.bowlLosses))
+        ? Number(latest.bowlLosses)
+        : null;
 
       const conferenceTitleSeasons = new Set();
       const nationalTitleSeasons = new Set();
@@ -290,6 +321,10 @@ export default function Coach() {
       setCoachStats({
         careerWins: Number.isFinite(Number(career.wins)) ? Number(career.wins) : null,
         careerLosses: Number.isFinite(Number(career.losses)) ? Number(career.losses) : null,
+        postseasonWins: latestPostseasonWins,
+        postseasonLosses: latestPostseasonLosses,
+        runPassTendency: latestRunPassTendency,
+        defenseRunPassTendency: latestDefenseRunPassTendency,
         top25Wins: latestTop25Wins,
         top25Losses: latestTop25Losses,
         winningSeasons: latestWinningSeasons,
@@ -302,10 +337,39 @@ export default function Coach() {
         return count;
       }, 0);
 
-      setContractStats({
-        contractYear: Number.isFinite(Number(latest.contractYear)) ? Number(latest.contractYear) : null,
-        contractLength: Number.isFinite(Number(latest.contractLength)) ? Number(latest.contractLength) : null,
+      let teamWins = 0;
+      let teamLosses = 0;
+      for (const r of sorted) {
+        if (String(r.tgid ?? "") !== latestTgid) continue;
+        if (latestTgid === "511") continue;
+        const yr = Number(r.seasonYear);
+        if (!Number.isFinite(yr)) continue;
+        const rec = teamSeasonWinLossByKey.get(`${yr}|${latestTgid}`) || null;
+        if (!rec) continue;
+        teamWins += Number(rec.w) || 0;
+        teamLosses += Number(rec.l) || 0;
+      }
+
+      let teamPostseasonWins = 0;
+      let teamPostseasonLosses = 0;
+      for (const [yr, list] of postseasonByYear.entries()) {
+        if (String(seasonTgidByYear.get(Number(yr)) ?? "") !== latestTgid) continue;
+        for (const item of list) {
+          if (item.outcome === "W") teamPostseasonWins += 1;
+          if (item.outcome === "L") teamPostseasonLosses += 1;
+        }
+      }
+
+      const hasTeamRecord = latestTgid !== "511" && (teamWins > 0 || teamLosses > 0);
+      const hasTeamPostseasonRecord =
+        latestTgid !== "511" && (teamPostseasonWins > 0 || teamPostseasonLosses > 0);
+
+      setTeamStats({
         yearsWithTeam,
+        teamWins: hasTeamRecord ? teamWins : null,
+        teamLosses: hasTeamRecord ? teamLosses : null,
+        postseasonWins: hasTeamPostseasonRecord ? teamPostseasonWins : null,
+        postseasonLosses: hasTeamPostseasonRecord ? teamPostseasonLosses : null,
       });
 
       const rows = sorted.map((r) => {
@@ -412,24 +476,157 @@ export default function Coach() {
       <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
           <div className="kicker" style={{ fontWeight: 700 }}>
-            Contract
+            Team
           </div>
         </div>
         <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div>
-            <div className="kicker">Contract Year</div>
-            <div style={{ fontWeight: 700 }}>{contractStats.contractYear ?? "-"}</div>
-          </div>
-          <div>
-            <div className="kicker">Length</div>
-            <div style={{ fontWeight: 700 }}>{contractStats.contractLength ?? "-"}</div>
-          </div>
-          <div>
             <div className="kicker">Years with Team</div>
-            <div style={{ fontWeight: 700 }}>{contractStats.yearsWithTeam ?? "-"}</div>
+            <div style={{ fontWeight: 700 }}>{teamStats.yearsWithTeam ?? "-"}</div>
+          </div>
+          <div>
+            <div className="kicker">Record</div>
+            <div style={{ fontWeight: 700 }}>
+              {teamStats.teamWins ?? "-"}-{teamStats.teamLosses ?? "-"}
+            </div>
+          </div>
+          <div>
+            <div className="kicker">Postseason Record</div>
+            <div style={{ fontWeight: 700 }}>
+              {teamStats.postseasonWins ?? "-"}-{teamStats.postseasonLosses ?? "-"}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+          <div className="kicker" style={{ fontWeight: 700 }}>
+            Run/Pass Tendency
+          </div>
+        </div>
+        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+
+        {(() => {
+          const raw = Number(coachStats.runPassTendency);
+          const has = Number.isFinite(raw);
+          const clamped = has ? Math.min(80, Math.max(20, raw)) : 50;
+          const pct = has ? ((clamped - 20) / 60) * 100 : 50;
+
+          return (
+            <div>
+              <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                Offense
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span className="kicker">Run</span>
+                <span className="kicker">Pass</span>
+              </div>
+
+              <div
+                style={{
+                  position: "relative",
+                  height: 16,
+                  borderRadius: 999,
+                  overflow: "hidden",
+                  background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
+                  outline: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${pct}%`,
+                    top: -8,
+                    bottom: -8,
+                    width: 4,
+                    transform: "translateX(-50%)",
+                    background: "rgba(255,255,255,0.98)",
+                    borderRadius: 2,
+                    boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
+                  }}
+                  aria-hidden="true"
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${pct}%`,
+                    top: "50%",
+                    width: 12,
+                    height: 12,
+                    transform: "translate(-50%, -50%)",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.98)",
+                    boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
+                  }}
+                  aria-hidden="true"
+                />
+              </div>
+
+              <div style={{ height: 12 }} />
+
+              {(() => {
+                const rawDef = Number(coachStats.defenseRunPassTendency);
+                const hasDef = Number.isFinite(rawDef);
+                const clampedDef = hasDef ? Math.min(80, Math.max(20, rawDef)) : 50;
+                const pctDef = hasDef ? ((clampedDef - 20) / 60) * 100 : 50;
+
+                return (
+                  <div>
+                    <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                      Defense
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span className="kicker">Man</span>
+                      <span className="kicker">Zone</span>
+                    </div>
+
+                    <div
+                      style={{
+                        position: "relative",
+                        height: 16,
+                        borderRadius: 999,
+                        overflow: "hidden",
+                        background: "linear-gradient(90deg, #7b4a1d 0%, #2c6bed 100%)",
+                        outline: "1px solid var(--border)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: `${pctDef}%`,
+                          top: -8,
+                          bottom: -8,
+                          width: 4,
+                          transform: "translateX(-50%)",
+                          background: "rgba(255,255,255,0.98)",
+                          borderRadius: 2,
+                          boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
+                        }}
+                        aria-hidden="true"
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: `${pctDef}%`,
+                          top: "50%",
+                          width: 12,
+                          height: 12,
+                          transform: "translate(-50%, -50%)",
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.98)",
+                          boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
+                        }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
@@ -441,12 +638,16 @@ export default function Coach() {
         <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           <div>
-            <div className="kicker">Career Wins</div>
-            <div style={{ fontWeight: 700 }}>{coachStats.careerWins ?? "-"}</div>
+            <div className="kicker">Career Record</div>
+            <div style={{ fontWeight: 700 }}>
+              {coachStats.careerWins ?? "-"}-{coachStats.careerLosses ?? "-"}
+            </div>
           </div>
           <div>
-            <div className="kicker">Career Losses</div>
-            <div style={{ fontWeight: 700 }}>{coachStats.careerLosses ?? "-"}</div>
+            <div className="kicker">Postseason Record</div>
+            <div style={{ fontWeight: 700 }}>
+              {coachStats.postseasonWins ?? "-"}-{coachStats.postseasonLosses ?? "-"}
+            </div>
           </div>
           <div>
             <div className="kicker">Top-25 Record</div>
