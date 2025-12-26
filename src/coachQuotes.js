@@ -9,7 +9,7 @@ async function loadCoachQuotes() {
   if (cachedQuotes) return cachedQuotes;
   if (!loadPromise) {
     loadPromise = (async () => {
-      const res = await fetch(QUOTES_URL, { cache: "force-cache" });
+      const res = await fetch(QUOTES_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load coach quotes.");
       const text = await res.text();
       const quotes = text
@@ -35,16 +35,18 @@ function pickRandomQuote(quotes) {
 export async function getOrCreateCoachQuote({ dynastyId, ccid }) {
   if (!dynastyId || !ccid) return "";
 
-  const coachKey = [dynastyId, String(ccid)];
-  const existing = await db.coachQuotes.get(coachKey);
-  if (existing?.quote) return existing.quote;
-
   let quotes = [];
   try {
     quotes = await loadCoachQuotes();
   } catch {
     return "";
   }
+
+  if (!quotes.length) return "";
+
+  const coachKey = [dynastyId, String(ccid)];
+  const existing = await db.coachQuotes.get(coachKey);
+  if (existing?.quote && quotes.includes(existing.quote)) return existing.quote;
 
   const quote = pickRandomQuote(quotes);
   if (!quote) return "";
@@ -71,16 +73,17 @@ export async function ensureCoachQuotesForSeason({ dynastyId, coachIds }) {
   const keys = uniqueIds.map((id) => [dynastyId, id]);
   const existing = await db.coachQuotes.bulkGet(keys);
 
-  const toCreate = [];
+  const toUpsert = [];
   for (let i = 0; i < keys.length; i += 1) {
-    if (existing[i]) continue;
     const ccid = keys[i][1];
+    const existingRow = existing[i];
+    if (existingRow?.quote && quotes.includes(existingRow.quote)) continue;
     const quote = pickRandomQuote(quotes);
     if (!quote) continue;
-    toCreate.push({ dynastyId, ccid, quote });
+    toUpsert.push({ dynastyId, ccid, quote });
   }
 
-  if (toCreate.length) {
-    await db.coachQuotes.bulkPut(toCreate);
+  if (toUpsert.length) {
+    await db.coachQuotes.bulkPut(toUpsert);
   }
 }

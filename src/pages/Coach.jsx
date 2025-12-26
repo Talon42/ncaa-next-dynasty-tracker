@@ -550,7 +550,7 @@ export default function Coach() {
             opacity: 0.75,
           }}
         >
-          "{coachQuote}"
+          {coachQuote}
         </p>
       ) : null}
 
