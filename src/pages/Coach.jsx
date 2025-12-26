@@ -437,7 +437,7 @@ export default function Coach() {
         postseasonLosses: hasTeamPostseasonRecord ? teamPostseasonLosses : null,
       });
 
-      const rows = sorted.map((r) => {
+      const rows = sorted.filter((r) => String(r.tgid ?? "") !== "511").map((r) => {
         const tgid = String(r.tgid ?? "");
         const seasonKey = `${r.seasonYear}|${tgid}`;
         const teamName = teamNameBySeasonTgid.get(seasonKey) || `TGID ${tgid}`;
