@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
@@ -37,8 +37,35 @@ export default function TeamsIndex() {
   const [dynastyId, setDynastyId] = useState(null);
   const [seasonYear, setSeasonYear] = useState(null);
   const [confBlocks, setConfBlocks] = useState([]); // [{ confName, teams: [...] }]
+  const [divisionFilter, setDivisionFilter] = useState("FBS");
 
   const [confLogoByName, setConfLogoByName] = useState(new Map());
+  const fbsConfs = useMemo(
+    () =>
+      new Set(
+        [
+          "ACC",
+          "Sun Belt",
+          "SEC",
+          "PAC",
+          "Mt West",
+          "MAC",
+          "Independent",
+          "CUSA",
+          "Big Ten",
+          "Big 12",
+          "American",
+        ].map((c) => c.toLowerCase().replace(/[^a-z0-9]/g, ""))
+      ),
+    []
+  );
+
+  function isFbsConference(confName) {
+    const key = String(confName ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    return fbsConfs.has(key);
+  }
 
   useEffect(() => {
     (async () => {
@@ -103,6 +130,9 @@ export default function TeamsIndex() {
         const tgid = String(t.tgid);
         const name = `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
         const confName = getConferenceName(t.cgid);
+        const isFbs = isFbsConference(confName);
+        if (divisionFilter === "FBS" && !isFbs) continue;
+        if (divisionFilter === "FCS" && isFbs) continue;
 
         if (!byConf.has(confName)) byConf.set(confName, []);
         byConf.get(confName).push({
@@ -121,7 +151,7 @@ export default function TeamsIndex() {
 
       setConfBlocks(blocks);
     })();
-  }, [dynastyId]);
+  }, [dynastyId, divisionFilter, fbsConfs]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear == null) return;
@@ -143,6 +173,18 @@ export default function TeamsIndex() {
 
   return (
     <div className="teamsPage">
+      <div className="hrow" style={{ alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginLeft: "auto" }}>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Division</span>
+            <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)}>
+              <option value="All">All</option>
+              <option value="FBS">FBS</option>
+              <option value="FCS">FCS</option>
+            </select>
+          </label>
+        </div>
+      </div>
       {!seasonYear ? <p className="kicker">No seasons uploaded yet.</p> : null}
 
       {!hasTeams ? (

@@ -7,6 +7,7 @@
 - If behavior changes, explain what changed and why
 
 ## Code Changes
+- Briefly explain or summarize code changes with reasoning before asking to apply changes.
 - Prefer centralized helpers when the same logic appears in 2+ places (parsing URL params, persistence, formatting, validation, etc.).
 - Standardize existing patterns instead of introducing parallel ones
 - Do not delete code unless it is clearly unused or confirmed safe
