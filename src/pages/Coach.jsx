@@ -582,7 +582,25 @@ export default function Coach() {
         <div style={{ marginTop: 10, textAlign: "center" }}>
           {(() => {
             const meta = approvalLabel(coachApproval);
-            return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
+            return (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px 12px",
+                  borderRadius: 999,
+                  border: "1px solid var(--border)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: meta.color,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {meta.text}
+              </span>
+            );
           })()}
         </div>
       </div>
