@@ -39,6 +39,15 @@ function PrestigeStars({ value }) {
   );
 }
 
+function approvalLabel(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return { text: "-", color: "inherit" };
+  if (n <= 5) return { text: "Danger", color: "#c53b3b" };
+  if (n <= 25) return { text: "Hot Seat", color: "#d77b2f" };
+  if (n <= 49) return { text: "Warm", color: "#d8a118" };
+  return { text: "Secure", color: "#2f9b4f" };
+}
+
 export default function Coach() {
   const { ccid } = useParams();
   const coachId = String(ccid ?? "");
@@ -67,6 +76,7 @@ export default function Coach() {
     conferenceTitles: null,
     nationalTitles: null,
   });
+  const [coachApproval, setCoachApproval] = useState(null);
   const [teamStats, setTeamStats] = useState({
     yearsWithTeam: null,
     teamWins: null,
@@ -114,6 +124,7 @@ export default function Coach() {
         conferenceTitles: null,
         nationalTitles: null,
       });
+      setCoachApproval(null);
       setTeamStats({
         yearsWithTeam: null,
         teamWins: null,
@@ -147,12 +158,13 @@ export default function Coach() {
           top25Losses: null,
           winningSeasons: null,
           conferenceTitles: null,
-          nationalTitles: null,
-        });
-        setTeamStats({
-          yearsWithTeam: null,
-          teamWins: null,
-          teamLosses: null,
+        nationalTitles: null,
+      });
+      setCoachApproval(null);
+      setTeamStats({
+        yearsWithTeam: null,
+        teamWins: null,
+        teamLosses: null,
           postseasonWins: null,
           postseasonLosses: null,
         });
@@ -363,6 +375,9 @@ export default function Coach() {
       const latestPostseasonLosses = Number.isFinite(Number(latest.bowlLosses))
         ? Number(latest.bowlLosses)
         : null;
+      const latestApproval = Number.isFinite(Number(latest.approval))
+        ? Number(latest.approval)
+        : null;
 
       const conferenceTitleSeasons = new Set();
       const nationalTitleSeasons = new Set();
@@ -396,6 +411,7 @@ export default function Coach() {
         conferenceTitles: latestConferenceTitles,
         nationalTitles: latestNationalTitles,
       });
+      setCoachApproval(latestApproval);
 
       const yearsWithTeam = sorted.reduce((count, r) => {
         if (String(r.tgid ?? "") === latestTgid) return count + 1;
@@ -562,6 +578,12 @@ export default function Coach() {
               {teamStats.postseasonWins ?? "-"}-{teamStats.postseasonLosses ?? "-"}
             </div>
           </div>
+        </div>
+        <div style={{ marginTop: 10, textAlign: "center" }}>
+          {(() => {
+            const meta = approvalLabel(coachApproval);
+            return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
+          })()}
         </div>
       </div>
 
