@@ -808,6 +808,12 @@ export default function Coach() {
           <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
 
           {(() => {
+            const markerLeft = (value) => {
+              if (!Number.isFinite(value)) return "50%";
+              if (value <= 2) return `calc(${value}% + 10px)`;
+              if (value >= 98) return `calc(${value}% - 10px)`;
+              return `${value}%`;
+            };
             const raw = Number(coachStats.runPassTendency);
             const has = Number.isFinite(raw);
             const scaleMax = Number.isFinite(Number(tendencyScale.offMax)) ? Number(tendencyScale.offMax) : 80;
@@ -815,6 +821,7 @@ export default function Coach() {
             const max = Math.max(min, Math.min(80, scaleMax));
             const clamped = has ? Math.min(max, Math.max(min, raw)) : 50;
             const pct = has && max > min ? ((clamped - min) / (max - min)) * 100 : 50;
+            const markerLeftPct = markerLeft(pct);
 
             return (
               <div>
@@ -839,31 +846,45 @@ export default function Coach() {
                   <div
                     style={{
                       position: "absolute",
-                      left: `${pct}%`,
-                      top: -8,
-                      bottom: -8,
-                      width: 4,
-                      transform: "translateX(-50%)",
-                      background: "rgba(255,255,255,0.98)",
-                      borderRadius: 2,
-                      boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
-                    }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: `${pct}%`,
+                      left: markerLeftPct,
                       top: "50%",
-                      width: 12,
-                      height: 12,
+                      width: 18,
+                      height: 14,
                       transform: "translate(-50%, -50%)",
-                      borderRadius: 999,
-                      background: "rgba(255,255,255,0.98)",
-                      boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
+                      filter: "drop-shadow(0 0 2px rgba(0,0,0,0.6))",
+                      zIndex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                     aria-hidden="true"
-                  />
+                  >
+                    <svg viewBox="0 0 28 20" width="100%" height="100%" aria-hidden="true">
+                      <path
+                        d="M2 10c0-4.6 4.6-8.4 10.2-8.4h3.6C21.4 1.6 26 5.4 26 10s-4.6 8.4-10.2 8.4h-3.6C6.6 18.4 2 14.6 2 10z"
+                        fill="#b86e22"
+                        stroke="rgba(0,0,0,0.5)"
+                        strokeWidth="1.6"
+                      />
+                      <path
+                        d="M6.2 7.2c0 2.2 1.8 4 4 4"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.9)"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M21.8 7.2c0 2.2-1.8 4-4 4"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.9)"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                      />
+                      <path d="M11.5 6.1h5" stroke="rgba(255,255,255,0.95)" strokeWidth="1.4" />
+                      <path d="M11.8 8.2h4.4" stroke="rgba(255,255,255,0.95)" strokeWidth="1.2" />
+                      <path d="M11.8 11.8h4.4" stroke="rgba(255,255,255,0.95)" strokeWidth="1.2" />
+                    </svg>
+                  </div>
                 </div>
 
                 <div style={{ height: 12 }} />
@@ -878,6 +899,7 @@ export default function Coach() {
                   const maxDef = Math.max(minDef, Math.min(80, scaleMaxDef));
                   const clampedDef = hasDef ? Math.min(maxDef, Math.max(minDef, rawDef)) : 50;
                   const pctDef = hasDef && maxDef > minDef ? ((clampedDef - minDef) / (maxDef - minDef)) * 100 : 50;
+                  const markerLeftDefPct = markerLeft(pctDef);
 
                   return (
                     <div>
@@ -899,34 +921,48 @@ export default function Coach() {
                           outline: "1px solid var(--border)",
                         }}
                       >
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: `${pctDef}%`,
-                            top: -8,
-                            bottom: -8,
-                            width: 4,
-                            transform: "translateX(-50%)",
-                            background: "rgba(255,255,255,0.98)",
-                            borderRadius: 2,
-                            boxShadow: "0 0 0 2px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.35)",
-                          }}
-                          aria-hidden="true"
-                        />
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: `${pctDef}%`,
-                            top: "50%",
-                            width: 12,
-                            height: 12,
-                            transform: "translate(-50%, -50%)",
-                            borderRadius: 999,
-                            background: "rgba(255,255,255,0.98)",
-                            boxShadow: "0 0 0 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35)",
-                          }}
-                          aria-hidden="true"
-                        />
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: markerLeftDefPct,
+                          top: "50%",
+                          width: 18,
+                          height: 14,
+                          transform: "translate(-50%, -50%)",
+                          filter: "drop-shadow(0 0 2px rgba(0,0,0,0.6))",
+                          zIndex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        aria-hidden="true"
+                      >
+                        <svg viewBox="0 0 28 20" width="100%" height="100%" aria-hidden="true">
+                          <path
+                            d="M2 10c0-4.6 4.6-8.4 10.2-8.4h3.6C21.4 1.6 26 5.4 26 10s-4.6 8.4-10.2 8.4h-3.6C6.6 18.4 2 14.6 2 10z"
+                            fill="#b86e22"
+                            stroke="rgba(0,0,0,0.5)"
+                            strokeWidth="1.6"
+                          />
+                          <path
+                            d="M6.2 7.2c0 2.2 1.8 4 4 4"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.9)"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M21.8 7.2c0 2.2-1.8 4-4 4"
+                            fill="none"
+                            stroke="rgba(255,255,255,0.9)"
+                            strokeWidth="1.3"
+                            strokeLinecap="round"
+                          />
+                          <path d="M11.5 6.1h5" stroke="rgba(255,255,255,0.95)" strokeWidth="1.4" />
+                          <path d="M11.8 8.2h4.4" stroke="rgba(255,255,255,0.95)" strokeWidth="1.2" />
+                          <path d="M11.8 11.8h4.4" stroke="rgba(255,255,255,0.95)" strokeWidth="1.2" />
+                        </svg>
+                      </div>
                       </div>
                     </div>
                   );
