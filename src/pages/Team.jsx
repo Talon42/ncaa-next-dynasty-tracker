@@ -271,16 +271,24 @@ useEffect(() => {
 
     (async () => {
       const latestYear = availableSeasons[0];
-      // Pull all needed data once (local-first, small enough for now)
-      const [teamSeasonsAll, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
+      const [teamSeasonsAll, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
         db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
         db.bowlGames.where({ dynastyId }).toArray(),
-        latestYear != null
-          ? db.coaches.where({ dynastyId, seasonYear: latestYear }).toArray()
-          : Promise.resolve([]),
       ]);
+
+      const latestTeamYear = teamSeasonsAll.reduce((acc, t) => {
+        if (String(t.tgid) !== teamTgid) return acc;
+        const yr = Number(t.seasonYear);
+        if (!Number.isFinite(yr)) return acc;
+        return acc == null ? yr : Math.max(acc, yr);
+      }, null);
+      const headerYear = latestTeamYear != null ? latestTeamYear : latestYear;
+      const coachRows =
+        headerYear != null
+          ? await db.coaches.where({ dynastyId, seasonYear: headerYear }).toArray()
+          : [];
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
@@ -294,7 +302,7 @@ useEffect(() => {
       const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
 
       // Prefer the most recent season's name for the header (if available)
-      const latestRows = teamSeasonsAll.filter((t) => t.seasonYear === latestYear);
+      const latestRows = teamSeasonsAll.filter((t) => t.seasonYear === headerYear);
       const latestTeamRow = latestRows.find((t) => String(t.tgid) === teamTgid);
 
       const latestNameMap = new Map(

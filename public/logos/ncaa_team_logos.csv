@@ -40,7 +40,7 @@ Chattanooga,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/ch
 Cincinnati,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/cincinnati.svg
 The Citadel,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/citadel.svg
 Clemson,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/clemson.svg
-Coastal Caro,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/coastal-caro.svg
+Coastal Carolina,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/coastal-caro.svg
 Colgate,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/colgate.svg
 Colorado,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/colorado.svg
 Colorado State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/colorado-st.svg
@@ -50,6 +50,7 @@ Dartmouth,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/dart
 Davidson,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/davidson.svg
 Dayton,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/dayton.svg
 Delaware State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/delaware-st.svg
+Delaware,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/delaware.svg
 Drake,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/drake.svg
 Duke,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/duke.svg
 Duquesne,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/duquesne.svg
@@ -58,9 +59,9 @@ East Tenn State,https://www.ncaa.com/sites/default/files/images/logos/schools/bg
 Eastern Illinois,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/eastern-ill.svg
 Eastern Kentucky,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/eastern-ky.svg
 Eastern Michigan,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/eastern-mich.svg
-E Washington,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/eastern-wash.svg
+Eastern Washington,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/eastern-wash.svg
 Elon,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/elon.svg
-Fiu,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/fiu.svg
+Florida Intl,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/fiu.svg
 Florida,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/florida.svg
 Florida A&M,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/florida-am.svg
 Florida Atlantic,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/fla-atlantic.svg
@@ -77,7 +78,7 @@ Georgia Tech,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/g
 Grambling State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/grambling.svg
 Hampton,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/hampton.svg
 Harvard,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/harvard.svg
-Hawaii,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/hawaii.svg
+Hawai'i,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/hawaii.svg
 Holy Cross,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/holy-cross.svg
 Houston,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/houston.svg
 Houston Christian,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/houston-christian.svg
@@ -106,14 +107,14 @@ Liberty,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/libert
 Lindenwood Mo,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/lindenwood-mo.svg
 Long Island,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/long-island.svg
 Louisiana,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/la-lafayette.svg
-Louisiana Monroe,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/la-monroe.svg
+UL Monroe,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/la-monroe.svg
 Louisiana Tech,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/louisiana-tech.svg
 Louisville,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/louisville.svg
 Maine,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/maine.svg
 Marist,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/marist.svg
 Marshall,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/marshall.svg
 Maryland,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/maryland.svg
-Massachusetts,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/massachusetts.svg
+UMass,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/massachusetts.svg
 Mcneese State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/mcneese.svg
 Memphis,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/memphis.svg
 Mercer,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/mercer.svg
@@ -127,6 +128,7 @@ Minnesota,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/minn
 Mississippi State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/mississippi-st.svg
 Miss Valley State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/mississippi-val.svg
 Missouri,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/missouri.svg
+Missouri State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/missouri-st.svg
 Monmouth,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/monmouth.svg
 Montana,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/montana.svg
 Montana State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/montana-st.svg
@@ -143,15 +145,15 @@ New Mexico,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/new
 New Mexico State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/new-mexico-st.svg
 Nicholls State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/nicholls-st.svg
 Norfolk State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/norfolk-st.svg
-North Ala,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-ala.svg
+North Alabama,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-ala.svg
 North Carolina,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-carolina.svg
-North Carolina State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-carolina-st.svg
+NC State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-carolina-st.svg
 North Dakota,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-dakota.svg
 North Dakota State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-dakota-st.svg
 North Texas,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/north-texas.svg
 Northern Arizona,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northern-ariz.svg
 Northern Colorado,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northern-colo.svg
-Northern Illinois,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northern-ill.svg
+UNI,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northern-ill.svg
 Northwestern,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northwestern.svg
 Northwestern St,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/northwestern-st.svg
 Notre Dame,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/notre-dame.svg
@@ -179,14 +181,14 @@ Rutgers,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/rutger
 SMU,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/smu.svg
 Sacramento State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/sacramento-st.svg
 Sacred Heart,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/sacred-heart.svg
-Sam Houston State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/sam-houston-st.svg
+Sam Houston,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/sam-houston-st.svg
 Samford,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/samford.svg
 San Diego,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/san-diego.svg
 San Diego State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/san-diego-st.svg
-San José State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/san-jose-st.svg
+San Jose State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/san-jose-st.svg
 South Alabama,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-ala.svg
 South Carolina,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-carolina.svg
-South Carolina State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-carolina-st.svg
+S Carolina State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-carolina-st.svg
 South Dakota,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-dakota.svg
 South Dakota State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-dakota-st.svg
 SE Missouri St,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/southeast-mo-st.svg
@@ -229,9 +231,9 @@ USC,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/southern-c
 USF,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/south-fla.svg
 UTEP,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/utep.svg
 UTSA,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/utsa.svg
-Uc Davis,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uc-davis.svg
-Uiw,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uiw.svg
-Uni,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uni.svg
+UC Davis,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uc-davis.svg
+UIW,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uiw.svg
+UNI,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/uni.svg
 Tennessee-Martin,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/ut-martin.svg
 Utah,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/utah.svg
 Utah State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/utah-st.svg
@@ -252,9 +254,9 @@ Weber State,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/we
 West Virginia,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/west-virginia.svg
 Western Carolina,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/western-caro.svg
 Western Illinois,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/western-ill.svg
-Western Ky,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/western-ky.svg
+Western Kentucky,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/western-ky.svg
 Western Michigan,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/western-mich.svg
-William Mary,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/william-mary.svg
+William and Mary,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/william-mary.svg
 Wisconsin,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/wisconsin.svg
 Wofford,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/wofford.svg
 Wyoming,https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/wyoming.svg

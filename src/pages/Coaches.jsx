@@ -41,6 +41,7 @@ export default function Coaches() {
   const [sortDir, setSortDir] = useState("asc");
   const [confFilter, setConfFilter] = useState("All");
   const [approvalFilter, setApprovalFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("Active");
 
   useEffect(() => {
     (async () => {
@@ -201,13 +202,15 @@ export default function Coaches() {
 
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
+      if (statusFilter === "Active" && r.isNotHired) return false;
+      if (statusFilter === "Inactive" && !r.isNotHired) return false;
       if (confFilter !== "All" && r.confName !== confFilter) return false;
       if (approvalFilter !== "All" && approvalLabel(r.approval).text !== approvalFilter) {
         return false;
       }
       return true;
     });
-  }, [rows, confFilter, approvalFilter]);
+  }, [rows, confFilter, approvalFilter, statusFilter]);
 
   const confOptions = useMemo(() => {
     const uniq = new Set();
@@ -344,6 +347,14 @@ export default function Coaches() {
                   {c}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>Status</span>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
             </select>
           </label>
 
