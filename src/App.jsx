@@ -88,7 +88,12 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingDynasty, setDeletingDynasty] = useState(false);
   const [deleteBlocked, setDeleteBlocked] = useState(false);
+  const [clearingStorage, setClearingStorage] = useState(false);
+  const [optimizeBusy, setOptimizeBusy] = useState(false);
+  const [optimizeBlocked, setOptimizeBlocked] = useState(false);
+  const [optimizeErr, setOptimizeErr] = useState("");
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [importPayload, setImportPayload] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
   const [importErr, setImportErr] = useState("");
@@ -117,6 +122,7 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (clearingStorage) return;
     refresh();
   }, []);
 
@@ -142,6 +148,7 @@ export default function App() {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    if (clearingStorage) return;
     if (!activeId) {
       setSearchResults([]);
       setSearchLoading(false);
@@ -260,6 +267,7 @@ export default function App() {
   }, [activeId, searchQuery]);
 
   useEffect(() => {
+    if (clearingStorage) return;
     let alive = true;
     (async () => {
       if (!activeId) {
@@ -309,10 +317,12 @@ export default function App() {
     if (!d) return;
 
     setDeletingDynasty(true);
+    setClearingStorage(true);
     const result = await deleteDynasty(d.id);
     if (result?.blocked) {
       setDeletingDynasty(false);
       setDeleteBlocked(true);
+      setClearingStorage(false);
       return;
     }
     if (result?.clearedAll) {
@@ -324,6 +334,41 @@ export default function App() {
     await refresh();
     navigate("/");
     window.location.reload();
+  }
+
+  async function optimizeDatabase() {
+    setOptimizeBlocked(false);
+    setOptimizeErr("");
+    setOptimizeBusy(true);
+    try {
+      const payload = await exportDatabase();
+      db.close();
+      const result = await new Promise((resolve) => {
+        const req = indexedDB.deleteDatabase(db.name);
+        req.onsuccess = () => resolve({ clearedAll: true, blocked: false });
+        req.onerror = () => resolve({ clearedAll: false, blocked: false, error: req.error });
+        req.onblocked = () => resolve({ clearedAll: false, blocked: true });
+      });
+
+      if (result?.blocked) {
+        setOptimizeBusy(false);
+        setOptimizeBlocked(true);
+        await db.open();
+        return;
+      }
+
+      await db.open();
+      await importDatabase(payload);
+      window.location.reload();
+    } catch (e) {
+      setOptimizeErr(e?.message || String(e));
+      setOptimizeBusy(false);
+      try {
+        await db.open();
+      } catch {
+        // ignore open errors
+      }
+    }
   }
 
   function resetImportState() {
@@ -583,8 +628,9 @@ export default function App() {
           </button>
         </div>
       </div>
-      <div className="shellGrid">
-        <aside className="sidebar">
+      {!clearingStorage && (
+        <div className="shellGrid">
+          <aside className="sidebar">
           <div className="brandRow" style={{ marginBottom: 10 }}>
             <h1>NCAA Next Dynasty Tracker</h1>
           </div>
@@ -743,43 +789,51 @@ export default function App() {
                   ))}
                 </div>
 
-                <div className="sidebarActionStack">
-                  {activeDynasty ? (
-                    <button
-                      className="primary"
-                      onClick={() => setShowImportSeason(true)}
-                      style={{ width: "100%" }}
-                      disabled={!activeId}
-                    >
-                      + Upload New Season
-                    </button>
-                  ) : null}
-
+              <div className="sidebarActionStack">
+                {activeDynasty ? (
                   <button
-                    className="sidebarBtn"
-                    onClick={() => setShowNewDynasty(true)}
+                    className="primary"
+                    onClick={() => setShowImportSeason(true)}
                     style={{ width: "100%" }}
+                    disabled={!activeId}
                   >
-                    + New Dynasty
+                    + Upload New Season
                   </button>
+                ) : null}
 
-                  <button
-                    className="sidebarBtn"
-                    onClick={() => {
-                      resetImportState();
-                      setShowBackupModal(true);
-                    }}
-                    style={{ width: "100%" }}
-                  >
-                    Import / Export
-                  </button>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </aside>
+                <button
+                  className="sidebarBtn"
+                  onClick={() => setShowNewDynasty(true)}
+                  style={{ width: "100%" }}
+                >
+                  + New Dynasty
+                </button>
 
-        <main className="main">
+                <button
+                  className="sidebarBtn"
+                  onClick={() => {
+                    resetImportState();
+                    setShowBackupModal(true);
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  Import / Export
+                </button>
+
+                <button
+                  className="sidebarBtn"
+                  onClick={() => setShowOptimizeModal(true)}
+                  style={{ width: "100%" }}
+                >
+                  Optimize Database
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+          </aside>
+
+          <main className="main">
           {dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : dynasties.length === 0 ? null : (
@@ -814,8 +868,9 @@ export default function App() {
               </Routes>
             </div>
           )}
-        </main>
-      </div>
+          </main>
+        </div>
+      )}
 
       {/* New Dynasty Modal */}
       {showNewDynasty && (
@@ -956,6 +1011,32 @@ export default function App() {
         </Modal>
       )}
 
+      {optimizeBusy && (
+        <div className="modalOverlay">
+          <div className="card" style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+            <div className="loadingSpinner" aria-hidden="true" />
+            <div style={{ marginTop: 12, fontWeight: 700 }}>Optimizing database...</div>
+            <div className="kicker" style={{ marginTop: 6 }}>
+              Please wait while data is compacted.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {optimizeBlocked && (
+        <Modal title="Unable to Optimize" maxWidth={520}>
+          <p>
+            The database could not be rebuilt because another tab or window is still using it.
+          </p>
+          <p className="kicker">
+            Close other tabs for this app and try again.
+          </p>
+          <div className="importActions">
+            <button onClick={() => setOptimizeBlocked(false)}>Close</button>
+          </div>
+        </Modal>
+      )}
+
       {/* Backup Modal */}
       {showBackupModal && (
         <Modal title="Import / Export">
@@ -1039,6 +1120,34 @@ export default function App() {
               </div>
             </div>
 
+          </div>
+        </Modal>
+      )}
+
+      {showOptimizeModal && (
+        <Modal title="Optimize Database" maxWidth={520}>
+          <div className="importModal backupModal">
+            <div className="backupSection">
+              <p className="kicker importDescription">
+                Compacts local storage by rebuilding the database. Dynasties remain intact.
+              </p>
+              <p className="kicker importDescription">
+                <b>Only use this if experiencing storage or performance issue.</b>
+              </p>
+              {optimizeErr ? <div className="kicker backupError">{optimizeErr}</div> : null}
+              <div className="importActions">
+                <button onClick={() => setShowOptimizeModal(false)}>Close</button>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setShowOptimizeModal(false);
+                    optimizeDatabase();
+                  }}
+                >
+                  Optimize Database
+                </button>
+              </div>
+            </div>
           </div>
         </Modal>
       )}
