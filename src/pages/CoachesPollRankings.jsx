@@ -197,7 +197,7 @@ export default function CoachesPollRankings() {
   }
 
   return (
-    <div>
+    <div className="pollRankingsPage">
       <div className="hrow" style={{ alignItems: "baseline" }}>
         <h2>Coach&apos;s Poll Rankings</h2>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -234,9 +234,9 @@ export default function CoachesPollRankings() {
             <tr>
               <th style={{ width: 110 }}>Rank</th>
               <th>Team</th>
-              <th style={{ width: 120 }}>W/L</th>
+              <th style={{ width: 120 }}>Record</th>
               <th>Bowl</th>
-              <th style={{ width: 110 }}>Bowl W/L</th>
+              <th style={{ width: 110 }}>Bowl Result</th>
             </tr>
           </thead>
           <tbody>

@@ -667,6 +667,23 @@ button:disabled {
 .table tbody tr.top25-row { background: rgba(224, 190, 99, 0.12); }
 .table tbody tr.top25-row:nth-child(even) { background: rgba(224, 190, 99, 0.18); }
 
+.pollRankingsPage .hrow {
+  margin-bottom: 10px;
+}
+
+.pollRankingsPage .hrow h2 {
+  font-size: 18px;
+}
+
+.pollRankingsPage .table thead th,
+.pollRankingsPage .table tbody td {
+  padding: 8px 6px;
+}
+
+.pollRankingsPage .table {
+  border-radius: 10px;
+}
+
 .table .scheduleWeekRow th {
   padding: 8px 12px;
   color: var(--muted);
