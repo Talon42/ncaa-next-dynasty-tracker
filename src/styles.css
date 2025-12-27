@@ -684,6 +684,13 @@ button:disabled {
   border-radius: 10px;
 }
 
+.routedCard.cardWide.pollRankingsCard {
+  max-width: 950px;
+}
+
+
+
+
 .table .scheduleWeekRow th {
   padding: 8px 12px;
   color: var(--muted);

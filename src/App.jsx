@@ -601,16 +601,17 @@ export default function App() {
           {dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : dynasties.length === 0 ? null : (
-            <div
-              className={[
-                "card",
-                "routedCard",
-                isTeamsPage ? "cardWide" : "",
-                isSchedulePage ? "cardSchedule" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
+              <div
+                className={[
+                  "card",
+                  "routedCard",
+                  isTeamsPage ? "cardWide" : "",
+                  isSchedulePage ? "cardSchedule" : "",
+                  location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
               <div className="breadcrumbRow">
                 <BackBreadcrumb />
               </div>
