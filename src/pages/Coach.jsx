@@ -59,6 +59,8 @@ const OFFENSE_TYPE_LABELS = {
   4: "West Coast",
 };
 
+const COACH_AGE_OFFSET = 23;
+
 function resolveCoachLabel(map, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "-";
@@ -116,6 +118,7 @@ export default function Coach() {
   const [trophyWins, setTrophyWins] = useState([]);
   const [tendencyScale, setTendencyScale] = useState({ offMax: 80, defMax: 80 });
   const [coachStats, setCoachStats] = useState({
+    coachAge: null,
     careerWins: null,
     careerLosses: null,
     postseasonWins: null,
@@ -167,6 +170,7 @@ export default function Coach() {
       setTrophyWins([]);
       setTendencyScale({ offMax: 80, defMax: 80 });
       setCoachStats({
+        coachAge: null,
         careerWins: null,
         careerLosses: null,
         postseasonWins: null,
@@ -203,6 +207,7 @@ export default function Coach() {
         setTrophyWins([]);
         setTendencyScale({ offMax: 80, defMax: 80 });
         setCoachStats({
+          coachAge: null,
           careerWins: null,
           careerLosses: null,
           postseasonWins: null,
@@ -420,6 +425,7 @@ export default function Coach() {
       const latestRunPassTendency = Number.isFinite(Number(latest.runPassTendency))
         ? Number(latest.runPassTendency)
         : null;
+      const latestCycd = Number.isFinite(Number(latest.cycd)) ? Number(latest.cycd) : null;
       const latestDefenseRunPassTendency = Number.isFinite(Number(latest.defenseRunPassTendency))
         ? Number(latest.defenseRunPassTendency)
         : null;
@@ -462,7 +468,12 @@ export default function Coach() {
         ? Number(latest.nationalTitles)
         : null;
 
+      const coachAge = Number.isFinite(latestCycd)
+        ? Math.trunc(latestCycd + COACH_AGE_OFFSET)
+        : null;
+
       setCoachStats({
+        coachAge,
         careerWins: Number.isFinite(Number(career.wins)) ? Number(career.wins) : null,
         careerLosses: Number.isFinite(Number(career.losses)) ? Number(career.losses) : null,
         postseasonWins: latestPostseasonWins,
@@ -667,6 +678,9 @@ export default function Coach() {
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
             <div className="kicker" style={{ fontWeight: 700 }}>
               Career Summary
+            </div>
+            <div className="kicker" style={{ fontWeight: 700, textAlign: "right" }}>
+              Coach Age: {coachStats.coachAge ?? "-"}
             </div>
           </div>
           <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />

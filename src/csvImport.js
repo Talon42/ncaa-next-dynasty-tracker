@@ -216,6 +216,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     tgid: normId(r.TGID),
     firstName: String(r.CLFN ?? "").trim(),
     lastName: String(r.CLLN ?? "").trim(),
+    cycd: toNumberOrNull(r.CYCD ?? r.cycd),
     isUser: Number(String(r.CFUC ?? "").trim()) === 1,
     hcPrestige: toNumberOrNull(r.CPRE),
     approval: toNumberOrNull(r.CCPO),
