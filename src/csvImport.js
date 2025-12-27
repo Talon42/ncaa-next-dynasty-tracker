@@ -840,6 +840,20 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
 
+      // Prune orphaned player identities after season overwrite to avoid storage growth.
+      const identityMapRows = await db.playerIdentitySeasonMap.where({ dynastyId }).toArray();
+      const usedUids = new Set(identityMapRows.map((r) => String(r.playerUid ?? "")).filter(Boolean));
+      const identityRows = await db.playerIdentities.where({ dynastyId }).toArray();
+      const orphanUids = identityRows
+        .map((r) => String(r.playerUid ?? ""))
+        .filter((uid) => uid && !usedUids.has(uid));
+      if (orphanUids.length) {
+        await db.playerIdentities
+          .where("[dynastyId+playerUid]")
+          .anyOf(orphanUids.map((uid) => [dynastyId, uid]))
+          .delete();
+      }
+
       const allCoachRows = await db.coaches.where({ dynastyId }).toArray();
       const baseRows = computeCoachCareerBases({ dynastyId, coachRows: allCoachRows });
       await db.coachCareerBases.where({ dynastyId }).delete();
