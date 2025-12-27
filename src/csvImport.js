@@ -149,6 +149,11 @@ function normalizeNamePart(value) {
   return String(value ?? "").trim().toLowerCase();
 }
 
+function isOffensiveLinePosition(value) {
+  const n = Number(value);
+  return n === 5 || n === 6 || n === 7 || n === 8 || n === 9;
+}
+
 function dedupeCoachRows(rows) {
   const seen = new Map();
   for (const row of rows || []) {
@@ -365,6 +370,17 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     for (const entry of statsByPgid.values()) {
       const info = playByPgid.get(entry.pgid) || {};
       const gp = entry.gpSet.size;
+
+      const hasStat =
+        gp > 0 ||
+        Object.values(entry.off).some((v) => Number.isFinite(v) && v !== 0) ||
+        Object.values(entry.def).some((v) => Number.isFinite(v) && v !== 0) ||
+        Object.values(entry.kick).some((v) => Number.isFinite(v) && v !== 0) ||
+        Object.values(entry.ret).some((v) => Number.isFinite(v) && v !== 0);
+
+      if (isOffensiveLinePosition(info.position) && !hasStat) {
+        continue;
+      }
 
       const passComp = entry.off.passComp ?? null;
       const passAtt = entry.off.passAtt ?? null;

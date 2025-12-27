@@ -123,6 +123,41 @@ const POSITION_LABELS = [
 
 const CLASS_LABELS = ["FR", "SO", "JR", "SR"];
 
+const POSITION_FILTER_ORDER = [
+  "QB",
+  "HB",
+  "FB",
+  "WR",
+  "TE",
+  "Edge",
+  "DT",
+  "LB",
+  "CB",
+  "SS",
+  "FS",
+  "K",
+  "P",
+];
+
+function positionCategory(value) {
+  const label = positionLabel(value);
+  if (!label) return null;
+  if (label === "LE" || label === "RE") return "Edge";
+  if (label === "DT") return "DT";
+  if (label === "LOLB" || label === "MLB" || label === "ROLB") return "LB";
+  if (label === "QB") return "QB";
+  if (label === "HB") return "HB";
+  if (label === "FB") return "FB";
+  if (label === "WR") return "WR";
+  if (label === "TE") return "TE";
+  if (label === "CB") return "CB";
+  if (label === "SS") return "SS";
+  if (label === "FS") return "FS";
+  if (label === "K") return "K";
+  if (label === "P") return "P";
+  return null;
+}
+
 function toComparable(v) {
   if (v === null || v === undefined) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -237,6 +272,7 @@ export default function PlayerStats() {
 
   const [confFilter, setConfFilter] = useState("All");
   const [teamFilter, setTeamFilter] = useState("All");
+  const [posFilter, setPosFilter] = useState("All");
 
   const [sortKey, setSortKey] = useState("playerName");
   const [sortDir, setSortDir] = useState("asc");
@@ -250,6 +286,7 @@ export default function PlayerStats() {
     const dir = params.get("dir");
     const conf = params.get("conf");
     const team = params.get("team");
+    const pos = params.get("pos");
 
     const resolved = getSeasonFromParamOrSaved(season);
     if (resolved != null) {
@@ -261,6 +298,7 @@ export default function PlayerStats() {
     if (dir === "asc" || dir === "desc") setSortDir(dir);
     if (conf) setConfFilter(conf);
     if (team) setTeamFilter(team);
+    if (pos) setPosFilter(pos);
   }, [location.search]);
 
   useEffect(() => {
@@ -300,13 +338,14 @@ export default function PlayerStats() {
     params.set("dir", sortDir);
     params.set("conf", confFilter);
     params.set("team", teamFilter);
+    params.set("pos", posFilter);
     writeSeasonFilter(seasonYear);
     navigate({ pathname: "/player-stats", search: `?${params.toString()}` }, { replace: true });
-  }, [dynastyId, seasonYear, tab, sortKey, sortDir, confFilter, teamFilter, navigate, location.search]);
+  }, [dynastyId, seasonYear, tab, sortKey, sortDir, confFilter, teamFilter, posFilter, navigate, location.search]);
 
   useEffect(() => {
     setVisibleCount(200);
-  }, [seasonYear, tab, confFilter, teamFilter]);
+  }, [seasonYear, tab, confFilter, teamFilter, posFilter]);
 
   useEffect(() => {
     let alive = true;
@@ -390,13 +429,23 @@ export default function PlayerStats() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [teamSeasons, teamNameByTgid]);
 
+  const positionOptions = useMemo(() => {
+    const uniq = new Set();
+    rows.forEach((r) => {
+      const label = positionCategory(r.position);
+      if (label) uniq.add(label);
+    });
+    return POSITION_FILTER_ORDER.filter((label) => uniq.has(label));
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
     return mergedRows.filter((r) => {
       if (confFilter !== "All" && r.confName !== confFilter) return false;
       if (teamFilter !== "All" && r.tgid !== teamFilter) return false;
+      if (posFilter !== "All" && positionCategory(r.position) !== posFilter) return false;
       return true;
     });
-  }, [mergedRows, confFilter, teamFilter]);
+  }, [mergedRows, confFilter, teamFilter, posFilter]);
 
   const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
 
@@ -460,39 +509,6 @@ export default function PlayerStats() {
         <h2>Player Stats - {tab}</h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            {TAB_ORDER.map((t) => (
-              <button
-                key={t}
-                className="toggleBtn"
-                onClick={() => {
-                  setTab(t);
-
-                  const allowedKeys = new Set([
-                    "playerName",
-                    "teamName",
-                    "position",
-                    "classYear",
-                    "jersey",
-                    "gp",
-                    ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
-                  ]);
-                  setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
-                }}
-                style={{
-                  fontWeight: tab === t ? 800 : 600,
-                  opacity: 1,
-                  color: tab === t ? "var(--text)" : "var(--muted)",
-                  borderColor: tab === t ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                  background: tab === t ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                  boxShadow: tab === t ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Season
@@ -556,7 +572,58 @@ export default function PlayerStats() {
               ))}
             </select>
           </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="muted" style={{ fontSize: 12 }}>
+              Position
+            </span>
+            <select
+              value={posFilter}
+              onChange={(e) => setPosFilter(e.target.value)}
+              disabled={!positionOptions.length}
+            >
+              <option value="All">All</option>
+              {positionOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {TAB_ORDER.map((t) => (
+          <button
+            key={t}
+            className="toggleBtn"
+            onClick={() => {
+              setTab(t);
+
+              const allowedKeys = new Set([
+                "playerName",
+                "teamName",
+                "position",
+                "classYear",
+                "jersey",
+                "gp",
+                ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
+              ]);
+              setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
+            }}
+            style={{
+              fontWeight: tab === t ? 800 : 600,
+              opacity: 1,
+              color: tab === t ? "var(--text)" : "var(--muted)",
+              borderColor: tab === t ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
+              background: tab === t ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
+              boxShadow: tab === t ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
+            }}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -569,9 +636,6 @@ export default function PlayerStats() {
         <div className="muted">No player stats found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-          <div className="muted" style={{ marginBottom: 8 }}>
-            Showing {Math.min(visibleCount, filteredRows.length)} of {filteredRows.length} players
-          </div>
           <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
             <table className="table">
               <thead>
