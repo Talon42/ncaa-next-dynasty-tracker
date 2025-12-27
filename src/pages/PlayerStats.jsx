@@ -4,41 +4,40 @@ import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 
-const TAB_ORDER = ["Offense", "Defense", "Special Teams"];
+const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Special Teams"];
 
 const STAT_DEFS = [
-  // Offense (Passing)
-  { key: "passComp", label: "P Comp", fullLabel: "Pass Completions", group: "Offense" },
-  { key: "passAtt", label: "P Att", fullLabel: "Pass Attempts", group: "Offense" },
-  { key: "passPct", label: "P Pct", fullLabel: "Completion Percentage", group: "Offense" },
-  { key: "passYds", label: "P Yds", fullLabel: "Passing Yards", group: "Offense" },
-  { key: "passYpg", label: "P YPG", fullLabel: "Passing Yards Per Game", group: "Offense" },
-  { key: "passTd", label: "P TD", fullLabel: "Passing TD", group: "Offense" },
-  { key: "passInt", label: "P Int", fullLabel: "Passing INT", group: "Offense" },
-  { key: "passSacks", label: "P Sck", fullLabel: "Times Sacked", group: "Offense" },
-  { key: "passQbr", label: "QBR", fullLabel: "Quarterback Rating", group: "Offense" },
+  // Passing
+  { key: "passQbr", label: "QBR", fullLabel: "Quarterback Rating", group: "Passing" },
+  { key: "passComp", label: "Comp", fullLabel: "Pass Completions", group: "Passing" },
+  { key: "passAtt", label: "Att", fullLabel: "Pass Attempts", group: "Passing" },
+  { key: "passPct", label: "Pct", fullLabel: "Completion Percentage", group: "Passing" },
+  { key: "passYds", label: "Yds", fullLabel: "Passing Yards", group: "Passing" },
+  { key: "passYpg", label: "YPG", fullLabel: "Passing Yards Per Game", group: "Passing" },
+  { key: "passTd", label: "TD", fullLabel: "Passing TD", group: "Passing" },
+  { key: "passInt", label: "Int", fullLabel: "Passing INT", group: "Passing" },
+  { key: "passSacks", label: "Sacks", fullLabel: "Times Sacked", group: "Passing" },
 
-  // Offense (Rushing)
-  { key: "rushAtt", label: "R Att", fullLabel: "Rush Attempts", group: "Offense" },
-  { key: "rushYds", label: "R Yds", fullLabel: "Rush Yards", group: "Offense" },
-  { key: "rushYpc", label: "R YPC", fullLabel: "Rush Yards Per Carry", group: "Offense" },
-  { key: "rushYpg", label: "R YPG", fullLabel: "Rush Yards Per Game", group: "Offense" },
-  { key: "rushTd", label: "R TD", fullLabel: "Rush TD", group: "Offense" },
-  { key: "rushFum", label: "R Fum", fullLabel: "Rushing Fumbles", group: "Offense" },
-  { key: "rushYac", label: "R YAC", fullLabel: "Rushing YAC", group: "Offense" },
-  { key: "rushBtk", label: "R BTk", fullLabel: "Rush Broken Tackles", group: "Offense" },
-  { key: "rush20", label: "R 20+", fullLabel: "Rush 20+ Yards", group: "Offense" },
+  // Rushing
+  { key: "rushAtt", label: "Att", fullLabel: "Rush Attempts", group: "Rushing" },
+  { key: "rushYds", label: "Yds", fullLabel: "Rush Yards", group: "Rushing" },
+  { key: "rushTd", label: "TD", fullLabel: "Rush TD", group: "Rushing" },
+  { key: "rushYpc", label: "YPC", fullLabel: "Rush Yards Per Carry", group: "Rushing" },
+  { key: "rushYpg", label: "YPG", fullLabel: "Rush Yards Per Game", group: "Rushing" },
+  { key: "rushFum", label: "Fum", fullLabel: "Rushing Fumbles", group: "Rushing" },
+  { key: "rushBtk", label: "BTk", fullLabel: "Broken Tackles", group: "Rushing" },
+  { key: "rush20", label: "20+", fullLabel: "Rush 20+ Yards", group: "Rushing" },
 
-  // Offense (Receiving)
-  { key: "recvCat", label: "Rec", fullLabel: "Receptions", group: "Offense" },
-  { key: "recvYds", label: "Rec Yds", fullLabel: "Receiving Yards", group: "Offense" },
-  { key: "recvYpc", label: "Rec YPC", fullLabel: "Receiving Yards Per Catch", group: "Offense" },
-  { key: "recvYpg", label: "Rec YPG", fullLabel: "Receiving Yards Per Game", group: "Offense" },
-  { key: "recvTd", label: "Rec TD", fullLabel: "Receiving TD", group: "Offense" },
-  { key: "recvFum", label: "Rec Fum", fullLabel: "Receiving Fumbles", group: "Offense" },
-  { key: "recvYac", label: "Rec YAC", fullLabel: "Receiving YAC", group: "Offense" },
-  { key: "recvYaca", label: "YACA", fullLabel: "YAC Per Catch", group: "Offense" },
-  { key: "recvDrops", label: "Drops", fullLabel: "Drops", group: "Offense" },
+  // Receiving
+  { key: "recvCat", label: "Cat", fullLabel: "Catches", group: "Receiving" },
+  { key: "recvYds", label: "Yds", fullLabel: "Receiving Yards", group: "Receiving" },
+  { key: "recvTd", label: "TD", fullLabel: "Receiving TD", group: "Receiving" },
+  { key: "recvYpc", label: "YPC", fullLabel: "Yards Per Catch", group: "Receiving" },
+  { key: "recvYpg", label: "YPG", fullLabel: "Receiving Yards Per Game", group: "Receiving" },
+  { key: "recvFum", label: "Fum", fullLabel: "Receiving Fumbles", group: "Receiving" },
+  { key: "recvYac", label: "YAC", fullLabel: "Yards After Catch", group: "Receiving" },
+  { key: "recvYaca", label: "YACA", fullLabel: "YAC Per Catch", group: "Receiving" },
+  { key: "recvDrops", label: "Drops", fullLabel: "Drops", group: "Receiving" },
 
   // Defense
   { key: "defTkl", label: "Tkl", fullLabel: "Tackles", group: "Defense" },
@@ -264,11 +263,13 @@ export default function PlayerStats() {
   const [dynastyId, setDynastyId] = useState(null);
   const [availableYears, setAvailableYears] = useState([]);
   const [seasonYear, setSeasonYear] = useState(null);
-  const [tab, setTab] = useState("Offense");
+  const [tab, setTab] = useState("Passing");
   const [loading, setLoading] = useState(true);
 
   const [rows, setRows] = useState([]);
   const [teamSeasons, setTeamSeasons] = useState([]);
+  const [logoByTgid, setLogoByTgid] = useState(new Map());
+  const [overrideByTgid, setOverrideByTgid] = useState(new Map());
 
   const [confFilter, setConfFilter] = useState("All");
   const [teamFilter, setTeamFilter] = useState("All");
@@ -348,12 +349,27 @@ export default function PlayerStats() {
   }, [seasonYear, tab, confFilter, teamFilter, posFilter]);
 
   useEffect(() => {
+    if (tab === "Passing") {
+      setSortKey("passYds");
+      setSortDir("desc");
+    } else if (tab === "Rushing") {
+      setSortKey("rushYds");
+      setSortDir("desc");
+    } else if (tab === "Receiving") {
+      setSortKey("recvCat");
+      setSortDir("desc");
+    }
+  }, [tab]);
+
+  useEffect(() => {
     let alive = true;
 
     (async () => {
       if (!dynastyId || !seasonYear) {
         setRows([]);
         setTeamSeasons([]);
+        setLogoByTgid(new Map());
+        setOverrideByTgid(new Map());
         setLoading(false);
         return;
       }
@@ -376,6 +392,32 @@ export default function PlayerStats() {
     };
   }, [dynastyId, seasonYear]);
 
+  useEffect(() => {
+    if (!dynastyId) {
+      setLogoByTgid(new Map());
+      setOverrideByTgid(new Map());
+      return;
+    }
+
+    let alive = true;
+
+    (async () => {
+      const [teamLogoRows, overrideRows] = await Promise.all([
+        db.teamLogos.where({ dynastyId }).toArray(),
+        db.logoOverrides.where({ dynastyId }).toArray(),
+      ]);
+
+      if (!alive) return;
+
+      setLogoByTgid(new Map(teamLogoRows.map((r) => [String(r.tgid), r.url])));
+      setOverrideByTgid(new Map(overrideRows.map((r) => [String(r.tgid), r.url])));
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId]);
+
   const teamNameByTgid = useMemo(() => {
     const map = new Map();
     for (const t of teamSeasons) {
@@ -396,19 +438,25 @@ export default function PlayerStats() {
       const tgid = r.tgid != null ? String(r.tgid) : "";
       const first = String(r.firstName ?? "").trim();
       const last = String(r.lastName ?? "").trim();
-      const name = `${first} ${last}`.trim() || `PGID ${r.pgid}`;
+      const jersey = Number.isFinite(Number(r.jersey)) ? Number(r.jersey) : null;
+      const nameBase = `${first} ${last}`.trim() || `PGID ${r.pgid}`;
+      const name = nameBase;
       const teamName = tgid ? teamNameByTgid.get(tgid) || `TGID ${tgid}` : "Unknown";
       const confName = tgid ? getConferenceName(confByTgid.get(tgid)) : "Unknown";
+      const logoUrl = overrideByTgid.get(tgid) || logoByTgid.get(tgid) || null;
       return {
         ...r,
         tgid,
         playerName: name,
-        playerSortName: `${last} ${first}`.trim() || name,
+        playerNameBase: nameBase,
+        playerSortName: `${last} ${first}`.trim() || nameBase,
         teamName,
         confName,
+        logoUrl,
+        jerseyNumber: jersey,
       };
     });
-  }, [rows, teamNameByTgid, confByTgid]);
+  }, [rows, teamNameByTgid, confByTgid, logoByTgid, overrideByTgid]);
 
   const confOptions = useMemo(() => {
     const uniq = new Set();
@@ -606,7 +654,6 @@ export default function PlayerStats() {
                 "teamName",
                 "position",
                 "classYear",
-                "jersey",
                 "gp",
                 ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
               ]);
@@ -669,13 +716,6 @@ export default function PlayerStats() {
                     Yr{sortIndicator("classYear")}
                   </th>
                   <th
-                    onClick={() => clickSort("jersey")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    #{sortIndicator("jersey")}
-                  </th>
-                  <th
                     onClick={() => clickSort("gp")}
                     style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                     title="Sort"
@@ -699,11 +739,36 @@ export default function PlayerStats() {
               <tbody>
                 {displayedRows.map((r) => (
                   <tr key={`${r.pgid}-${r.seasonYear}`}>
-                    <td data-label="Player">{r.playerName}</td>
+                    <td data-label="Player">
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            minWidth: 28,
+                            textAlign: "right",
+                            color: "var(--muted)",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {r.jerseyNumber != null ? `#${r.jerseyNumber}` : ""}
+                        </span>
+                        <span>{r.playerNameBase || r.playerName}</span>
+                      </span>
+                    </td>
                     <td data-label="Team">
                       {r.tgid ? (
                         <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
-                          {r.teamName}
+                          <div className="teamCell">
+                            {r.logoUrl ? (
+                              <img
+                                className="teamLogo"
+                                src={r.logoUrl}
+                                alt=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : null}
+                            <span>{r.teamName}</span>
+                          </div>
                         </Link>
                       ) : (
                         r.teamName
@@ -711,7 +776,6 @@ export default function PlayerStats() {
                     </td>
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>
-                    <td data-label="#">{Number.isFinite(Number(r.jersey)) ? Number(r.jersey) : ""}</td>
                     <td data-label="GP">{Number.isFinite(Number(r.gp)) ? Number(r.gp) : ""}</td>
                     {colsForTab.map((c) => (
                       <td key={c.key} data-label={c.fullLabel || c.label}>
