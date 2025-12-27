@@ -434,81 +434,58 @@ export default function App() {
             </div>
 
             <div className="sideNav">
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/");
-                }}
-                title="Schedule / Results"
-              >
-                <span>Schedule / Results</span>
-              </a>
-
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/teams");
-                }}
-                title="Teams"
-              >
-                <span>Teams</span>
-              </a>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/team-stats");
-                }}
-                title="Team Stats"
-              >
-                <span>Team Stats</span>
-              </a>
-
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/coaches");
-                }}
-                title="Coaches"
-              >
-                <span>Coaches</span>
-              </a>
-
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/coaches-poll");
-                }}
-                title="Coach's Poll Rankings"
-              >
-                <span>Coach&apos;s Poll Rankings</span>
-              </a>
-
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/postseason");
-                }}
-                title="Postseason"
-              >
-                <span>Postseason</span>
-              </a>
-
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                navigate(`/standings?conf=All&ts=${Date.now()}`);
-                }}
-                title="Conference Standings"
-              >
-                <span>Conference Standings</span>
-              </a>
+              {[
+                {
+                  label: "Coach's Poll Rankings",
+                  title: "Coach's Poll Rankings",
+                  href: "/coaches-poll",
+                },
+                {
+                  label: "Coaches",
+                  title: "Coaches",
+                  href: "/coaches",
+                },
+                {
+                  label: "Conference Standings",
+                  title: "Conference Standings",
+                  href: `/standings?conf=All&ts=${Date.now()}`,
+                },
+                {
+                  label: "Postseason",
+                  title: "Postseason",
+                  href: "/postseason",
+                },
+                {
+                  label: "Schedule / Results",
+                  title: "Schedule / Results",
+                  href: "/",
+                },
+                {
+                  label: "Team Stats",
+                  title: "Team Stats",
+                  href: "/team-stats",
+                },
+                {
+                  label: "Teams",
+                  title: "Teams",
+                  href: "/teams",
+                },
+              ]
+                .slice()
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map((item) => (
+                  <a
+                    key={item.label}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(item.href);
+                    }}
+                    title={item.title}
+                  >
+                    <span>{item.label}</span>
+                  </a>
+                ))}
             </div>
           </div>
 
