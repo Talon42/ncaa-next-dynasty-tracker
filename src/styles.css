@@ -664,8 +664,6 @@ button:disabled {
 
 .table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 .table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
-.table tbody tr.top25-row { background: rgba(224, 190, 99, 0.12); }
-.table tbody tr.top25-row:nth-child(even) { background: rgba(224, 190, 99, 0.18); }
 
 .pollRankingsPage .hrow {
   margin-bottom: 10px;

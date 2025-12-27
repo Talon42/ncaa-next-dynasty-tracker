@@ -31,11 +31,14 @@ function TeamCell({ name, logoUrl }) {
 }
 
 function normalizeBowlName(name) {
-  return String(name ?? "")
+  const raw = String(name ?? "").trim();
+  const stripped = raw.replace(/^cfp\s*-\s*/i, "").replace(/^college football playoff\s*-\s*/i, "");
+  return stripped
     .replace(/\s+/g, " ")
     .replace(/\s*-\s*/g, " - ")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/^nat championship$/, "national championship");
 }
 
 function createPostseasonLogoResolver(map) {

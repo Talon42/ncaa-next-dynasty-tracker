@@ -241,10 +241,9 @@ export default function CoachesPollRankings() {
           </thead>
           <tbody>
             {sortedRows.map((r) => {
-              const isTop25 = Number.isFinite(r.rank) && r.rank <= 25;
               return (
-                <tr key={`${r.tgid}-${r.name}`} className={isTop25 ? "top25-row" : ""}>
-                  <td data-label="Rank" style={isTop25 ? { fontWeight: 800 } : undefined}>
+                <tr key={`${r.tgid}-${r.name}`}>
+                  <td data-label="Rank">
                     {r.rank ?? "-"}
                   </td>
                   <td data-label="Team">
