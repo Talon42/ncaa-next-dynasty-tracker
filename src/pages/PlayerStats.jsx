@@ -170,6 +170,7 @@ export default function PlayerStats() {
 
   const [sortKey, setSortKey] = useState("playerName");
   const [sortDir, setSortDir] = useState("asc");
+  const [visibleCount, setVisibleCount] = useState(200);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -232,6 +233,10 @@ export default function PlayerStats() {
     writeSeasonFilter(seasonYear);
     navigate({ pathname: "/player-stats", search: `?${params.toString()}` }, { replace: true });
   }, [dynastyId, seasonYear, tab, sortKey, sortDir, confFilter, teamFilter, navigate, location.search]);
+
+  useEffect(() => {
+    setVisibleCount(200);
+  }, [seasonYear, tab, confFilter, teamFilter]);
 
   useEffect(() => {
     let alive = true;
@@ -360,6 +365,8 @@ export default function PlayerStats() {
 
     return arr;
   }, [filteredRows, sortKey, sortDir]);
+
+  const displayedRows = useMemo(() => sortedRows.slice(0, visibleCount), [sortedRows, visibleCount]);
 
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
@@ -492,6 +499,9 @@ export default function PlayerStats() {
         <div className="muted">No player stats found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
+          <div className="muted" style={{ marginBottom: 8 }}>
+            Showing {Math.min(visibleCount, filteredRows.length)} of {filteredRows.length} players
+          </div>
           <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
             <table className="table">
               <thead>
@@ -553,7 +563,7 @@ export default function PlayerStats() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((r) => (
+                {displayedRows.map((r) => (
                   <tr key={`${r.pgid}-${r.seasonYear}`}>
                     <td data-label="Player">{r.playerName}</td>
                     <td data-label="Team">
@@ -579,6 +589,17 @@ export default function PlayerStats() {
               </tbody>
             </table>
           </div>
+
+          {visibleCount < filteredRows.length ? (
+            <div style={{ marginTop: 12 }}>
+              <button
+                className="toggleBtn"
+                onClick={() => setVisibleCount((cur) => cur + 200)}
+              >
+                Load 200 more
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

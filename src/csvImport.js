@@ -24,6 +24,13 @@ function requireColumnsLoose(rows, required, label) {
   if (missing.length) throw new Error(`${label} missing required columns: ${missing.join(", ")}`);
 }
 
+function requireColumnsLooseFromFields(fields, required, label) {
+  if (!fields?.length) throw new Error(`${label} has no rows.`);
+  const cols = fields.map((c) => String(c ?? "").toLowerCase());
+  const missing = required.filter((c) => !cols.includes(String(c ?? "").toLowerCase()));
+  if (missing.length) throw new Error(`${label} missing required columns: ${missing.join(", ")}`);
+}
+
 function getTypeFromName(fileName) {
   const m = fileName.match(/([A-Za-z0-9]{4})\.csv$/i);
   return m ? m[1].toUpperCase() : null;
@@ -56,6 +63,53 @@ function parseRowWithNumbers(row) {
   return out;
 }
 
+function parseCsvFileStream(file, { label, requiredColumns, onRow }) {
+  return new Promise((resolve, reject) => {
+    let rowCount = 0;
+    let checkedHeaders = false;
+    let done = false;
+
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      if (err) reject(err);
+      else resolve();
+    };
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      worker: true,
+      step: (results, parser) => {
+        if (results.errors?.length) {
+          parser.abort();
+          finish(new Error(results.errors[0]?.message || "CSV parse error"));
+          return;
+        }
+
+        if (!checkedHeaders) {
+          const fields = results.meta?.fields || Object.keys(results.data || {});
+          if (requiredColumns?.length) {
+            requireColumnsLooseFromFields(fields, requiredColumns, label);
+          }
+          checkedHeaders = true;
+        }
+
+        rowCount += 1;
+        onRow(results.data);
+      },
+      complete: () => {
+        if (!rowCount) {
+          finish(new Error(`${label} has no rows.`));
+          return;
+        }
+        finish();
+      },
+      error: (err) => finish(err),
+    });
+  });
+}
+
 function getRowValue(row, key) {
   if (!row) return null;
   if (row[key] !== undefined) return row[key];
@@ -65,12 +119,17 @@ function getRowValue(row, key) {
   return found ? row[found] : null;
 }
 
-function getFirstValue(row, keys) {
-  for (const key of keys) {
-    const v = getRowValue(row, key);
-    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+function toLowerKeyMap(row) {
+  const lc = {};
+  for (const [k, v] of Object.entries(row || {})) {
+    lc[String(k ?? "").toLowerCase()] = v;
   }
-  return null;
+  return lc;
+}
+
+function getRowValueFast(row, lc, key) {
+  if (row[key] !== undefined) return row[key];
+  return lc[String(key ?? "").toLowerCase()];
 }
 
 function safeDiv(n, d) {
@@ -95,21 +154,6 @@ function normalizePlayerRow(row, { dynastyId, seasonYear }) {
     dynastyId,
     seasonYear,
     pgid,
-    tgid: tgid || null,
-    ...parsed,
-  };
-}
-
-function normalizeStatRow(row, { dynastyId, seasonYear }) {
-  const parsed = parseRowWithNumbers(row);
-  const pgid = normId(getRowValue(row, "PGID"));
-  const sgmp = normId(getRowValue(row, "SGMP"));
-  const tgid = normId(getRowValue(row, "TGID"));
-  return {
-    dynastyId,
-    seasonYear,
-    pgid,
-    sgmp,
     tgid: tgid || null,
     ...parsed,
   };
@@ -162,38 +206,10 @@ function buildPlayerFingerprint(info) {
   return hasAny ? parts.join("|") : null;
 }
 
-function buildPlayerStatsIndex({
-  dynastyId,
-  seasonYear,
-  playRows,
-  psofRows,
-  psdeRows,
-  pskiRows,
-  pskpRows,
-  existingIdentitiesByFingerprint,
-}) {
+function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitiesByFingerprint }) {
   const playByPgid = new Map();
-
-  for (const row of playRows) {
-    const pgid = normId(getRowValue(row, "PGID"));
-    if (!pgid) continue;
-
-    playByPgid.set(pgid, {
-      pgid,
-      tgid: normId(getRowValue(row, "TGID")),
-      firstName: String(getRowValue(row, "FirstName") ?? "").trim(),
-      lastName: String(getRowValue(row, "LastName") ?? "").trim(),
-      hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
-      height: toNumberOrNull(getRowValue(row, "PHGT")),
-      weight: toNumberOrNull(getRowValue(row, "PWGT")),
-      jersey: toNumberOrNull(getRowValue(row, "PJEN")),
-      position: toNumberOrNull(getRowValue(row, "PPOS")),
-      classYear: toNumberOrNull(getRowValue(row, "PYER")),
-      overall: toNumberOrNull(getRowValue(row, "POVR")),
-    });
-  }
-
   const statsByPgid = new Map();
+
   const ensure = (pgid) => {
     let entry = statsByPgid.get(pgid);
     if (!entry) {
@@ -212,285 +228,326 @@ function buildPlayerStatsIndex({
     return entry;
   };
 
-  for (const pgid of playByPgid.keys()) {
-    ensure(pgid);
-  }
-
   const addStat = (target, key, value) => {
     const n = toNumberOrNull(value);
     if (n == null) return;
     target[key] = (target[key] ?? 0) + n;
   };
 
-  for (const row of psofRows) {
+  const addPlayRow = (row) => {
     const pgid = normId(getRowValue(row, "PGID"));
-    if (!pgid) continue;
+    if (!pgid) return;
+
+    const info = {
+      pgid,
+      tgid: normId(getRowValue(row, "TGID")),
+      firstName: String(getRowValue(row, "FirstName") ?? "").trim(),
+      lastName: String(getRowValue(row, "LastName") ?? "").trim(),
+      hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
+      height: toNumberOrNull(getRowValue(row, "PHGT")),
+      weight: toNumberOrNull(getRowValue(row, "PWGT")),
+      jersey: toNumberOrNull(getRowValue(row, "PJEN")),
+      position: toNumberOrNull(getRowValue(row, "PPOS")),
+      classYear: toNumberOrNull(getRowValue(row, "PYER")),
+      overall: toNumberOrNull(getRowValue(row, "POVR")),
+    };
+
+    playByPgid.set(pgid, info);
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValue(row, "SGMP"));
+    if (!entry.tgid && info.tgid) entry.tgid = info.tgid;
+  };
+
+  const addOffenseRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const pgid = normId(getRowValueFast(row, lc, "PGID"));
+    if (!pgid) return;
+    const entry = ensure(pgid);
+    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValue(row, "TGID"));
+    const tgid = normId(getRowValueFast(row, lc, "TGID"));
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
-    addStat(entry.off, "passComp", getRowValue(row, "sacm"));
-    addStat(entry.off, "passAtt", getRowValue(row, "saat"));
-    addStat(entry.off, "passYds", getRowValue(row, "saya"));
-    addStat(entry.off, "passTd", getRowValue(row, "satd"));
-    addStat(entry.off, "passInt", getRowValue(row, "sain"));
-    addStat(entry.off, "passSacks", getRowValue(row, "sasa"));
+    addStat(entry.off, "passComp", getRowValueFast(row, lc, "sacm"));
+    addStat(entry.off, "passAtt", getRowValueFast(row, lc, "saat"));
+    addStat(entry.off, "passYds", getRowValueFast(row, lc, "saya"));
+    addStat(entry.off, "passTd", getRowValueFast(row, lc, "satd"));
+    addStat(entry.off, "passInt", getRowValueFast(row, lc, "sain"));
+    addStat(entry.off, "passSacks", getRowValueFast(row, lc, "sasa"));
 
-    addStat(entry.off, "rushAtt", getRowValue(row, "suat"));
-    addStat(entry.off, "rushYds", getRowValue(row, "suya"));
-    addStat(entry.off, "rushTd", getRowValue(row, "sutd"));
-    addStat(entry.off, "rushFum", getRowValue(row, "sufu"));
-    addStat(entry.off, "rushYac", getRowValue(row, "suyh"));
-    addStat(entry.off, "rushBtk", getRowValue(row, "subt"));
-    addStat(entry.off, "rush20", getRowValue(row, "su2y"));
+    addStat(entry.off, "rushAtt", getRowValueFast(row, lc, "suat"));
+    addStat(entry.off, "rushYds", getRowValueFast(row, lc, "suya"));
+    addStat(entry.off, "rushTd", getRowValueFast(row, lc, "sutd"));
+    addStat(entry.off, "rushFum", getRowValueFast(row, lc, "sufu"));
+    addStat(entry.off, "rushYac", getRowValueFast(row, lc, "suyh"));
+    addStat(entry.off, "rushBtk", getRowValueFast(row, lc, "subt"));
+    addStat(entry.off, "rush20", getRowValueFast(row, lc, "su2y"));
 
-    addStat(entry.off, "recvCat", getRowValue(row, "scca"));
-    addStat(entry.off, "recvYds", getRowValue(row, "scya"));
-    addStat(entry.off, "recvTd", getRowValue(row, "sctd"));
-    addStat(entry.off, "recvFum", getRowValue(row, "sufu"));
-    addStat(entry.off, "recvYac", getRowValue(row, "scyc"));
-    addStat(entry.off, "recvDrops", getRowValue(row, "scdr"));
-  }
+    addStat(entry.off, "recvCat", getRowValueFast(row, lc, "scca"));
+    addStat(entry.off, "recvYds", getRowValueFast(row, lc, "scya"));
+    addStat(entry.off, "recvTd", getRowValueFast(row, lc, "sctd"));
+    addStat(entry.off, "recvFum", getRowValueFast(row, lc, "sufu"));
+    addStat(entry.off, "recvYac", getRowValueFast(row, lc, "scyc"));
+    addStat(entry.off, "recvDrops", getRowValueFast(row, lc, "scdr"));
+  };
 
-  for (const row of psdeRows) {
-    const pgid = normId(getRowValue(row, "PGID"));
-    if (!pgid) continue;
+  const addDefenseRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const pgid = normId(getRowValueFast(row, lc, "PGID"));
+    if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValue(row, "SGMP"));
+    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValue(row, "TGID"));
+    const tgid = normId(getRowValueFast(row, lc, "TGID"));
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
-    addStat(entry.def, "tkl", getRowValue(row, "sdta"));
-    addStat(entry.def, "tfl", getRowValue(row, "sdtl"));
-    addStat(entry.def, "sack", getRowValue(row, "slsk"));
-    addStat(entry.def, "int", getRowValue(row, "ssin"));
-    addStat(entry.def, "pdef", getRowValue(row, "sdpd"));
-    addStat(entry.def, "ff", getRowValue(row, "slff"));
-    addStat(entry.def, "fr", getRowValue(row, "slfr"));
-    addStat(entry.def, "dtd", getRowValue(row, "ssdt"));
-  }
+    addStat(entry.def, "tkl", getRowValueFast(row, lc, "sdta"));
+    addStat(entry.def, "tfl", getRowValueFast(row, lc, "sdtl"));
+    addStat(entry.def, "sack", getRowValueFast(row, lc, "slsk"));
+    addStat(entry.def, "int", getRowValueFast(row, lc, "ssin"));
+    addStat(entry.def, "pdef", getRowValueFast(row, lc, "sdpd"));
+    addStat(entry.def, "ff", getRowValueFast(row, lc, "slff"));
+    addStat(entry.def, "fr", getRowValueFast(row, lc, "slfr"));
+    addStat(entry.def, "dtd", getRowValueFast(row, lc, "ssdt"));
+  };
 
-  for (const row of pskiRows) {
-    const pgid = normId(getRowValue(row, "PGID"));
-    if (!pgid) continue;
+  const addKickingRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const pgid = normId(getRowValueFast(row, lc, "PGID"));
+    if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValue(row, "SGMP"));
+    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValue(row, "TGID"));
+    const tgid = normId(getRowValueFast(row, lc, "TGID"));
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
-    addStat(entry.kick, "fgm", getRowValue(row, "skfm"));
-    addStat(entry.kick, "fga", getRowValue(row, "skfa"));
-    addStat(entry.kick, "fgLong", getRowValue(row, "skfL"));
-    addStat(entry.kick, "xpm", getRowValue(row, "skem"));
-    addStat(entry.kick, "xpa", getRowValue(row, "skea"));
+    addStat(entry.kick, "fgm", getRowValueFast(row, lc, "skfm"));
+    addStat(entry.kick, "fga", getRowValueFast(row, lc, "skfa"));
+    addStat(entry.kick, "fgLong", getRowValueFast(row, lc, "skfL"));
+    addStat(entry.kick, "xpm", getRowValueFast(row, lc, "skem"));
+    addStat(entry.kick, "xpa", getRowValueFast(row, lc, "skea"));
 
-    addStat(entry.kick, "puntAtt", getRowValue(row, "spat"));
-    addStat(entry.kick, "puntYds", getRowValue(row, "spya"));
-    addStat(entry.kick, "puntLong", getRowValue(row, "splN"));
-    addStat(entry.kick, "puntIn20", getRowValue(row, "sppt"));
-    addStat(entry.kick, "puntBlocked", getRowValue(row, "spbl"));
-  }
+    addStat(entry.kick, "puntAtt", getRowValueFast(row, lc, "spat"));
+    addStat(entry.kick, "puntYds", getRowValueFast(row, lc, "spya"));
+    addStat(entry.kick, "puntLong", getRowValueFast(row, lc, "splN"));
+    addStat(entry.kick, "puntIn20", getRowValueFast(row, lc, "sppt"));
+    addStat(entry.kick, "puntBlocked", getRowValueFast(row, lc, "spbl"));
+  };
 
-  for (const row of pskpRows) {
-    const pgid = normId(getRowValue(row, "PGID"));
-    if (!pgid) continue;
+  const addReturnRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const pgid = normId(getRowValueFast(row, lc, "PGID"));
+    if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValue(row, "SGMP"));
+    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValue(row, "TGID"));
+    const tgid = normId(getRowValueFast(row, lc, "TGID"));
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
-    addStat(entry.ret, "krAtt", getRowValue(row, "srka"));
-    addStat(entry.ret, "krYds", getRowValue(row, "srky"));
-    addStat(entry.ret, "krTd", getRowValue(row, "srkt"));
-    addStat(entry.ret, "krLong", getRowValue(row, "srkL"));
+    addStat(entry.ret, "krAtt", getRowValueFast(row, lc, "srka"));
+    addStat(entry.ret, "krYds", getRowValueFast(row, lc, "srky"));
+    addStat(entry.ret, "krTd", getRowValueFast(row, lc, "srkt"));
+    addStat(entry.ret, "krLong", getRowValueFast(row, lc, "srkL"));
 
-    addStat(entry.ret, "prAtt", getRowValue(row, "srpa"));
-    addStat(entry.ret, "prYds", getRowValue(row, "srpy"));
-    addStat(entry.ret, "prTd", getRowValue(row, "srpt"));
-    addStat(entry.ret, "prLong", getRowValue(row, "srpL"));
-  }
+    addStat(entry.ret, "prAtt", getRowValueFast(row, lc, "srpa"));
+    addStat(entry.ret, "prYds", getRowValueFast(row, lc, "srpy"));
+    addStat(entry.ret, "prTd", getRowValueFast(row, lc, "srpt"));
+    addStat(entry.ret, "prLong", getRowValueFast(row, lc, "srpL"));
+  };
 
-  const playerSeasonStats = [];
-  const seasonIdentityMapRows = [];
-  const newIdentities = [];
+  const finalize = () => {
+    for (const pgid of playByPgid.keys()) {
+      ensure(pgid);
+    }
 
-  for (const entry of statsByPgid.values()) {
-    const info = playByPgid.get(entry.pgid) || {};
-    const gp = entry.gpSet.size;
+    const playerSeasonStats = [];
+    const seasonIdentityMapRows = [];
+    const newIdentities = [];
 
-    const passComp = entry.off.passComp ?? null;
-    const passAtt = entry.off.passAtt ?? null;
-    const passYds = entry.off.passYds ?? null;
-    const passTd = entry.off.passTd ?? null;
-    const passInt = entry.off.passInt ?? null;
-    const passSacks = entry.off.passSacks ?? null;
+    for (const entry of statsByPgid.values()) {
+      const info = playByPgid.get(entry.pgid) || {};
+      const gp = entry.gpSet.size;
 
-    const rushAtt = entry.off.rushAtt ?? null;
-    const rushYds = entry.off.rushYds ?? null;
-    const rushTd = entry.off.rushTd ?? null;
-    const rushFum = entry.off.rushFum ?? null;
-    const rushYac = entry.off.rushYac ?? null;
-    const rushBtk = entry.off.rushBtk ?? null;
-    const rush20 = entry.off.rush20 ?? null;
+      const passComp = entry.off.passComp ?? null;
+      const passAtt = entry.off.passAtt ?? null;
+      const passYds = entry.off.passYds ?? null;
+      const passTd = entry.off.passTd ?? null;
+      const passInt = entry.off.passInt ?? null;
+      const passSacks = entry.off.passSacks ?? null;
 
-    const recvCat = entry.off.recvCat ?? null;
-    const recvYds = entry.off.recvYds ?? null;
-    const recvTd = entry.off.recvTd ?? null;
-    const recvFum = entry.off.recvFum ?? null;
-    const recvYac = entry.off.recvYac ?? null;
-    const recvDrops = entry.off.recvDrops ?? null;
+      const rushAtt = entry.off.rushAtt ?? null;
+      const rushYds = entry.off.rushYds ?? null;
+      const rushTd = entry.off.rushTd ?? null;
+      const rushFum = entry.off.rushFum ?? null;
+      const rushYac = entry.off.rushYac ?? null;
+      const rushBtk = entry.off.rushBtk ?? null;
+      const rush20 = entry.off.rush20 ?? null;
 
-    const passPct = round1(safeDiv(passComp * 100, passAtt));
-    const passYpg = round1(safeDiv(passYds, gp));
-    const passQbr = round1(
-      safeDiv(8.4 * (passYds ?? 0) + 330 * (passTd ?? 0) + 100 * (passComp ?? 0) - 200 * (passInt ?? 0), passAtt)
-    );
+      const recvCat = entry.off.recvCat ?? null;
+      const recvYds = entry.off.recvYds ?? null;
+      const recvTd = entry.off.recvTd ?? null;
+      const recvFum = entry.off.recvFum ?? null;
+      const recvYac = entry.off.recvYac ?? null;
+      const recvDrops = entry.off.recvDrops ?? null;
 
-    const rushYpc = round1(safeDiv(rushYds, rushAtt));
-    const rushYpg = round1(safeDiv(rushYds, gp));
+      const passPct = round1(safeDiv(passComp * 100, passAtt));
+      const passYpg = round1(safeDiv(passYds, gp));
+      const passQbr = round1(
+        safeDiv(
+          8.4 * (passYds ?? 0) + 330 * (passTd ?? 0) + 100 * (passComp ?? 0) - 200 * (passInt ?? 0),
+          passAtt
+        )
+      );
 
-    const recvYpc = round1(safeDiv(recvYds, recvCat));
-    const recvYpg = round1(safeDiv(recvYds, gp));
-    const recvYaca = round1(safeDiv(recvYac, recvCat));
+      const rushYpc = round1(safeDiv(rushYds, rushAtt));
+      const rushYpg = round1(safeDiv(rushYds, gp));
 
-    const fgm = entry.kick.fgm ?? null;
-    const fga = entry.kick.fga ?? null;
-    const fgPct = round1(safeDiv(fgm * 100, fga));
-    const fgLong = entry.kick.fgLong ?? null;
-    const xpm = entry.kick.xpm ?? null;
-    const xpa = entry.kick.xpa ?? null;
-    const xpPct = round1(safeDiv(xpm * 100, xpa));
+      const recvYpc = round1(safeDiv(recvYds, recvCat));
+      const recvYpg = round1(safeDiv(recvYds, gp));
+      const recvYaca = round1(safeDiv(recvYac, recvCat));
 
-    const puntAtt = entry.kick.puntAtt ?? null;
-    const puntYds = entry.kick.puntYds ?? null;
-    const puntAvg = round1(safeDiv(puntYds, puntAtt));
-    const puntLong = entry.kick.puntLong ?? null;
-    const puntIn20 = entry.kick.puntIn20 ?? null;
-    const puntBlocked = entry.kick.puntBlocked ?? null;
+      const fgm = entry.kick.fgm ?? null;
+      const fga = entry.kick.fga ?? null;
+      const fgPct = round1(safeDiv(fgm * 100, fga));
+      const fgLong = entry.kick.fgLong ?? null;
+      const xpm = entry.kick.xpm ?? null;
+      const xpa = entry.kick.xpa ?? null;
+      const xpPct = round1(safeDiv(xpm * 100, xpa));
 
-    const krAtt = entry.ret.krAtt ?? null;
-    const krYds = entry.ret.krYds ?? null;
-    const krTd = entry.ret.krTd ?? null;
-    const krLong = entry.ret.krLong ?? null;
-    const prAtt = entry.ret.prAtt ?? null;
-    const prYds = entry.ret.prYds ?? null;
-    const prTd = entry.ret.prTd ?? null;
-    const prLong = entry.ret.prLong ?? null;
+      const puntAtt = entry.kick.puntAtt ?? null;
+      const puntYds = entry.kick.puntYds ?? null;
+      const puntAvg = round1(safeDiv(puntYds, puntAtt));
+      const puntLong = entry.kick.puntLong ?? null;
+      const puntIn20 = entry.kick.puntIn20 ?? null;
+      const puntBlocked = entry.kick.puntBlocked ?? null;
 
-    const fingerprint = buildPlayerFingerprint(info) || `pgid:${entry.pgid}|season:${seasonYear}`;
-    let playerUid = existingIdentitiesByFingerprint.get(fingerprint);
-    if (!playerUid) {
-      playerUid = crypto.randomUUID();
-      existingIdentitiesByFingerprint.set(fingerprint, playerUid);
-      newIdentities.push({
+      const krAtt = entry.ret.krAtt ?? null;
+      const krYds = entry.ret.krYds ?? null;
+      const krTd = entry.ret.krTd ?? null;
+      const krLong = entry.ret.krLong ?? null;
+      const prAtt = entry.ret.prAtt ?? null;
+      const prYds = entry.ret.prYds ?? null;
+      const prTd = entry.ret.prTd ?? null;
+      const prLong = entry.ret.prLong ?? null;
+
+      const fingerprint = buildPlayerFingerprint(info) || `pgid:${entry.pgid}|season:${seasonYear}`;
+      let playerUid = existingIdentitiesByFingerprint.get(fingerprint);
+      if (!playerUid) {
+        playerUid = crypto.randomUUID();
+        existingIdentitiesByFingerprint.set(fingerprint, playerUid);
+        newIdentities.push({
+          dynastyId,
+          playerUid,
+          fingerprint,
+          firstName: info.firstName ?? "",
+          lastName: info.lastName ?? "",
+          hometown: info.hometown ?? "",
+        });
+      }
+
+      seasonIdentityMapRows.push({
         dynastyId,
+        seasonYear,
+        pgid: entry.pgid,
         playerUid,
-        fingerprint,
+      });
+
+      playerSeasonStats.push({
+        dynastyId,
+        seasonYear,
+        pgid: entry.pgid,
+        playerUid,
+        tgid: entry.tgid ?? null,
+        gp,
         firstName: info.firstName ?? "",
         lastName: info.lastName ?? "",
         hometown: info.hometown ?? "",
+        height: info.height ?? null,
+        weight: info.weight ?? null,
+        jersey: info.jersey ?? null,
+        position: info.position ?? null,
+        classYear: info.classYear ?? null,
+        overall: info.overall ?? null,
+
+        passComp,
+        passAtt,
+        passPct,
+        passYds,
+        passYpg,
+        passTd,
+        passInt,
+        passSacks,
+        passQbr,
+
+        rushAtt,
+        rushYds,
+        rushYpc,
+        rushYpg,
+        rushTd,
+        rushFum,
+        rushYac,
+        rushBtk,
+        rush20,
+
+        recvCat,
+        recvYds,
+        recvYpc,
+        recvYpg,
+        recvTd,
+        recvFum,
+        recvYac,
+        recvYaca,
+        recvDrops,
+
+        defTkl: entry.def.tkl ?? null,
+        defTfl: entry.def.tfl ?? null,
+        defSack: entry.def.sack ?? null,
+        defInt: entry.def.int ?? null,
+        defPDef: entry.def.pdef ?? null,
+        defFF: entry.def.ff ?? null,
+        defFR: entry.def.fr ?? null,
+        defDTD: entry.def.dtd ?? null,
+
+        fgm,
+        fga,
+        fgPct,
+        fgLong,
+        xpm,
+        xpa,
+        xpPct,
+
+        puntAtt,
+        puntYds,
+        puntAvg,
+        puntLong,
+        puntIn20,
+        puntBlocked,
+
+        krAtt,
+        krYds,
+        krTd,
+        krLong,
+        prAtt,
+        prYds,
+        prTd,
+        prLong,
       });
     }
 
-    seasonIdentityMapRows.push({
-      dynastyId,
-      seasonYear,
-      pgid: entry.pgid,
-      playerUid,
-    });
+    return { playerSeasonStats, seasonIdentityMapRows, newIdentities };
+  };
 
-    playerSeasonStats.push({
-      dynastyId,
-      seasonYear,
-      pgid: entry.pgid,
-      playerUid,
-      tgid: entry.tgid ?? null,
-      gp,
-      firstName: info.firstName ?? "",
-      lastName: info.lastName ?? "",
-      hometown: info.hometown ?? "",
-      height: info.height ?? null,
-      weight: info.weight ?? null,
-      jersey: info.jersey ?? null,
-      position: info.position ?? null,
-      classYear: info.classYear ?? null,
-      overall: info.overall ?? null,
-
-      passComp,
-      passAtt,
-      passPct,
-      passYds,
-      passYpg,
-      passTd,
-      passInt,
-      passSacks,
-      passQbr,
-
-      rushAtt,
-      rushYds,
-      rushYpc,
-      rushYpg,
-      rushTd,
-      rushFum,
-      rushYac,
-      rushBtk,
-      rush20,
-
-      recvCat,
-      recvYds,
-      recvYpc,
-      recvYpg,
-      recvTd,
-      recvFum,
-      recvYac,
-      recvYaca,
-      recvDrops,
-
-      defTkl: entry.def.tkl ?? null,
-      defTfl: entry.def.tfl ?? null,
-      defSack: entry.def.sack ?? null,
-      defInt: entry.def.int ?? null,
-      defPDef: entry.def.pdef ?? null,
-      defFF: entry.def.ff ?? null,
-      defFR: entry.def.fr ?? null,
-      defDTD: entry.def.dtd ?? null,
-
-      fgm,
-      fga,
-      fgPct,
-      fgLong,
-      xpm,
-      xpa,
-      xpPct,
-
-      puntAtt,
-      puntYds,
-      puntAvg,
-      puntLong,
-      puntIn20,
-      puntBlocked,
-
-      krAtt,
-      krYds,
-      krTd,
-      krLong,
-      prAtt,
-      prYds,
-      prTd,
-      prLong,
-    });
-  }
-
-  return { playerSeasonStats, seasonIdentityMapRows, newIdentities };
+  return {
+    addPlayRow,
+    addOffenseRow,
+    addDefenseRow,
+    addKickingRow,
+    addReturnRow,
+    finalize,
+  };
 }
 
 
@@ -522,18 +579,12 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     );
   }
 
-  const [teamText, schdText, tsseText, bowlText, cochText, playText, psofText, psdeText, pskiText, pskpText] =
-    await Promise.all([
+  const [teamText, schdText, tsseText, bowlText, cochText] = await Promise.all([
     byType.TEAM.text(),
     byType.SCHD.text(),
     byType.TSSE.text(),
     byType.BOWL.text(),
     byType.COCH.text(),
-    byType.PLAY.text(),
-    byType.PSOF.text(),
-    byType.PSDE.text(),
-    byType.PSKI.text(),
-    byType.PSKP.text(),
   ]);
 
   const teamRows = parseCsvText(teamText);
@@ -541,12 +592,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const tsseRows = parseCsvText(tsseText);
   const bowlRows = parseCsvText(bowlText);
   const cochRowsRaw = parseCsvText(cochText);
-  const playRows = parseCsvText(playText);
-  const psofRows = parseCsvText(psofText);
-  const psdeRows = parseCsvText(psdeText);
-  const pskiRows = parseCsvText(pskiText);
-  const pskpRows = parseCsvText(pskpText);
-
   // Contract (confirmed headers)
   requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
@@ -557,11 +602,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO", "CPID", "CDST", "COST"],
     "COCH"
   );
-  requireColumnsLoose(playRows, ["PGID", "FirstName", "LastName", "RCHD"], "PLAY");
-  requireColumnsLoose(psofRows, ["PGID", "SGMP"], "PSOF");
-  requireColumnsLoose(psdeRows, ["PGID", "SGMP"], "PSDE");
-  requireColumnsLoose(pskiRows, ["PGID", "SGMP"], "PSKI");
-  requireColumnsLoose(pskpRows, ["PGID", "SGMP"], "PSKP");
 
   const cochRows = dedupeCoachRows(cochRowsRaw);
 
@@ -684,22 +724,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     offenseTypeId: toNumberOrNull(r.COST ?? r.cost),
   }));
 
-  const playerInfoRows = playRows
-    .map((r) => normalizePlayerRow(r, { dynastyId, seasonYear: year }))
-    .filter((r) => r.pgid);
-  const psofRowsNorm = psofRows
-    .map((r) => normalizeStatRow(r, { dynastyId, seasonYear: year }))
-    .filter((r) => r.pgid && r.sgmp);
-  const psdeRowsNorm = psdeRows
-    .map((r) => normalizeStatRow(r, { dynastyId, seasonYear: year }))
-    .filter((r) => r.pgid && r.sgmp);
-  const pskiRowsNorm = pskiRows
-    .map((r) => normalizeStatRow(r, { dynastyId, seasonYear: year }))
-    .filter((r) => r.pgid && r.sgmp);
-  const pskpRowsNorm = pskpRows
-    .map((r) => normalizeStatRow(r, { dynastyId, seasonYear: year }))
-    .filter((r) => r.pgid && r.sgmp);
-
   const existingIdentityRows = await db.playerIdentities.where({ dynastyId }).toArray();
   const existingIdentitiesByFingerprint = new Map(
     existingIdentityRows
@@ -710,16 +734,48 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       .filter(Boolean)
   );
 
-  const { playerSeasonStats, seasonIdentityMapRows, newIdentities } = buildPlayerStatsIndex({
+  const playerInfoRows = [];
+  const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
-    playRows,
-    psofRows,
-    psdeRows,
-    pskiRows,
-    pskpRows,
     existingIdentitiesByFingerprint,
   });
+
+  await parseCsvFileStream(byType.PLAY, {
+    label: "PLAY",
+    requiredColumns: ["PGID", "FirstName", "LastName", "RCHD"],
+    onRow: (row) => {
+      const normalized = normalizePlayerRow(row, { dynastyId, seasonYear: year });
+      if (normalized.pgid) playerInfoRows.push(normalized);
+      statsAccumulator.addPlayRow(row);
+    },
+  });
+
+  await parseCsvFileStream(byType.PSOF, {
+    label: "PSOF",
+    requiredColumns: ["PGID", "SGMP"],
+    onRow: (row) => statsAccumulator.addOffenseRow(row),
+  });
+
+  await parseCsvFileStream(byType.PSDE, {
+    label: "PSDE",
+    requiredColumns: ["PGID", "SGMP"],
+    onRow: (row) => statsAccumulator.addDefenseRow(row),
+  });
+
+  await parseCsvFileStream(byType.PSKI, {
+    label: "PSKI",
+    requiredColumns: ["PGID", "SGMP"],
+    onRow: (row) => statsAccumulator.addKickingRow(row),
+  });
+
+  await parseCsvFileStream(byType.PSKP, {
+    label: "PSKP",
+    requiredColumns: ["PGID", "SGMP"],
+    onRow: (row) => statsAccumulator.addReturnRow(row),
+  });
+
+  const { playerSeasonStats, seasonIdentityMapRows, newIdentities } = statsAccumulator.finalize();
 
   await db.transaction(
     "rw",
@@ -761,10 +817,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.bowlGames.bulkPut(bowlGames);
       await db.coaches.bulkPut(coaches);
       await db.playerInfo.bulkPut(playerInfoRows);
-      await db.psofRows.bulkPut(psofRowsNorm);
-      await db.psdeRows.bulkPut(psdeRowsNorm);
-      await db.pskiRows.bulkPut(pskiRowsNorm);
-      await db.pskpRows.bulkPut(pskpRowsNorm);
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
