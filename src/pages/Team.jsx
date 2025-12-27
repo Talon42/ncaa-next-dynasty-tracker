@@ -147,6 +147,7 @@ export default function Team() {
   const [teamLogo, setTeamLogo] = useState(FALLBACK_LOGO);
   const [coachName, setCoachName] = useState("");
   const [coachId, setCoachId] = useState("");
+  const [teamRank, setTeamRank] = useState(null);
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
 
   // ✅ NEW: latest-season prestige (TMPR)
@@ -265,6 +266,7 @@ useEffect(() => {
       setTeamName("");
       setTeamLogo(FALLBACK_LOGO);
       setTeamPrestige(null);
+      setTeamRank(null);
       setSeasonRecordByYear(new Map());
       return;
     }
@@ -311,6 +313,15 @@ useEffect(() => {
 
       setTeamName(latestNameMap.get(teamTgid) || `TGID ${teamTgid}`);
       setTeamLogo(logoFor(teamTgid));
+      const rankSeason =
+        seasonYear === "All" ? headerYear : Number(seasonYear);
+      const rankRow =
+        teamSeasonsAll.find(
+          (t) => String(t.tgid) === teamTgid && Number(t.seasonYear) === Number(rankSeason)
+        ) || null;
+      const rawRank = Number(rankRow?.tcrk ?? latestTeamRow?.tcrk);
+      const rankValue = Number.isFinite(rawRank) && rawRank > 0 && rawRank <= 25 ? rawRank : null;
+      setTeamRank(rankValue);
       const coachRow = coachRows.find((c) => String(c.tgid) === teamTgid);
       const coachDisplay =
         coachRow
@@ -482,7 +493,41 @@ useEffect(() => {
       </div>
 
       {/* Centered team name */}
-      <h2 style={{ marginTop: 0, marginBottom: 6, textAlign: "center" }}>{teamName}</h2>
+      <h2
+        style={{
+          marginTop: 0,
+          marginBottom: 6,
+          textAlign: "center",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          lineHeight: 1.1,
+        }}
+      >
+        <span>{teamName}</span>
+        {teamRank != null ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 28,
+              padding: "2px 8px",
+              borderRadius: 999,
+              border: "1px solid rgba(224, 190, 99, 0.45)",
+              background: "rgba(224, 190, 99, 0.18)",
+              fontSize: 12,
+              fontWeight: 800,
+              lineHeight: 1.2,
+            }}
+            title="Coach's Poll Rank"
+          >
+            #{teamRank}
+          </span>
+        ) : null}
+      </h2>
 
       {coachName ? (
         <div className="kicker" style={{ textAlign: "center", marginBottom: 6 }}>

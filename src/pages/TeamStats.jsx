@@ -86,12 +86,15 @@ function getVal(row, key) {
   return v !== undefined && v !== null ? v : null;
 }
 
-function TeamCell({ name, logoUrl }) {
+function TeamCell({ name, logoUrl, rank }) {
   const [src, setSrc] = useState(logoUrl || FALLBACK_TEAM_LOGO);
 
   useEffect(() => {
     setSrc(logoUrl || FALLBACK_TEAM_LOGO);
   }, [logoUrl]);
+
+  const rankValue = Number(rank);
+  const showRank = Number.isFinite(rankValue) && rankValue > 0 && rankValue <= 25;
 
   return (
     <div className="teamCell">
@@ -105,7 +108,29 @@ function TeamCell({ name, logoUrl }) {
           if (src !== FALLBACK_TEAM_LOGO) setSrc(FALLBACK_TEAM_LOGO);
         }}
       />
-      <span>{name}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {name}
+        {showRank ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 24,
+              padding: "2px 6px",
+              borderRadius: 999,
+              border: "1px solid rgba(224, 190, 99, 0.45)",
+              background: "rgba(224, 190, 99, 0.18)",
+              fontSize: 11,
+              fontWeight: 800,
+              lineHeight: 1.1,
+            }}
+            title="Coach's Poll Rank"
+          >
+            #{rankValue}
+          </span>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -287,6 +312,16 @@ export default function TeamStats() {
     return map;
   }, [teamSeasons]);
 
+  const rankByTgid = useMemo(() => {
+    const map = new Map();
+    for (const t of teamSeasons) {
+      const raw = Number(t.tcrk);
+      const rank = Number.isFinite(raw) && raw > 0 ? raw : null;
+      map.set(String(t.tgid), rank);
+    }
+    return map;
+  }, [teamSeasons]);
+
   const ptsMaps = useMemo(() => {
     const ptsAllowedByTgid = new Map();
     const ptsScoredByTgid = new Map();
@@ -340,12 +375,13 @@ export default function TeamStats() {
         __lc: lc,
         teamName: nameByTgid.get(tgid) ?? tgid,
         logoUrl: teamLogoFor(tgid),
+        teamRank: rankByTgid.get(tgid) ?? null,
         defTotYds,
         defPtsPerGame,
         offPtsPerGame,
       };
     });
-  }, [teamStats, nameByTgid, teamLogoFor, ptsMaps]);
+  }, [teamStats, nameByTgid, rankByTgid, teamLogoFor, ptsMaps]);
 
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
@@ -510,7 +546,7 @@ export default function TeamStats() {
                         }}
                         title="View team page"
                       >
-                        <TeamCell name={r.teamName} logoUrl={r.logoUrl} />
+                        <TeamCell name={r.teamName} logoUrl={r.logoUrl} rank={r.teamRank} />
                       </Link>
                     </td>
 
