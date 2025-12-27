@@ -620,36 +620,14 @@ export default function Coach() {
           {coachQuote}
         </p>
       ) : null}
-
-      <div className="card" style={{ marginBottom: 18, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-          <div className="kicker" style={{ fontWeight: 700 }}>
-            Team
-          </div>
-        </div>
-        <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-          <div>
-            <div className="kicker">Years with Team</div>
-            <div style={{ fontWeight: 700 }}>{teamStats.yearsWithTeam ?? "-"}</div>
-          </div>
-          <div>
-            <div className="kicker">Record</div>
-            <div style={{ fontWeight: 700 }}>
-              {teamStats.teamWins ?? "-"}-{teamStats.teamLosses ?? "-"}
-            </div>
-          </div>
-          <div>
-            <div className="kicker">Postseason Record</div>
-            <div style={{ fontWeight: 700 }}>
-              {teamStats.postseasonWins ?? "-"}-{teamStats.postseasonLosses ?? "-"}
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 10, textAlign: "center" }}>
-          {(() => {
-            const meta = approvalLabel(coachApproval);
-            return (
+      <div style={{ marginBottom: 18, textAlign: "center" }}>
+        {(() => {
+          const meta = approvalLabel(coachApproval);
+          return (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span className="kicker" style={{ fontWeight: 700 }}>
+                Job Security:
+              </span>
               <span
                 style={{
                   display: "inline-flex",
@@ -667,9 +645,9 @@ export default function Coach() {
               >
                 {meta.text}
               </span>
-            );
-          })()}
-        </div>
+            </span>
+          );
+        })()}
       </div>
 
       <div
@@ -733,6 +711,29 @@ export default function Coach() {
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
               <div className="kicker">Nat Titles</div>
               <div style={{ fontWeight: 700 }}>{coachStats.nationalTitles ?? "-"}</div>
+            </div>
+          </div>
+          <div style={{ height: 16 }} />
+          <div className="kicker" style={{ fontWeight: 700, marginBottom: 10 }}>
+            Team
+          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="kicker">Years with Team</div>
+              <div style={{ fontWeight: 700 }}>{teamStats.yearsWithTeam ?? "-"}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="kicker">Record</div>
+              <div style={{ fontWeight: 700 }}>
+                {teamStats.teamWins ?? "-"}-{teamStats.teamLosses ?? "-"}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="kicker">Postseason Record</div>
+              <div style={{ fontWeight: 700 }}>
+                {teamStats.postseasonWins ?? "-"}-{teamStats.postseasonLosses ?? "-"}
+              </div>
             </div>
           </div>
         </div>
