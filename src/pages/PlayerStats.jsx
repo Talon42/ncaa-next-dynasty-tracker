@@ -178,8 +178,25 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
-function derivedValue(row, key) {
-  const gp = Number(row.gp);
+function gpForTab(row, tab) {
+  const legacy = Number(row.gp);
+  if (tab === "Passing" || tab === "Rushing" || tab === "Receiving") {
+    const gpOff = Number(row.gpOff);
+    return Number.isFinite(gpOff) ? gpOff : legacy;
+  }
+  if (tab === "Defense") {
+    const gpDef = Number(row.gpDef);
+    return Number.isFinite(gpDef) ? gpDef : legacy;
+  }
+  if (tab === "Special Teams") {
+    const gpSpec = Number(row.gpSpec);
+    return Number.isFinite(gpSpec) ? gpSpec : legacy;
+  }
+  const gpOff = Number(row.gpOff);
+  return Number.isFinite(gpOff) ? gpOff : legacy;
+}
+
+function derivedValue(row, key, gp) {
   const passComp = Number(row.passComp);
   const passAtt = Number(row.passAtt);
   const passYds = Number(row.passYds);
@@ -231,9 +248,10 @@ function derivedValue(row, key) {
   }
 }
 
-function valueForStat(row, key) {
+function valueForStat(row, key, tab) {
+  if (key === "gp") return gpForTab(row, tab);
   if (ONE_DECIMAL_KEYS.has(key)) {
-    return derivedValue(row, key);
+    return derivedValue(row, key, gpForTab(row, tab));
   }
   return row[key];
 }
@@ -497,10 +515,21 @@ export default function PlayerStats() {
 
   const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
 
+  const tabRows = useMemo(() => {
+    if (!colsForTab.length) return filteredRows;
+    return filteredRows.filter((row) => {
+      for (const c of colsForTab) {
+        const v = valueForStat(row, c.key, tab);
+        if (Number.isFinite(v) && v !== 0) return true;
+      }
+      return false;
+    });
+  }, [filteredRows, colsForTab, tab]);
+
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
     const key = sortKey;
-    const arr = [...filteredRows];
+    const arr = [...tabRows];
 
     arr.sort((a, b) => {
       const av =
@@ -508,13 +537,13 @@ export default function PlayerStats() {
           ? a.playerSortName
           : key === "teamName"
             ? a.teamName
-            : valueForStat(a, key);
+            : valueForStat(a, key, tab);
       const bv =
         key === "playerName"
           ? b.playerSortName
           : key === "teamName"
             ? b.teamName
-            : valueForStat(b, key);
+            : valueForStat(b, key, tab);
 
       const ca = toComparable(av);
       const cb = toComparable(bv);
@@ -531,7 +560,7 @@ export default function PlayerStats() {
     });
 
     return arr;
-  }, [filteredRows, sortKey, sortDir]);
+  }, [tabRows, sortKey, sortDir, tab]);
 
   const displayedRows = useMemo(() => sortedRows.slice(0, visibleCount), [sortedRows, visibleCount]);
 
@@ -776,10 +805,12 @@ export default function PlayerStats() {
                     </td>
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>
-                    <td data-label="GP">{Number.isFinite(Number(r.gp)) ? Number(r.gp) : ""}</td>
+                    <td data-label="GP">
+                      {Number.isFinite(gpForTab(r, tab)) ? gpForTab(r, tab) : ""}
+                    </td>
                     {colsForTab.map((c) => (
                       <td key={c.key} data-label={c.fullLabel || c.label}>
-                        {formatStat(valueForStat(r, c.key), c.key)}
+                        {formatStat(valueForStat(r, c.key, tab), c.key)}
                       </td>
                     ))}
                   </tr>

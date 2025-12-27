@@ -202,7 +202,12 @@ function buildPlayerFingerprint(info) {
   return hasAny ? parts.join("|") : null;
 }
 
-function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitiesByFingerprint }) {
+function createPlayerStatsAccumulator({
+  dynastyId,
+  seasonYear,
+  existingIdentitiesByFingerprint,
+  teamGamesByTgid,
+}) {
   const playByPgid = new Map();
   const statsByPgid = new Map();
 
@@ -213,7 +218,14 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
       entry = {
         pgid,
         tgid: base.tgid ?? null,
-        gpSet: new Set(),
+        gpOff: null,
+        gpDef: null,
+        gpKick: null,
+        gpRet: null,
+        hasOffRow: false,
+        hasDefRow: false,
+        hasKickRow: false,
+        hasRetRow: false,
         off: {},
         def: {},
         kick: {},
@@ -258,8 +270,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
-    if (sgmp) entry.gpSet.add(sgmp);
+    const sgmp = toNumberOrNull(getRowValueFast(row, lc, "SGMP"));
+    if (sgmp != null) entry.gpOff = entry.gpOff == null ? sgmp : Math.max(entry.gpOff, sgmp);
+    entry.hasOffRow = true;
 
     const tgid =
       normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
@@ -293,8 +306,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
-    if (sgmp) entry.gpSet.add(sgmp);
+    const sgmp = toNumberOrNull(getRowValueFast(row, lc, "SGMP"));
+    if (sgmp != null) entry.gpDef = entry.gpDef == null ? sgmp : Math.max(entry.gpDef, sgmp);
+    entry.hasDefRow = true;
 
     const tgid =
       normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
@@ -315,8 +329,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
-    if (sgmp) entry.gpSet.add(sgmp);
+    const sgmp = toNumberOrNull(getRowValueFast(row, lc, "SGMP"));
+    if (sgmp != null) entry.gpKick = entry.gpKick == null ? sgmp : Math.max(entry.gpKick, sgmp);
+    entry.hasKickRow = true;
 
     const tgid =
       normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
@@ -340,8 +355,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
-    const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
-    if (sgmp) entry.gpSet.add(sgmp);
+    const sgmp = toNumberOrNull(getRowValueFast(row, lc, "SGMP"));
+    if (sgmp != null) entry.gpRet = entry.gpRet == null ? sgmp : Math.max(entry.gpRet, sgmp);
+    entry.hasRetRow = true;
 
     const tgid =
       normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
@@ -369,10 +385,34 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
 
     for (const entry of statsByPgid.values()) {
       const info = playByPgid.get(entry.pgid) || {};
-      const gp = entry.gpSet.size;
+      const teamGp = entry.tgid ? teamGamesByTgid.get(String(entry.tgid)) ?? 0 : 0;
+
+      const gpOff = entry.hasOffRow
+        ? Number.isFinite(entry.gpOff) && entry.gpOff > 0
+          ? entry.gpOff
+          : teamGp
+        : 0;
+      const gpDef = entry.hasDefRow
+        ? Number.isFinite(entry.gpDef) && entry.gpDef > 0
+          ? entry.gpDef
+          : teamGp
+        : 0;
+      const gpSpec = (() => {
+        if (entry.gpKick == null && entry.gpRet == null) return null;
+        if (entry.gpKick == null) return entry.gpRet;
+        if (entry.gpRet == null) return entry.gpKick;
+        return Math.max(entry.gpKick, entry.gpRet);
+      })();
+      const resolvedGpSpec = entry.hasKickRow || entry.hasRetRow
+        ? Number.isFinite(gpSpec) && gpSpec > 0
+          ? gpSpec
+          : teamGp
+        : 0;
 
       const hasStat =
-        gp > 0 ||
+        (Number.isFinite(gpOff) && gpOff > 0) ||
+        (Number.isFinite(gpDef) && gpDef > 0) ||
+        (Number.isFinite(resolvedGpSpec) && resolvedGpSpec > 0) ||
         Object.values(entry.off).some((v) => Number.isFinite(v) && v !== 0) ||
         Object.values(entry.def).some((v) => Number.isFinite(v) && v !== 0) ||
         Object.values(entry.kick).some((v) => Number.isFinite(v) && v !== 0) ||
@@ -455,7 +495,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
         pgid: entry.pgid,
         playerUid,
         tgid: seasonTgid,
-        gp,
+        gpOff,
+        gpDef,
+        gpSpec: resolvedGpSpec,
         firstName: info.firstName ?? "",
         lastName: info.lastName ?? "",
         jersey: info.jersey ?? null,
@@ -618,6 +660,14 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     };
   });
 
+  const teamGamesByTgid = new Map();
+  for (const g of games) {
+    const ht = String(g.homeTgid ?? "");
+    const at = String(g.awayTgid ?? "");
+    if (ht) teamGamesByTgid.set(ht, (teamGamesByTgid.get(ht) ?? 0) + 1);
+    if (at) teamGamesByTgid.set(at, (teamGamesByTgid.get(at) ?? 0) + 1);
+  }
+
   const teamStats = tsseRows.map((r) => {
     const tgid = normId(r.TGID);
 
@@ -717,6 +767,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     dynastyId,
     seasonYear: year,
     existingIdentitiesByFingerprint,
+    teamGamesByTgid,
   });
 
   await parseCsvFileStream(byType.PLAY, {
