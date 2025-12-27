@@ -42,6 +42,19 @@ function normId(x) {
   return Number.isFinite(n) ? String(Math.trunc(n)) : s;
 }
 
+function normalizeTeamId(x) {
+  const v = normId(x);
+  if (!v || v === "0") return null;
+  return v;
+}
+
+function calcTeamIdFromPgid(pgid) {
+  const raw = Number(pgid);
+  if (!Number.isFinite(raw)) return null;
+  const tgid = Math.floor(raw / 70);
+  return tgid > 0 ? String(tgid) : null;
+}
+
 function toNumberOrNull(v) {
   const n = Number(String(v ?? "").trim());
   return Number.isFinite(n) ? n : null;
@@ -149,7 +162,7 @@ function normalizeNamePart(value) {
 function normalizePlayerRow(row, { dynastyId, seasonYear }) {
   const parsed = parseRowWithNumbers(row);
   const pgid = normId(getRowValue(row, "PGID"));
-  const tgid = normId(getRowValue(row, "TGID"));
+  const tgid = normalizeTeamId(getRowValue(row, "TGID")) || calcTeamIdFromPgid(pgid);
   return {
     dynastyId,
     seasonYear,
@@ -240,7 +253,7 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
 
     const info = {
       pgid,
-      tgid: normId(getRowValue(row, "TGID")),
+      tgid: normalizeTeamId(getRowValue(row, "TGID")) || calcTeamIdFromPgid(pgid),
       firstName: String(getRowValue(row, "FirstName") ?? "").trim(),
       lastName: String(getRowValue(row, "LastName") ?? "").trim(),
       hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
@@ -254,7 +267,7 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
 
     playByPgid.set(pgid, info);
     const entry = ensure(pgid);
-    if (!entry.tgid && info.tgid) entry.tgid = info.tgid;
+    if (info.tgid) entry.tgid = info.tgid;
   };
 
   const addOffenseRow = (row) => {
@@ -265,7 +278,8 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValueFast(row, lc, "TGID"));
+    const tgid =
+      normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
     addStat(entry.off, "passComp", getRowValueFast(row, lc, "sacm"));
@@ -299,7 +313,8 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValueFast(row, lc, "TGID"));
+    const tgid =
+      normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
     addStat(entry.def, "tkl", getRowValueFast(row, lc, "sdta"));
@@ -320,7 +335,8 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValueFast(row, lc, "TGID"));
+    const tgid =
+      normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
     addStat(entry.kick, "fgm", getRowValueFast(row, lc, "skfm"));
@@ -344,7 +360,8 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
     const sgmp = normId(getRowValueFast(row, lc, "SGMP"));
     if (sgmp) entry.gpSet.add(sgmp);
 
-    const tgid = normId(getRowValueFast(row, lc, "TGID"));
+    const tgid =
+      normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
     if (!entry.tgid && tgid) entry.tgid = tgid;
 
     addStat(entry.ret, "krAtt", getRowValueFast(row, lc, "srka"));
@@ -455,12 +472,14 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
         playerUid,
       });
 
+      const seasonTgid = info.tgid ?? entry.tgid ?? null;
+
       playerSeasonStats.push({
         dynastyId,
         seasonYear,
         pgid: entry.pgid,
         playerUid,
-        tgid: entry.tgid ?? null,
+        tgid: seasonTgid,
         gp,
         firstName: info.firstName ?? "",
         lastName: info.lastName ?? "",
