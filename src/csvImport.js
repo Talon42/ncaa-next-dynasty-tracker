@@ -110,7 +110,11 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
   requireColumns(tsseRows, ["TGID"], "TSSE");
   requireColumns(bowlRows, ["SEWN", "SGNM", "BNME"], "BOWL");
-  requireColumns(cochRowsRaw, ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO"], "COCH");
+  requireColumns(
+    cochRowsRaw,
+    ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO", "CPID", "CDST", "COST"],
+    "COCH"
+  );
 
   const cochRows = dedupeCoachRows(cochRowsRaw);
 
@@ -231,6 +235,9 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     bowlLosses: toNumberOrNull(r.CBLL ?? r.cbll),
     contractYear: toNumberOrNull(r.CCYR ?? r.ccyr),
     contractLength: toNumberOrNull(r.CCFY ?? r.ccfy),
+    playbookId: toNumberOrNull(r.CPID ?? r.cpid),
+    baseDefenseId: toNumberOrNull(r.CDST ?? r.cdst),
+    offenseTypeId: toNumberOrNull(r.COST ?? r.cost),
   }));
 
   await db.transaction(

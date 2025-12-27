@@ -13,6 +13,58 @@ import {
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 
+const PLAYBOOK_LABELS = {
+  136: "Ace",
+  137: "Air Raid",
+  138: "Balanced Pass",
+  139: "Balanced Run",
+  140: "Classic Option",
+  141: "Flexbone",
+  142: "Flexible Shoot",
+  143: "I Option",
+  144: "Multi Option",
+  145: "Multiple",
+  146: "One Back",
+  147: "Pass Heavy",
+  148: "Pro",
+  149: "Pro Dawg",
+  150: "Run 'N' Gun",
+  151: "Run 'N' Shoot",
+  152: "Spread",
+  153: "Spread Ace",
+  154: "Spread I",
+  155: "Spread Option",
+  156: "Spread Pro",
+  157: "Veer 'N' Shoot",
+  158: "West Coast",
+  159: "Pistol",
+  160: "Pistol Option",
+  161: "GoGo Offense",
+  162: "SpreadBone",
+};
+
+const BASE_DEFENSE_LABELS = {
+  0: "3-4",
+  1: "3-3-5 Stack",
+  2: "4-2-5",
+  3: "4-3",
+  4: "4-4",
+};
+
+const OFFENSE_TYPE_LABELS = {
+  0: "Option Run",
+  1: "Spread",
+  2: "Balanced",
+  3: "Flexbone",
+  4: "West Coast",
+};
+
+function resolveCoachLabel(map, value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "-";
+  return map[n] || `Unknown (${n})`;
+}
+
 function PrestigeStars({ value }) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
@@ -70,6 +122,9 @@ export default function Coach() {
     postseasonLosses: null,
     runPassTendency: null,
     defenseRunPassTendency: null,
+    playbookId: null,
+    baseDefenseId: null,
+    offenseTypeId: null,
     top25Wins: null,
     top25Losses: null,
     winningSeasons: null,
@@ -368,6 +423,15 @@ export default function Coach() {
       const latestDefenseRunPassTendency = Number.isFinite(Number(latest.defenseRunPassTendency))
         ? Number(latest.defenseRunPassTendency)
         : null;
+      const latestPlaybookId = Number.isFinite(Number(latest.playbookId))
+        ? Number(latest.playbookId)
+        : null;
+      const latestBaseDefenseId = Number.isFinite(Number(latest.baseDefenseId))
+        ? Number(latest.baseDefenseId)
+        : null;
+      const latestOffenseTypeId = Number.isFinite(Number(latest.offenseTypeId))
+        ? Number(latest.offenseTypeId)
+        : null;
 
       const latestPostseasonWins = Number.isFinite(Number(latest.bowlWins))
         ? Number(latest.bowlWins)
@@ -405,6 +469,9 @@ export default function Coach() {
         postseasonLosses: latestPostseasonLosses,
         runPassTendency: latestRunPassTendency,
         defenseRunPassTendency: latestDefenseRunPassTendency,
+        playbookId: latestPlaybookId,
+        baseDefenseId: latestBaseDefenseId,
+        offenseTypeId: latestOffenseTypeId,
         top25Wins: latestTop25Wins,
         top25Losses: latestTop25Losses,
         winningSeasons: latestWinningSeasons,
@@ -1004,9 +1071,25 @@ export default function Coach() {
                         </svg>
                       </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                      </div>
+                    );
+                  })()}
+
+                <div style={{ height: 12 }} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div className="kicker">Playbook</div>
+                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(PLAYBOOK_LABELS, coachStats.playbookId)}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div className="kicker">Base Defense</div>
+                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(BASE_DEFENSE_LABELS, coachStats.baseDefenseId)}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div className="kicker">Offense Type</div>
+                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(OFFENSE_TYPE_LABELS, coachStats.offenseTypeId)}</div>
+                  </div>
+                </div>
               </div>
             );
           })()}
