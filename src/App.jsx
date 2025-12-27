@@ -12,6 +12,7 @@ import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
 import Coaches from "./pages/Coaches";
 import Coach from "./pages/Coach";
+import CoachesPollRankings from "./pages/CoachesPollRankings";
 import { writePreviousRoute } from "./previousRoute";
 
 import {
@@ -62,6 +63,7 @@ export default function App() {
     location.pathname === "/team-stats" ||
     location.pathname === "/postseason" ||
     location.pathname === "/coaches" ||
+    location.pathname === "/coaches-poll" ||
     location.pathname.startsWith("/coach/");
   const isSchedulePage = location.pathname === "/";
 
@@ -283,6 +285,14 @@ export default function App() {
 
               <button
                 className="headerNavBtn"
+                onClick={() => navigate("/coaches-poll")}
+                title="Coach's Poll Rankings"
+              >
+                Coach&apos;s Poll Rankings
+              </button>
+
+              <button
+                className="headerNavBtn"
                 onClick={() => navigate(`/standings?conf=All&ts=${Date.now()}`)}
                 title="Conference Standings"
               >
@@ -471,6 +481,17 @@ export default function App() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
+                  navigate("/coaches-poll");
+                }}
+                title="Coach's Poll Rankings"
+              >
+                <span>Coach&apos;s Poll Rankings</span>
+              </a>
+
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
                   navigate("/postseason");
                 }}
                 title="Postseason"
@@ -599,6 +620,7 @@ export default function App() {
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
                 <Route path="/coaches" element={<Coaches />} />
+                <Route path="/coaches-poll" element={<CoachesPollRankings />} />
                 <Route path="/coach/:ccid" element={<Coach />} />
                 <Route path="/postseason" element={<Postseason />} />
                 <Route path="/postseason/bowl" element={<BowlResults />} />

@@ -298,6 +298,9 @@ export default function Coach() {
           return [`${t.seasonYear}|${t.tgid}`, name || `TGID ${t.tgid}`];
         })
       );
+      const teamRankBySeasonTgid = new Map(
+        teamSeasons.map((t) => [`${t.seasonYear}|${t.tgid}`, Number(t.tcrk)])
+      );
       const confBySeasonTgid = new Map(
         teamSeasons.map((t) => [`${t.seasonYear}|${t.tgid}`, String(t.cgid ?? "")])
       );
@@ -550,6 +553,11 @@ export default function Coach() {
           teamLogo: logoFor(tgid),
           record: `(${wl.w}-${wl.l})`,
           confRecord: confRecordText,
+          top25Rank: (() => {
+            const raw = teamRankBySeasonTgid.get(seasonKey);
+            const rank = Number(raw);
+            return Number.isFinite(rank) && rank > 0 && rank <= 25 ? rank : null;
+          })(),
           postseason: postseason.map(({ bowlName, bowlLogoUrl, outcome }) => ({
             bowlName,
             bowlLogoUrl,
@@ -1118,6 +1126,7 @@ export default function Coach() {
             <th>Team</th>
             <th style={{ width: 120 }}>Record</th>
             <th style={{ width: 120 }}>Conf Record</th>
+            <th style={{ width: 90 }}>Top 25</th>
             <th>Postseason</th>
           </tr>
         </thead>
@@ -1147,6 +1156,7 @@ export default function Coach() {
               </td>
               <td data-label="Record">{r.record}</td>
               <td data-label="Conf Record">{r.confRecord}</td>
+              <td data-label="Top 25">{r.top25Rank ?? "-"}</td>
               <td data-label="Postseason">
                 {r.postseason.length ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

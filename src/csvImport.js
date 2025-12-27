@@ -118,6 +118,11 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
 
   const cochRows = dedupeCoachRows(cochRowsRaw);
 
+  function toNumberOrNull(v) {
+    const n = Number(String(v ?? "").trim());
+    return Number.isFinite(n) ? n : null;
+  }
+
   const teamSeasons = teamRows.map((r) => ({
     dynastyId,
     seasonYear: year,
@@ -129,6 +134,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       const n = Number(String(r.TMPR ?? "").trim());
       return Number.isFinite(n) ? n : null;
     })(),
+    tcrk: toNumberOrNull(r.TCRK ?? r.tcrk),
   }));
 
   const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
@@ -150,11 +156,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       awayScore: Number.isFinite(awayScore) ? awayScore : null,
     };
   });
-
-  function toNumberOrNull(v) {
-    const n = Number(String(v ?? "").trim());
-    return Number.isFinite(n) ? n : null;
-  }
 
   const teamStats = tsseRows.map((r) => {
     const tgid = normId(r.TGID);
