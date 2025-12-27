@@ -335,4 +335,11 @@ export async function deleteDynasty(id) {
   if (active === id) {
     await setActiveDynastyId(null);
   }
+
+  const remaining = await db.dynasties.count();
+  if (remaining === 0) {
+    // If no dynasties remain, wipe IndexedDB storage entirely to avoid leftovers.
+    await db.delete();
+    await db.open();
+  }
 }

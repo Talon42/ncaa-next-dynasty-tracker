@@ -80,6 +80,7 @@ export default function App() {
   const [showImportSeason, setShowImportSeason] = useState(false);
   const [pendingFirstDynastyId, setPendingFirstDynastyId] = useState(null);
   const [hasAnySeasons, setHasAnySeasons] = useState(false);
+  const [activeDynastyHasSeasons, setActiveDynastyHasSeasons] = useState(false);
 
   const [showDynastyActions, setShowDynastyActions] = useState(false);
   const [selectedDynasty, setSelectedDynasty] = useState(null);
@@ -105,6 +106,12 @@ export default function App() {
     setActiveId(id);
     const gamesCount = await db.games.count();
     setHasAnySeasons(gamesCount > 0);
+    if (id) {
+      const activeCount = await db.games.where({ dynastyId: id }).count();
+      setActiveDynastyHasSeasons(activeCount > 0);
+    } else {
+      setActiveDynastyHasSeasons(false);
+    }
   }
 
   useEffect(() => {
@@ -249,6 +256,21 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [activeId, searchQuery]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!activeId) {
+        if (alive) setActiveDynastyHasSeasons(false);
+        return;
+      }
+      const count = await db.games.where({ dynastyId: activeId }).count();
+      if (alive) setActiveDynastyHasSeasons(count > 0);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [activeId]);
 
   const activeDynasty = useMemo(
     () => dynasties.find((d) => d.id === activeId) || null,
@@ -827,7 +849,7 @@ export default function App() {
         <Modal title="Upload New Season" maxWidth={420}>
           <ImportSeason
             inline
-            hideCancel={!hasAnySeasons}
+            hideCancel={!activeDynastyHasSeasons}
             onClose={() => {
               setShowImportSeason(false);
               setPendingFirstDynastyId(null);
