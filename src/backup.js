@@ -13,6 +13,14 @@ const DYNASTY_TABLES = [
   "bowlGames",
   "coaches",
   "coachQuotes",
+  "playerInfo",
+  "psofRows",
+  "psdeRows",
+  "pskiRows",
+  "pskpRows",
+  "playerSeasonStats",
+  "playerIdentities",
+  "playerIdentitySeasonMap",
 ];
 
 function normalizeName(name) {

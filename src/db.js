@@ -224,6 +224,44 @@ db.version(11)
     }
   });
 
+// v12 (player stats + identities)
+db.version(12).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+  bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
+  coaches:
+    "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+  coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+  coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+
+  // Player info (PLAY.csv) per season + PGID
+  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
+
+  // Raw player stats rows (per game via SGMP)
+  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+
+  // Derived per-season player stats index
+  playerSeasonStats:
+    "[dynastyId+seasonYear+pgid],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+
+  // Stable identity mapping across seasons
+  playerIdentities:
+    "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+  playerIdentitySeasonMap:
+    "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, playerUid",
+});
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -283,6 +321,14 @@ export async function deleteDynasty(id) {
     db.coaches.where("dynastyId").equals(id).delete(),
     db.coachQuotes.where("dynastyId").equals(id).delete(),
     db.coachCareerBases.where("dynastyId").equals(id).delete(),
+    db.playerInfo.where("dynastyId").equals(id).delete(),
+    db.psofRows.where("dynastyId").equals(id).delete(),
+    db.psdeRows.where("dynastyId").equals(id).delete(),
+    db.pskiRows.where("dynastyId").equals(id).delete(),
+    db.pskpRows.where("dynastyId").equals(id).delete(),
+    db.playerSeasonStats.where("dynastyId").equals(id).delete(),
+    db.playerIdentities.where("dynastyId").equals(id).delete(),
+    db.playerIdentitySeasonMap.where("dynastyId").equals(id).delete(),
   ]);
 
   const active = await getActiveDynastyId();

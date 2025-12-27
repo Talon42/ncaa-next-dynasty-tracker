@@ -8,6 +8,7 @@ import Team from "./pages/Team";
 import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
 import TeamStats from "./pages/TeamStats";
+import PlayerStats from "./pages/PlayerStats";
 import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
 import Coaches from "./pages/Coaches";
@@ -61,6 +62,7 @@ export default function App() {
   const isTeamsPage =
     location.pathname === "/teams" ||
     location.pathname === "/team-stats" ||
+    location.pathname === "/player-stats" ||
     location.pathname === "/postseason" ||
     location.pathname === "/coaches" ||
     location.pathname === "/coaches-poll" ||
@@ -445,6 +447,14 @@ export default function App() {
 
               <button
                 className="headerNavBtn"
+                onClick={() => navigate("/player-stats")}
+                title="Player Stats"
+              >
+                Player Stats
+              </button>
+
+              <button
+                className="headerNavBtn"
                 onClick={() => navigate("/teams")}
                 title="Teams"
               >
@@ -585,6 +595,11 @@ export default function App() {
                   label: "Team Stats",
                   title: "Team Stats",
                   href: "/team-stats",
+                },
+                {
+                  label: "Player Stats",
+                  title: "Player Stats",
+                  href: "/player-stats",
                 },
                 {
                   label: "Teams",
@@ -756,6 +771,7 @@ export default function App() {
                 <Route path="/teams" element={<TeamsIndex />} />
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
+                <Route path="/player-stats" element={<PlayerStats />} />
                 <Route path="/coaches" element={<Coaches />} />
                 <Route path="/coaches-poll" element={<CoachesPollRankings />} />
                 <Route path="/coach/:ccid" element={<Coach />} />
