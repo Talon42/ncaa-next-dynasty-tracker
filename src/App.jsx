@@ -86,6 +86,8 @@ export default function App() {
   const [selectedDynasty, setSelectedDynasty] = useState(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingDynasty, setDeletingDynasty] = useState(false);
+  const [deleteBlocked, setDeleteBlocked] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [importPayload, setImportPayload] = useState(null);
   const [importPreview, setImportPreview] = useState(null);
@@ -306,7 +308,19 @@ export default function App() {
     setSelectedDynasty(null);
     if (!d) return;
 
-    await deleteDynasty(d.id);
+    setDeletingDynasty(true);
+    const result = await deleteDynasty(d.id);
+    if (result?.blocked) {
+      setDeletingDynasty(false);
+      setDeleteBlocked(true);
+      return;
+    }
+    if (result?.clearedAll) {
+      setActiveId(null);
+      navigate("/");
+      window.location.reload();
+      return;
+    }
     await refresh();
     navigate("/");
     window.location.reload();
@@ -917,6 +931,32 @@ export default function App() {
             <button className="danger" onClick={confirmDeleteDynasty}>
               Yes, delete
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {deletingDynasty && (
+        <div className="modalOverlay">
+          <div className="card" style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+            <div className="loadingSpinner" aria-hidden="true" />
+            <div style={{ marginTop: 12, fontWeight: 700 }}>Deleting dynasty...</div>
+            <div className="kicker" style={{ marginTop: 6 }}>
+              Please wait while storage is cleared.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteBlocked && (
+        <Modal title="Unable to Clear Storage" maxWidth={520}>
+          <p>
+            The database could not be deleted because another tab or window is still using it.
+          </p>
+          <p className="kicker">
+            Please close other tabs for this app and try deleting the dynasty again.
+          </p>
+          <div className="importActions">
+            <button onClick={() => setDeleteBlocked(false)}>Close</button>
           </div>
         </Modal>
       )}

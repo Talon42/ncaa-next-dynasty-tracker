@@ -134,6 +134,76 @@ function toComparable(v) {
   return s ? s.toLowerCase() : null;
 }
 
+function safeDiv(n, d) {
+  if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return null;
+  return n / d;
+}
+
+function round1(n) {
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 10) / 10;
+}
+
+function derivedValue(row, key) {
+  const gp = Number(row.gp);
+  const passComp = Number(row.passComp);
+  const passAtt = Number(row.passAtt);
+  const passYds = Number(row.passYds);
+  const passTd = Number(row.passTd);
+  const passInt = Number(row.passInt);
+
+  const rushAtt = Number(row.rushAtt);
+  const rushYds = Number(row.rushYds);
+
+  const recvCat = Number(row.recvCat);
+  const recvYds = Number(row.recvYds);
+  const recvYac = Number(row.recvYac);
+
+  const fgm = Number(row.fgm);
+  const fga = Number(row.fga);
+  const xpm = Number(row.xpm);
+  const xpa = Number(row.xpa);
+
+  const puntAtt = Number(row.puntAtt);
+  const puntYds = Number(row.puntYds);
+
+  switch (key) {
+    case "passPct":
+      return round1(safeDiv(passComp * 100, passAtt));
+    case "passYpg":
+      return round1(safeDiv(passYds, gp));
+    case "passQbr":
+      return round1(
+        safeDiv(8.4 * passYds + 330 * passTd + 100 * passComp - 200 * passInt, passAtt)
+      );
+    case "rushYpc":
+      return round1(safeDiv(rushYds, rushAtt));
+    case "rushYpg":
+      return round1(safeDiv(rushYds, gp));
+    case "recvYpc":
+      return round1(safeDiv(recvYds, recvCat));
+    case "recvYpg":
+      return round1(safeDiv(recvYds, gp));
+    case "recvYaca":
+      return round1(safeDiv(recvYac, recvCat));
+    case "fgPct":
+      return round1(safeDiv(fgm * 100, fga));
+    case "xpPct":
+      return round1(safeDiv(xpm * 100, xpa));
+    case "puntAvg":
+      return round1(safeDiv(puntYds, puntAtt));
+    default:
+      return null;
+  }
+}
+
+function valueForStat(row, key) {
+  if (ONE_DECIMAL_KEYS.has(key)) {
+    return derivedValue(row, key);
+  }
+  return row[key];
+}
+
 function formatStat(value, key) {
   if (value === null || value === undefined) return "";
   if (ONE_DECIMAL_KEYS.has(key)) {
@@ -341,13 +411,13 @@ export default function PlayerStats() {
           ? a.playerSortName
           : key === "teamName"
             ? a.teamName
-            : a[key];
+            : valueForStat(a, key);
       const bv =
         key === "playerName"
           ? b.playerSortName
           : key === "teamName"
             ? b.teamName
-            : b[key];
+            : valueForStat(b, key);
 
       const ca = toComparable(av);
       const cb = toComparable(bv);
@@ -581,7 +651,7 @@ export default function PlayerStats() {
                     <td data-label="GP">{Number.isFinite(Number(r.gp)) ? Number(r.gp) : ""}</td>
                     {colsForTab.map((c) => (
                       <td key={c.key} data-label={c.fullLabel || c.label}>
-                        {formatStat(r[c.key], c.key)}
+                        {formatStat(valueForStat(r, c.key), c.key)}
                       </td>
                     ))}
                   </tr>

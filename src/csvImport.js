@@ -145,32 +145,10 @@ function getRowValueFast(row, lc, key) {
   return lc[String(key ?? "").toLowerCase()];
 }
 
-function safeDiv(n, d) {
-  if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return null;
-  return n / d;
-}
-
-function round1(n) {
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 10) / 10;
-}
-
 function normalizeNamePart(value) {
   return String(value ?? "").trim().toLowerCase();
 }
 
-function normalizePlayerRow(row, { dynastyId, seasonYear }) {
-  const parsed = parseRowWithNumbers(row);
-  const pgid = normId(getRowValue(row, "PGID"));
-  const tgid = normalizeTeamId(getRowValue(row, "TGID")) || calcTeamIdFromPgid(pgid);
-  return {
-    dynastyId,
-    seasonYear,
-    pgid,
-    tgid: tgid || null,
-    ...parsed,
-  };
-}
 function dedupeCoachRows(rows) {
   const seen = new Map();
   for (const row of rows || []) {
@@ -410,33 +388,14 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
       const recvYac = entry.off.recvYac ?? null;
       const recvDrops = entry.off.recvDrops ?? null;
 
-      const passPct = round1(safeDiv(passComp * 100, passAtt));
-      const passYpg = round1(safeDiv(passYds, gp));
-      const passQbr = round1(
-        safeDiv(
-          8.4 * (passYds ?? 0) + 330 * (passTd ?? 0) + 100 * (passComp ?? 0) - 200 * (passInt ?? 0),
-          passAtt
-        )
-      );
-
-      const rushYpc = round1(safeDiv(rushYds, rushAtt));
-      const rushYpg = round1(safeDiv(rushYds, gp));
-
-      const recvYpc = round1(safeDiv(recvYds, recvCat));
-      const recvYpg = round1(safeDiv(recvYds, gp));
-      const recvYaca = round1(safeDiv(recvYac, recvCat));
-
       const fgm = entry.kick.fgm ?? null;
       const fga = entry.kick.fga ?? null;
-      const fgPct = round1(safeDiv(fgm * 100, fga));
       const fgLong = entry.kick.fgLong ?? null;
       const xpm = entry.kick.xpm ?? null;
       const xpa = entry.kick.xpa ?? null;
-      const xpPct = round1(safeDiv(xpm * 100, xpa));
 
       const puntAtt = entry.kick.puntAtt ?? null;
       const puntYds = entry.kick.puntYds ?? null;
-      const puntAvg = round1(safeDiv(puntYds, puntAtt));
       const puntLong = entry.kick.puntLong ?? null;
       const puntIn20 = entry.kick.puntIn20 ?? null;
       const puntBlocked = entry.kick.puntBlocked ?? null;
@@ -483,28 +442,19 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
         gp,
         firstName: info.firstName ?? "",
         lastName: info.lastName ?? "",
-        hometown: info.hometown ?? "",
-        height: info.height ?? null,
-        weight: info.weight ?? null,
         jersey: info.jersey ?? null,
         position: info.position ?? null,
         classYear: info.classYear ?? null,
-        overall: info.overall ?? null,
 
         passComp,
         passAtt,
-        passPct,
         passYds,
-        passYpg,
         passTd,
         passInt,
         passSacks,
-        passQbr,
 
         rushAtt,
         rushYds,
-        rushYpc,
-        rushYpg,
         rushTd,
         rushFum,
         rushYac,
@@ -513,12 +463,9 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
 
         recvCat,
         recvYds,
-        recvYpc,
-        recvYpg,
         recvTd,
         recvFum,
         recvYac,
-        recvYaca,
         recvDrops,
 
         defTkl: entry.def.tkl ?? null,
@@ -532,15 +479,12 @@ function createPlayerStatsAccumulator({ dynastyId, seasonYear, existingIdentitie
 
         fgm,
         fga,
-        fgPct,
         fgLong,
         xpm,
         xpa,
-        xpPct,
 
         puntAtt,
         puntYds,
-        puntAvg,
         puntLong,
         puntIn20,
         puntBlocked,
@@ -753,7 +697,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       .filter(Boolean)
   );
 
-  const playerInfoRows = [];
   const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
@@ -764,8 +707,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     label: "PLAY",
     requiredColumns: ["PGID", "FirstName", "LastName", "RCHD"],
     onRow: (row) => {
-      const normalized = normalizePlayerRow(row, { dynastyId, seasonYear: year });
-      if (normalized.pgid) playerInfoRows.push(normalized);
       statsAccumulator.addPlayRow(row);
     },
   });
@@ -821,7 +762,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
       await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
       await db.coaches.where({ dynastyId, seasonYear: year }).delete();
-      await db.playerInfo.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerInfo.where({ dynastyId }).delete();
       await db.psofRows.where({ dynastyId, seasonYear: year }).delete();
       await db.psdeRows.where({ dynastyId, seasonYear: year }).delete();
       await db.pskiRows.where({ dynastyId, seasonYear: year }).delete();
@@ -835,7 +776,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.teamStats.bulkPut(teamStats);
       await db.bowlGames.bulkPut(bowlGames);
       await db.coaches.bulkPut(coaches);
-      await db.playerInfo.bulkPut(playerInfoRows);
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);

@@ -339,7 +339,14 @@ export async function deleteDynasty(id) {
   const remaining = await db.dynasties.count();
   if (remaining === 0) {
     // If no dynasties remain, wipe IndexedDB storage entirely to avoid leftovers.
-    await db.delete();
-    await db.open();
+    db.close();
+    const result = await new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase(db.name);
+      req.onsuccess = () => resolve({ clearedAll: true, blocked: false });
+      req.onerror = () => resolve({ clearedAll: false, blocked: false, error: req.error });
+      req.onblocked = () => resolve({ clearedAll: false, blocked: true });
+    });
+    return result;
   }
+  return { clearedAll: false };
 }
