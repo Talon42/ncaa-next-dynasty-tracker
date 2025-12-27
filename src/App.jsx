@@ -406,18 +406,13 @@ export default function App() {
   async function onCreateDynasty() {
     setNewErr("");
     try {
-      const isFirstDynasty = dynasties.length === 0;
       const d = await createDynasty({ name: newName, startYear: newStartYear });
       setShowNewDynasty(false);
       setNewName("");
       setNewStartYear(2025);
       await refresh();
-      if (isFirstDynasty) {
-        setPendingFirstDynastyId(d.id);
-        setShowImportSeason(true);
-        return;
-      }
-      await loadDynasty(d.id);
+      setPendingFirstDynastyId(d.id);
+      setShowImportSeason(true);
     } catch (e) {
       setNewErr(e?.message || String(e));
     }
