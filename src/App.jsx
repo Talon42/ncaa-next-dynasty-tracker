@@ -91,6 +91,9 @@ export default function App() {
   const [importBusy, setImportBusy] = useState(false);
   const [importFileName, setImportFileName] = useState("");
   const [openHeaderPanel, setOpenHeaderPanel] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const lastRouteRef = useRef("");
 
   async function refresh() {
@@ -126,6 +129,106 @@ export default function App() {
     }
     lastRouteRef.current = next;
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!activeId) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    const q = String(searchQuery ?? "").trim().toLowerCase();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let alive = true;
+    setSearchLoading(true);
+    const timer = setTimeout(() => {
+      (async () => {
+        const [teamRows, coachRows] = await Promise.all([
+          db.teamSeasons.where({ dynastyId: activeId }).toArray(),
+          db.coaches.where({ dynastyId: activeId }).toArray(),
+        ]);
+
+        if (!alive) return;
+
+        const teamLatestByTgid = new Map();
+        for (const t of teamRows) {
+          const tgid = String(t.tgid ?? "");
+          const yr = Number(t.seasonYear);
+          const existing = teamLatestByTgid.get(tgid);
+          if (!existing || yr > existing.seasonYear) {
+            teamLatestByTgid.set(tgid, { ...t, seasonYear: yr });
+          }
+        }
+
+        const coachLatestByCcid = new Map();
+        for (const c of coachRows) {
+          const ccid = String(c.ccid ?? "");
+          const yr = Number(c.seasonYear);
+          const existing = coachLatestByCcid.get(ccid);
+          if (!existing || yr > existing.seasonYear) {
+            coachLatestByCcid.set(ccid, { ...c, seasonYear: yr });
+          }
+        }
+
+        const results = [];
+        const addResult = (item) => results.push(item);
+        const scoreOf = (text) => {
+          const s = String(text ?? "").toLowerCase();
+          if (!s) return null;
+          if (s.startsWith(q)) return 0;
+          if (s.includes(q)) return 1;
+          return null;
+        };
+
+        for (const t of teamLatestByTgid.values()) {
+          const name = `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
+          const score = scoreOf(name) ?? scoreOf(t.tgid);
+          if (score == null) continue;
+          addResult({
+            type: "Team",
+            label: name || `TGID ${t.tgid}`,
+            href: `/team/${t.tgid}`,
+            score,
+          });
+        }
+
+        for (const c of coachLatestByCcid.values()) {
+          const first = String(c.firstName ?? "").trim();
+          const last = String(c.lastName ?? "").trim();
+          const name = `${first} ${last}`.trim();
+          const score = scoreOf(name) ?? scoreOf(c.ccid);
+          if (score == null) continue;
+          addResult({
+            type: "Coach",
+            label: name || `Coach ${c.ccid}`,
+            href: `/coach/${c.ccid}`,
+            score,
+          });
+        }
+
+        results.sort((a, b) => {
+          if (a.score !== b.score) return a.score - b.score;
+          return a.label.localeCompare(b.label);
+        });
+
+        setSearchResults(results.slice(0, 12));
+        setSearchLoading(false);
+      })().catch(() => {
+        if (!alive) return;
+        setSearchLoading(false);
+      });
+    }, 200);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [activeId, searchQuery]);
 
   const activeDynasty = useMemo(
     () => dynasties.find((d) => d.id === activeId) || null,
@@ -427,7 +530,7 @@ export default function App() {
             <h1>NCAA Next Dynasty Tracker</h1>
           </div>
 
-          {/* Navigation (outside Dynasties section) */}
+          {/* Navigation */}
           <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
             <div className="sideTitle" style={{ marginBottom: 8 }}>
               Navigation
@@ -487,6 +590,44 @@ export default function App() {
                   </a>
                 ))}
             </div>
+          </div>
+
+          {/* Search */}
+          <div className="sideSection">
+            <div className="sideTitle" style={{ marginBottom: 8 }}>
+              Search
+            </div>
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search teams or coaches..."
+              style={{ width: "100%" }}
+              aria-label="Search teams or coaches"
+            />
+            {searchQuery.trim().length >= 2 ? (
+              <div className="sideNav" style={{ marginTop: 10 }}>
+                {searchLoading ? (
+                  <span className="kicker">Searching...</span>
+                ) : searchResults.length ? (
+                  searchResults.map((r) => (
+                    <a
+                      key={`${r.type}-${r.href}`}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(r.href);
+                      }}
+                      title={`${r.type}: ${r.label}`}
+                    >
+                      <span>{r.label}</span>
+                      <span className="badge">{r.type}</span>
+                    </a>
+                  ))
+                ) : (
+                  <span className="kicker">No matches.</span>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {/* Dynasties */}
