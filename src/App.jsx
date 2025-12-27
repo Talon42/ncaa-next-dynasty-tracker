@@ -148,9 +148,10 @@ export default function App() {
     setSearchLoading(true);
     const timer = setTimeout(() => {
       (async () => {
-        const [teamRows, coachRows] = await Promise.all([
+        const [teamRows, coachRows, bowlRows] = await Promise.all([
           db.teamSeasons.where({ dynastyId: activeId }).toArray(),
           db.coaches.where({ dynastyId: activeId }).toArray(),
+          db.bowlGames.where({ dynastyId: activeId }).toArray(),
         ]);
 
         if (!alive) return;
@@ -207,6 +208,23 @@ export default function App() {
             type: "Coach",
             label: name || `Coach ${c.ccid}`,
             href: `/coach/${c.ccid}`,
+            score,
+          });
+        }
+
+        const seenBowls = new Set();
+        for (const b of bowlRows) {
+          const name = String(b.bnme ?? "").trim();
+          if (!name) continue;
+          const key = name.toLowerCase();
+          if (seenBowls.has(key)) continue;
+          const score = scoreOf(name);
+          if (score == null) continue;
+          seenBowls.add(key);
+          addResult({
+            type: "Bowl",
+            label: name,
+            href: `/postseason/bowl?name=${encodeURIComponent(name)}`,
             score,
           });
         }

@@ -75,6 +75,7 @@ export default function BowlResults() {
   const [title, setTitle] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
+  const [winnerLabel, setWinnerLabel] = useState("Winner");
 
   const bowlName = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -192,6 +193,7 @@ export default function BowlResults() {
       setRows(filtered);
       setTitle(bowlDisplayName(bowlName));
       setLogoUrl(postseasonLogoFor(bowlName));
+      setWinnerLabel(/national championship/i.test(bowlName) ? "Champion" : "Winner");
     })();
 
     return () => {
@@ -236,7 +238,7 @@ export default function BowlResults() {
           <thead>
             <tr>
               <th style={{ width: 80 }}>Season</th>
-              <th>Champion</th>
+              <th>{winnerLabel}</th>
               <th style={{ width: 140 }}>Result</th>
               <th>Opponent</th>
             </tr>

@@ -325,7 +325,7 @@ export default function Postseason() {
     list,
     {
       showWinningCoach = false,
-      winnerLabel = "Champion",
+      winnerLabel = "Winner",
       normalizeBowlLabel = (name) => name,
       groupBySeason = false,
       sortBy = "season",
