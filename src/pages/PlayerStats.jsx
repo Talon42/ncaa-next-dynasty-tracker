@@ -292,6 +292,7 @@ export default function PlayerStats() {
   const [confFilter, setConfFilter] = useState("All");
   const [teamFilter, setTeamFilter] = useState("All");
   const [posFilter, setPosFilter] = useState("All");
+  const [playerFilter, setPlayerFilter] = useState("");
 
   const [sortKey, setSortKey] = useState("playerName");
   const [sortDir, setSortDir] = useState("asc");
@@ -306,6 +307,7 @@ export default function PlayerStats() {
     const conf = params.get("conf");
     const team = params.get("team");
     const pos = params.get("pos");
+    const player = params.get("player");
 
     const resolved = getSeasonFromParamOrSaved(season);
     if (resolved != null) {
@@ -318,6 +320,7 @@ export default function PlayerStats() {
     if (conf) setConfFilter(conf);
     if (team) setTeamFilter(team);
     if (pos) setPosFilter(pos);
+    if (player) setPlayerFilter(player);
   }, [location.search]);
 
   useEffect(() => {
@@ -358,13 +361,30 @@ export default function PlayerStats() {
     params.set("conf", confFilter);
     params.set("team", teamFilter);
     params.set("pos", posFilter);
+    if (playerFilter.trim()) {
+      params.set("player", playerFilter.trim());
+    } else {
+      params.delete("player");
+    }
     writeSeasonFilter(seasonYear);
     navigate({ pathname: "/player-stats", search: `?${params.toString()}` }, { replace: true });
-  }, [dynastyId, seasonYear, tab, sortKey, sortDir, confFilter, teamFilter, posFilter, navigate, location.search]);
+  }, [
+    dynastyId,
+    seasonYear,
+    tab,
+    sortKey,
+    sortDir,
+    confFilter,
+    teamFilter,
+    posFilter,
+    playerFilter,
+    navigate,
+    location.search,
+  ]);
 
   useEffect(() => {
     setVisibleCount(200);
-  }, [seasonYear, tab, confFilter, teamFilter, posFilter]);
+  }, [seasonYear, tab, confFilter, teamFilter, posFilter, playerFilter]);
 
   useEffect(() => {
     if (tab === "Passing") {
@@ -505,13 +525,20 @@ export default function PlayerStats() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
+    const q = playerFilter.trim().toLowerCase();
     return mergedRows.filter((r) => {
+      if (q) {
+        const name = String(r.playerName ?? "").toLowerCase();
+        const nameBase = String(r.playerNameBase ?? "").toLowerCase();
+        const pgid = String(r.pgid ?? "").toLowerCase();
+        if (!name.includes(q) && !nameBase.includes(q) && !pgid.includes(q)) return false;
+      }
       if (confFilter !== "All" && r.confName !== confFilter) return false;
       if (teamFilter !== "All" && r.tgid !== teamFilter) return false;
       if (posFilter !== "All" && positionCategory(r.position) !== posFilter) return false;
       return true;
     });
-  }, [mergedRows, confFilter, teamFilter, posFilter]);
+  }, [mergedRows, confFilter, teamFilter, posFilter, playerFilter]);
 
   const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
 
@@ -609,6 +636,17 @@ export default function PlayerStats() {
                 ))
               )}
             </select>
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="muted" style={{ fontSize: 12 }}>
+              Player
+            </span>
+            <input
+              value={playerFilter}
+              onChange={(e) => setPlayerFilter(e.target.value)}
+              placeholder="Search name or PGID"
+            />
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 8 }}>

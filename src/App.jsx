@@ -166,10 +166,11 @@ export default function App() {
     setSearchLoading(true);
     const timer = setTimeout(() => {
       (async () => {
-        const [teamRows, coachRows, bowlRows] = await Promise.all([
+        const [teamRows, coachRows, bowlRows, playerRows] = await Promise.all([
           db.teamSeasons.where({ dynastyId: activeId }).toArray(),
           db.coaches.where({ dynastyId: activeId }).toArray(),
           db.bowlGames.where({ dynastyId: activeId }).toArray(),
+          db.playerSeasonStats.where({ dynastyId: activeId }).toArray(),
         ]);
 
         if (!alive) return;
@@ -191,6 +192,17 @@ export default function App() {
           const existing = coachLatestByCcid.get(ccid);
           if (!existing || yr > existing.seasonYear) {
             coachLatestByCcid.set(ccid, { ...c, seasonYear: yr });
+          }
+        }
+
+        const playerLatestByUid = new Map();
+        for (const p of playerRows) {
+          const uid = String(p.playerUid ?? "").trim() || `pgid:${String(p.pgid ?? "").trim()}`;
+          if (!uid) continue;
+          const yr = Number(p.seasonYear);
+          const existing = playerLatestByUid.get(uid);
+          if (!existing || yr > existing.seasonYear) {
+            playerLatestByUid.set(uid, { ...p, seasonYear: yr });
           }
         }
 
@@ -226,6 +238,36 @@ export default function App() {
             type: "Coach",
             label: name || `Coach ${c.ccid}`,
             href: `/coach/${c.ccid}`,
+            score,
+          });
+        }
+
+        for (const p of playerLatestByUid.values()) {
+          const first = String(p.firstName ?? "").trim();
+          const last = String(p.lastName ?? "").trim();
+          const name = `${first} ${last}`.trim();
+          const pgid = String(p.pgid ?? "").trim();
+          const score = scoreOf(name) ?? scoreOf(pgid);
+          if (score == null) continue;
+          const tgid = String(p.tgid ?? "").trim();
+          const teamRow = tgid ? teamLatestByTgid.get(tgid) || null : null;
+          const teamName = teamRow
+            ? `${String(teamRow.tdna ?? "").trim()} ${String(teamRow.tmna ?? "").trim()}`.trim()
+            : tgid
+              ? `TGID ${tgid}`
+              : "";
+          const labelBase = name || (pgid ? `PGID ${pgid}` : "Unknown Player");
+          const metaParts = [];
+          if (pgid) metaParts.push(`PGID ${pgid}`);
+          if (teamName) metaParts.push(teamName);
+          const label = metaParts.length ? `${labelBase} (${metaParts.join(", ")})` : labelBase;
+          const params = new URLSearchParams();
+          if (p.seasonYear != null) params.set("season", String(p.seasonYear));
+          params.set("player", labelBase);
+          addResult({
+            type: "Player",
+            label,
+            href: `/player-stats?${params.toString()}`,
             score,
           });
         }
@@ -710,9 +752,9 @@ export default function App() {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search teams or coaches..."
+              placeholder="Search teams, coaches, or players..."
               style={{ width: "100%" }}
-              aria-label="Search teams or coaches"
+              aria-label="Search teams, coaches, or players"
             />
             {searchQuery.trim().length >= 2 ? (
               <div className="sideNav" style={{ marginTop: 10 }}>

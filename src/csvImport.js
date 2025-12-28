@@ -202,6 +202,7 @@ function buildPlayerNameKey(info) {
 function createPlayerStatsAccumulator({
   dynastyId,
   seasonYear,
+  seasonIndex,
   existingIdentitiesByNameKey,
   identityByUid,
   priorSeasonByPgid,
@@ -269,8 +270,17 @@ function createPlayerStatsAccumulator({
     if (info.tgid) entry.tgid = info.tgid;
   };
 
+  const shouldIncludeSeasonRow = (row, lc) => {
+    const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
+    if (seyr == null) return true;
+    if (Number.isFinite(seasonIndex) && seyr === seasonIndex) return true;
+    if (seyr === seasonYear) return true;
+    return false;
+  };
+
   const addOffenseRow = (row) => {
     const lc = toLowerKeyMap(row);
+    if (!shouldIncludeSeasonRow(row, lc)) return;
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
@@ -307,6 +317,7 @@ function createPlayerStatsAccumulator({
 
   const addDefenseRow = (row) => {
     const lc = toLowerKeyMap(row);
+    if (!shouldIncludeSeasonRow(row, lc)) return;
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
@@ -330,6 +341,7 @@ function createPlayerStatsAccumulator({
 
   const addKickingRow = (row) => {
     const lc = toLowerKeyMap(row);
+    if (!shouldIncludeSeasonRow(row, lc)) return;
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
@@ -356,6 +368,7 @@ function createPlayerStatsAccumulator({
 
   const addReturnRow = (row) => {
     const lc = toLowerKeyMap(row);
+    if (!shouldIncludeSeasonRow(row, lc)) return;
     const pgid = normId(getRowValueFast(row, lc, "PGID"));
     if (!pgid) return;
     const entry = ensure(pgid);
@@ -891,6 +904,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
+    seasonIndex: Number.isFinite(Number(dynasty.startYear)) ? year - Number(dynasty.startYear) : null,
     existingIdentitiesByNameKey,
     identityByUid,
     priorSeasonByPgid,
