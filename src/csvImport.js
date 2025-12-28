@@ -188,14 +188,11 @@ function dedupeCoachRows(rows) {
   return Array.from(seen.values());
 }
 
-function buildPlayerFingerprint(info) {
+function buildPlayerNameKey(info) {
   const parts = [
     normalizeNamePart(info.firstName),
     normalizeNamePart(info.lastName),
     normalizeNamePart(info.hometown),
-    normalizeNamePart(info.height),
-    normalizeNamePart(info.weight),
-    normalizeNamePart(info.position),
   ];
 
   const hasAny = parts.some((p) => p);
@@ -205,7 +202,10 @@ function buildPlayerFingerprint(info) {
 function createPlayerStatsAccumulator({
   dynastyId,
   seasonYear,
-  existingIdentitiesByFingerprint,
+  existingIdentitiesByNameKey,
+  identityByUid,
+  priorSeasonByPgid,
+  priorSeasonByUid,
   teamGamesByTgid,
 }) {
   const playByPgid = new Map();
@@ -246,19 +246,23 @@ function createPlayerStatsAccumulator({
     const pgid = normId(getRowValue(row, "PGID"));
     if (!pgid) return;
 
-    const info = {
-      pgid,
-      tgid: normalizeTeamId(getRowValue(row, "TGID")) || calcTeamIdFromPgid(pgid),
-      firstName: String(getRowValue(row, "FirstName") ?? "").trim(),
-      lastName: String(getRowValue(row, "LastName") ?? "").trim(),
-      hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
-      height: toNumberOrNull(getRowValue(row, "PHGT")),
-      weight: toNumberOrNull(getRowValue(row, "PWGT")),
-      jersey: toNumberOrNull(getRowValue(row, "PJEN")),
-      position: toNumberOrNull(getRowValue(row, "PPOS")),
-      classYear: toNumberOrNull(getRowValue(row, "PYER")),
-      overall: toNumberOrNull(getRowValue(row, "POVR")),
-    };
+      const info = {
+        pgid,
+        tgid: normalizeTeamId(getRowValue(row, "TGID")) || calcTeamIdFromPgid(pgid),
+        firstName: String(getRowValue(row, "FirstName") ?? "").trim(),
+        lastName: String(getRowValue(row, "LastName") ?? "").trim(),
+        hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
+        height: toNumberOrNull(getRowValue(row, "PHGT")),
+        weight: toNumberOrNull(getRowValue(row, "PWGT")),
+        jersey: toNumberOrNull(getRowValue(row, "PJEN")),
+        position: toNumberOrNull(getRowValue(row, "PPOS")),
+        classYear: toNumberOrNull(getRowValue(row, "PYER")),
+        overall: toNumberOrNull(getRowValue(row, "POVR")),
+        redshirt: toNumberOrNull(getRowValue(row, "PRSD")),
+        skin: toNumberOrNull(getRowValue(row, "PSKI")),
+        faceShape: toNumberOrNull(getRowValue(row, "PFGM")),
+        faceId: toNumberOrNull(getRowValue(row, "PFMP")),
+      };
 
     playByPgid.set(pgid, info);
     const entry = ensure(pgid);
@@ -465,18 +469,107 @@ function createPlayerStatsAccumulator({
       const prTd = entry.ret.prTd ?? null;
       const prLong = entry.ret.prLong ?? null;
 
-      const fingerprint = buildPlayerFingerprint(info) || `pgid:${entry.pgid}|season:${seasonYear}`;
-      let playerUid = existingIdentitiesByFingerprint.get(fingerprint);
+      const nameKey = buildPlayerNameKey(info);
+      const priorUid = priorSeasonByPgid.get(entry.pgid) || null;
+      let playerUid = null;
+
+      const priorSeason = priorUid ? priorSeasonByUid.get(priorUid) || null : null;
+      const targetYear = Number(info.classYear);
+      const targetRedshirt = Number(info.redshirt);
+      const isProgressionValid = (prev) => {
+        if (!prev) return true;
+        const prevYear = Number(prev.classYear);
+        const prevRedshirt = Number(prev.redshirt);
+        if (Number.isFinite(prevYear) && Number.isFinite(targetYear)) {
+          if (targetYear < prevYear) return false;
+        }
+        if (Number.isFinite(prevRedshirt) && Number.isFinite(targetRedshirt)) {
+          if (targetRedshirt < prevRedshirt) {
+            if (!(prevRedshirt === 3 && targetRedshirt === 2)) return false;
+          }
+        }
+        return true;
+      };
+
+      if (priorUid) {
+        if (!nameKey) {
+          if (isProgressionValid(priorSeason)) playerUid = priorUid;
+        } else {
+          const priorIdentity = identityByUid.get(priorUid) || null;
+          const priorKey = priorIdentity ? buildPlayerNameKey(priorIdentity) : null;
+          if (priorKey && priorKey === nameKey && isProgressionValid(priorSeason)) {
+            playerUid = priorUid;
+          }
+        }
+      }
+
+      if (!playerUid && nameKey) {
+        const matches = existingIdentitiesByNameKey.get(nameKey) || [];
+        if (matches.length) {
+          const scored = matches
+            .map((uid) => {
+              const existing = identityByUid.get(uid) || null;
+              const score = { uid, value: 0 };
+
+              const targetPos = Number(info.position);
+              const existingPos = Number(existing?.position);
+              if (
+                Number.isFinite(targetPos) &&
+                Number.isFinite(existingPos) &&
+                targetPos === existingPos
+              ) {
+                score.value += 2;
+              }
+
+              const prevSeason = priorSeasonByUid.get(uid) || null;
+              if (isProgressionValid(prevSeason)) score.value += 1;
+
+              const attrs = [
+                ["skin", "skin"],
+                ["faceShape", "faceShape"],
+                ["faceId", "faceId"],
+              ];
+              for (const [a, b] of attrs) {
+                const av = Number(info[a]);
+                const bv = Number(existing?.[b]);
+                if (Number.isFinite(av) && Number.isFinite(bv) && av === bv) {
+                  score.value += 1;
+                }
+              }
+
+              return score;
+            })
+            .sort((a, b) => b.value - a.value);
+
+          if (scored.length) {
+            const top = scored[0];
+            const second = scored[1];
+            if (top.value > 0 && (!second || top.value > second.value)) {
+              playerUid = top.uid;
+            }
+          }
+        }
+      }
+
       if (!playerUid) {
         playerUid = crypto.randomUUID();
-        existingIdentitiesByFingerprint.set(fingerprint, playerUid);
+        if (nameKey) {
+          const list = existingIdentitiesByNameKey.get(nameKey) || [];
+          list.push(playerUid);
+          existingIdentitiesByNameKey.set(nameKey, list);
+        }
         newIdentities.push({
           dynastyId,
           playerUid,
-          fingerprint,
+          fingerprint: nameKey || `pgid:${entry.pgid}|season:${seasonYear}`,
           firstName: info.firstName ?? "",
           lastName: info.lastName ?? "",
           hometown: info.hometown ?? "",
+          position: info.position ?? null,
+          redshirt: info.redshirt ?? null,
+          skin: info.skin ?? null,
+          faceShape: info.faceShape ?? null,
+          faceId: info.faceId ?? null,
         });
       }
 
@@ -503,6 +596,7 @@ function createPlayerStatsAccumulator({
         jersey: info.jersey ?? null,
         position: info.position ?? null,
         classYear: info.classYear ?? null,
+        redshirt: info.redshirt ?? null,
 
         passComp,
         passAtt,
@@ -754,11 +848,42 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   }));
 
   const existingIdentityRows = await db.playerIdentities.where({ dynastyId }).toArray();
-  const existingIdentitiesByFingerprint = new Map(
+  const identityByUid = new Map(
     existingIdentityRows
       .map((r) => {
-        const fp = String(r.fingerprint ?? "").trim();
-        return fp ? [fp, r.playerUid] : null;
+        const uid = String(r.playerUid ?? "").trim();
+        return uid ? [uid, r] : null;
+      })
+      .filter(Boolean)
+  );
+  const existingIdentitiesByNameKey = new Map();
+  for (const row of existingIdentityRows) {
+    const key = buildPlayerNameKey(row);
+    if (!key) continue;
+    const list = existingIdentitiesByNameKey.get(key) || [];
+    list.push(row.playerUid);
+    existingIdentitiesByNameKey.set(key, list);
+  }
+
+  const priorSeasonYear = year - 1;
+  const [priorSeasonRows, priorSeasonStats] = await Promise.all([
+    db.playerIdentitySeasonMap.where({ dynastyId, seasonYear: priorSeasonYear }).toArray(),
+    db.playerSeasonStats.where({ dynastyId, seasonYear: priorSeasonYear }).toArray(),
+  ]);
+  const priorSeasonByPgid = new Map(
+    priorSeasonRows
+      .map((r) => {
+        const pgid = String(r.pgid ?? "").trim();
+        const uid = String(r.playerUid ?? "").trim();
+        return pgid && uid ? [pgid, uid] : null;
+      })
+      .filter(Boolean)
+  );
+  const priorSeasonByUid = new Map(
+    priorSeasonStats
+      .map((r) => {
+        const uid = String(r.playerUid ?? "").trim();
+        return uid ? [uid, { classYear: r.classYear, redshirt: r.redshirt }] : null;
       })
       .filter(Boolean)
   );
@@ -766,7 +891,10 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
-    existingIdentitiesByFingerprint,
+    existingIdentitiesByNameKey,
+    identityByUid,
+    priorSeasonByPgid,
+    priorSeasonByUid,
     teamGamesByTgid,
   });
 
