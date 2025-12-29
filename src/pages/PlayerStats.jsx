@@ -5,8 +5,6 @@ import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import {
   ONE_DECIMAL_KEYS,
-  STAT_DEFS,
-  TAB_ORDER,
   classLabel,
   derivedValue,
   formatStat,
@@ -32,6 +30,8 @@ const POSITION_FILTER_ORDER = [
   "K",
   "P",
 ];
+
+const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking", "Returns"];
 
 function positionCategory(value) {
   const label = positionLabel(value);
@@ -63,10 +63,48 @@ function toComparable(v) {
   return s ? s.toLowerCase() : null;
 }
 
+function normalizeTab(tab) {
+  return tab === "Kicking" || tab === "Returns" ? "Special Teams" : tab;
+}
+
+function statsDefsForTab(tab) {
+  if (tab !== "Kicking" && tab !== "Returns") return getPlayerCardStatDefs(tab);
+
+  const all = getPlayerCardStatDefs("Special Teams");
+  const kickingKeys = new Set([
+    "fgm",
+    "fga",
+    "fgPct",
+    "fgLong",
+    "xpm",
+    "xpa",
+    "xpPct",
+    "puntAtt",
+    "puntYds",
+    "puntAvg",
+    "puntLong",
+    "puntIn20",
+    "puntBlocked",
+  ]);
+  const returnsKeys = new Set([
+    "krAtt",
+    "krYds",
+    "krTd",
+    "krLong",
+    "prAtt",
+    "prYds",
+    "prTd",
+    "prLong",
+  ]);
+  const allowed = tab === "Kicking" ? kickingKeys : returnsKeys;
+  return all.filter((d) => allowed.has(d.key));
+}
+
 function valueForStat(row, key, tab) {
-  if (key === "gp") return getGpForTab(row, tab);
+  const effectiveTab = normalizeTab(tab);
+  if (key === "gp") return getGpForTab(row, effectiveTab);
   if (ONE_DECIMAL_KEYS.has(key)) {
-    return derivedValue(row, key, getGpForTab(row, tab));
+    return derivedValue(row, key, getGpForTab(row, effectiveTab));
   }
   return row[key];
 }
@@ -113,7 +151,11 @@ export default function PlayerStats() {
       const n = Number(resolved);
       if (Number.isFinite(n)) setSeasonYear(n);
     }
-    if (tabParam && TAB_ORDER.includes(tabParam)) setTab(tabParam);
+    if (tabParam === "Special Teams") {
+      setTab("Kicking");
+    } else if (tabParam && TAB_ORDER.includes(tabParam)) {
+      setTab(tabParam);
+    }
     if (sort) setSortKey(sort);
     if (dir === "asc" || dir === "desc") setSortDir(dir);
     if (conf) setConfFilter(conf);
@@ -197,6 +239,12 @@ export default function PlayerStats() {
       setSortDir("desc");
     } else if (tab === "Receiving") {
       setSortKey("recvCat");
+      setSortDir("desc");
+    } else if (tab === "Kicking") {
+      setSortKey("fgm");
+      setSortDir("desc");
+    } else if (tab === "Returns") {
+      setSortKey("krYds");
       setSortDir("desc");
     }
   }, [tab]);
@@ -345,11 +393,11 @@ export default function PlayerStats() {
     });
   }, [mergedRows, confFilter, teamFilter, posFilter, playerFilter]);
 
-  const colsForTab = useMemo(() => getPlayerCardStatDefs(tab), [tab]);
+  const colsForTab = useMemo(() => statsDefsForTab(tab), [tab]);
 
   const tabRows = useMemo(() => {
     if (!colsForTab.length) return filteredRows;
-    return filteredRows.filter((row) => rowHasStatsForTab(row, colsForTab, tab));
+    return filteredRows.filter((row) => rowHasStatsForTab(row, colsForTab, normalizeTab(tab)));
   }, [filteredRows, colsForTab, tab]);
 
   const sortedRows = useMemo(() => {
@@ -363,7 +411,7 @@ export default function PlayerStats() {
           ? a.playerSortName
           : key === "teamName"
             ? a.teamName
-            : valueForStat(a, key, tab);
+          : valueForStat(a, key, tab);
       const bv =
         key === "playerName"
           ? b.playerSortName
@@ -521,7 +569,7 @@ export default function PlayerStats() {
                 "position",
                 "classYear",
                 "gp",
-                ...getPlayerCardStatDefs(t).map((d) => d.key),
+                ...statsDefsForTab(t).map((d) => d.key),
               ]);
               setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
             }}
@@ -652,7 +700,9 @@ export default function PlayerStats() {
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>
                     <td data-label="GP">
-                      {Number.isFinite(getGpForTab(r, tab)) ? getGpForTab(r, tab) : ""}
+                      {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
+                        ? getGpForTab(r, normalizeTab(tab))
+                        : ""}
                     </td>
                     {colsForTab.map((c) => (
                       <td key={c.key} data-label={c.fullLabel || c.label}>
