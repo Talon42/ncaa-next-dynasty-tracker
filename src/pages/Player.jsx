@@ -4,14 +4,16 @@ import { db, getActiveDynastyId } from "../db";
 import {
   ONE_DECIMAL_KEYS,
   STAT_DEFS,
-  TAB_ORDER,
   classLabel,
   derivedValue,
   formatStat,
+  getGpForTab,
   positionLabel,
+  rowHasStatsForTab,
 } from "../playerStatsUtils";
 
 const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
+const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense"];
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -25,11 +27,18 @@ function maxOrNull(a, b) {
   return Math.max(a, b);
 }
 
-function gpForGroup(totals, group) {
-  if (group === "Passing" || group === "Rushing" || group === "Receiving") return totals.gpOff;
-  if (group === "Defense") return totals.gpDef;
-  if (group === "Special Teams") return totals.gpSpec;
-  return totals.gpOff;
+function defaultTabForPosition(value) {
+  const pos = positionLabel(value);
+  if (pos === "QB") return "Passing";
+  if (pos === "HB" || pos === "FB") return "Rushing";
+  if (pos === "WR" || pos === "TE") return "Receiving";
+  return "Defense";
+}
+
+function valueForStat(row, key, group) {
+  const gp = getGpForTab(row, group);
+  if (ONE_DECIMAL_KEYS.has(key)) return derivedValue(row, key, gp);
+  return row[key];
 }
 
 export default function Player() {
@@ -38,6 +47,8 @@ export default function Player() {
   const [playerRows, setPlayerRows] = useState([]);
   const [identity, setIdentity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("Passing");
+  const [tabInitialized, setTabInitialized] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -124,6 +135,25 @@ export default function Player() {
     }, null);
   }, [playerRows]);
 
+  const availableTabs = TAB_GROUPS;
+
+  useEffect(() => {
+    if (!latestRow) return;
+    const preferred = defaultTabForPosition(latestRow.position);
+    if (!tabInitialized) {
+      if (TAB_GROUPS.includes(preferred)) {
+        setTab(preferred);
+      } else {
+        setTab(TAB_GROUPS[0] || "Passing");
+      }
+      setTabInitialized(true);
+      return;
+    }
+    if (!TAB_GROUPS.includes(tab)) {
+      setTab(TAB_GROUPS[0] || "Passing");
+    }
+  }, [latestRow, tab, tabInitialized]);
+
   const seasonsLabel = useMemo(() => {
     if (!playerRows.length) return "";
     const years = playerRows
@@ -142,16 +172,17 @@ export default function Player() {
     return full || "Player";
   }, [identity, latestRow]);
 
-  const showGroup = (group) => {
-    const gp = gpForGroup(careerTotals, group);
-    if (Number.isFinite(gp) && gp > 0) return true;
-    const defs = defsByGroup.get(group) || [];
-    return defs.some((def) => {
-      if (ONE_DECIMAL_KEYS.has(def.key)) return false;
-      const value = careerTotals[def.key];
-      return Number.isFinite(value) && value !== 0;
-    });
-  };
+  const showGroup = () => true;
+
+  const activeDefs = useMemo(() => defsByGroup.get(tab) || [], [defsByGroup, tab]);
+  const careerGp = getGpForTab(careerTotals, tab);
+  const seasonRowsForTab = useMemo(() => {
+    if (!activeDefs.length) return [];
+    return playerRows.map((row) => ({
+      row,
+      hasStats: rowHasStatsForTab(row, activeDefs, tab),
+    }));
+  }, [activeDefs, playerRows, tab]);
 
   if (loading) {
     return <div className="muted">Loading...</div>;
@@ -174,48 +205,100 @@ export default function Player() {
         <div className="muted" style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           {latestRow?.jersey != null ? <span>#{latestRow.jersey}</span> : null}
           {latestRow?.position != null ? <span>{positionLabel(latestRow.position)}</span> : null}
-          {latestRow?.classYear != null ? <span>{classLabel(latestRow.classYear)}</span> : null}
+          {latestRow?.classYear != null ? (
+            <span>
+              {classLabel(latestRow.classYear)}
+              {Number(latestRow.redshirt) >= 1 ? " (RS)" : ""}
+            </span>
+          ) : null}
           {identity?.hometown ? <span>Hometown: {identity.hometown}</span> : null}
           {seasonsLabel ? <span>Seasons: {seasonsLabel}</span> : null}
         </div>
       </div>
 
-      {TAB_ORDER.map((group) => {
-        if (!showGroup(group)) return null;
-        const defs = defsByGroup.get(group) || [];
-        const gp = gpForGroup(careerTotals, group);
+      {availableTabs.length ? (
+        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {TAB_GROUPS.map((group) => {
+            if (!showGroup(group)) return null;
+            return (
+              <button
+                key={group}
+                type="button"
+                className="toggleBtn"
+                onClick={() => {
+                  setTab(group);
+                  setTabInitialized(true);
+                }}
+                style={{
+                  fontWeight: tab === group ? 800 : 600,
+                  opacity: 1,
+                  color: tab === group ? "var(--text)" : "var(--muted)",
+                  borderColor: tab === group ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
+                  background: tab === group ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
+                  boxShadow: tab === group ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
+                }}
+              >
+                {group}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
-        return (
-          <div key={group} style={{ marginBottom: 16 }}>
-            <h3 style={{ marginBottom: 8 }}>{group} (Career)</h3>
-            <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>GP</th>
-                    {defs.map((c) => (
-                      <th key={c.key} title={c.fullLabel}>
-                        {c.label}
-                      </th>
-                    ))}
+      {activeDefs.length ? (
+        <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Season</th>
+                <th>GP</th>
+                {activeDefs.map((c) => (
+                  <th key={c.key} title={c.fullLabel}>
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {seasonRowsForTab.map(({ row, hasStats }) => {
+                const gp = getGpForTab(row, tab);
+                const redshirtYear = Number(row.redshirt) === 1;
+                return (
+                  <tr key={row.seasonYear}>
+                    <td>{row.seasonYear}</td>
+                    {hasStats ? (
+                      <>
+                        <td>{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
+                        {activeDefs.map((c) => (
+                          <td key={c.key}>{formatStat(valueForStat(row, c.key, tab), c.key)}</td>
+                        ))}
+                      </>
+                    ) : (
+                      <td className="playerSeasonNoteCell" colSpan={activeDefs.length + 1}>
+                        <div className="playerSeasonNote">
+                          <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                        </div>
+                      </td>
+                    )}
                   </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{Number.isFinite(gp) ? gp : ""}</td>
-                    {defs.map((c) => {
-                      const value = ONE_DECIMAL_KEYS.has(c.key)
-                        ? derivedValue(careerTotals, c.key, gp)
-                        : careerTotals[c.key];
-                      return <td key={c.key}>{formatStat(value, c.key)}</td>;
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        );
-      })}
+                );
+              })}
+              <tr>
+                <td>Career</td>
+                <td>{Number.isFinite(careerGp) && careerGp > 0 ? careerGp : ""}</td>
+                {activeDefs.map((c) => {
+                  const value = ONE_DECIMAL_KEYS.has(c.key)
+                    ? derivedValue(careerTotals, c.key, careerGp)
+                    : careerTotals[c.key];
+                  return <td key={c.key}>{formatStat(value, c.key)}</td>;
+                })}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="muted">No stats found for this category.</div>
+      )}
     </div>
   );
 }

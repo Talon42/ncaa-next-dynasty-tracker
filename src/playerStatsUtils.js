@@ -190,3 +190,31 @@ export function formatStat(value, key) {
   }
   return value;
 }
+
+export function getGpForTab(row, tab) {
+  const legacy = Number(row.gp);
+  if (tab === "Passing" || tab === "Rushing" || tab === "Receiving") {
+    const gpOff = Number(row.gpOff);
+    return Number.isFinite(gpOff) ? gpOff : legacy;
+  }
+  if (tab === "Defense") {
+    const gpDef = Number(row.gpDef);
+    return Number.isFinite(gpDef) ? gpDef : legacy;
+  }
+  if (tab === "Special Teams") {
+    const gpSpec = Number(row.gpSpec);
+    return Number.isFinite(gpSpec) ? gpSpec : legacy;
+  }
+  const gpOff = Number(row.gpOff);
+  return Number.isFinite(gpOff) ? gpOff : legacy;
+}
+
+export function rowHasStatsForTab(row, defs, tab) {
+  for (const c of defs) {
+    const value = ONE_DECIMAL_KEYS.has(c.key)
+      ? derivedValue(row, c.key, getGpForTab(row, tab))
+      : row[c.key];
+    if (Number.isFinite(value) && value !== 0) return true;
+  }
+  return false;
+}

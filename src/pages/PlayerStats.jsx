@@ -10,7 +10,9 @@ import {
   classLabel,
   derivedValue,
   formatStat,
+  getGpForTab,
   positionLabel,
+  rowHasStatsForTab,
 } from "../playerStatsUtils";
 
 
@@ -60,28 +62,10 @@ function toComparable(v) {
   return s ? s.toLowerCase() : null;
 }
 
-function gpForTab(row, tab) {
-  const legacy = Number(row.gp);
-  if (tab === "Passing" || tab === "Rushing" || tab === "Receiving") {
-    const gpOff = Number(row.gpOff);
-    return Number.isFinite(gpOff) ? gpOff : legacy;
-  }
-  if (tab === "Defense") {
-    const gpDef = Number(row.gpDef);
-    return Number.isFinite(gpDef) ? gpDef : legacy;
-  }
-  if (tab === "Special Teams") {
-    const gpSpec = Number(row.gpSpec);
-    return Number.isFinite(gpSpec) ? gpSpec : legacy;
-  }
-  const gpOff = Number(row.gpOff);
-  return Number.isFinite(gpOff) ? gpOff : legacy;
-}
-
 function valueForStat(row, key, tab) {
-  if (key === "gp") return gpForTab(row, tab);
+  if (key === "gp") return getGpForTab(row, tab);
   if (ONE_DECIMAL_KEYS.has(key)) {
-    return derivedValue(row, key, gpForTab(row, tab));
+    return derivedValue(row, key, getGpForTab(row, tab));
   }
   return row[key];
 }
@@ -356,13 +340,7 @@ export default function PlayerStats() {
 
   const tabRows = useMemo(() => {
     if (!colsForTab.length) return filteredRows;
-    return filteredRows.filter((row) => {
-      for (const c of colsForTab) {
-        const v = valueForStat(row, c.key, tab);
-        if (Number.isFinite(v) && v !== 0) return true;
-      }
-      return false;
-    });
+    return filteredRows.filter((row) => rowHasStatsForTab(row, colsForTab, tab));
   }, [filteredRows, colsForTab, tab]);
 
   const sortedRows = useMemo(() => {
@@ -665,7 +643,7 @@ export default function PlayerStats() {
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>
                     <td data-label="GP">
-                      {Number.isFinite(gpForTab(r, tab)) ? gpForTab(r, tab) : ""}
+                      {Number.isFinite(getGpForTab(r, tab)) ? getGpForTab(r, tab) : ""}
                     </td>
                     {colsForTab.map((c) => (
                       <td key={c.key} data-label={c.fullLabel || c.label}>

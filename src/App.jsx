@@ -244,6 +244,8 @@ export default function App() {
         }
 
         for (const p of playerLatestByUid.values()) {
+          const playerUid = String(p.playerUid ?? "").trim();
+          if (!playerUid) continue;
           const first = String(p.firstName ?? "").trim();
           const last = String(p.lastName ?? "").trim();
           const name = `${first} ${last}`.trim();
@@ -262,13 +264,10 @@ export default function App() {
           if (pgid) metaParts.push(`PGID ${pgid}`);
           if (teamName) metaParts.push(teamName);
           const label = metaParts.length ? `${labelBase} (${metaParts.join(", ")})` : labelBase;
-          const params = new URLSearchParams();
-          if (p.seasonYear != null) params.set("season", String(p.seasonYear));
-          params.set("player", labelBase);
           addResult({
             type: "Player",
             label,
-            href: `/player-stats?${params.toString()}`,
+            href: `/player/${playerUid}`,
             score,
           });
         }

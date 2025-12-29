@@ -665,6 +665,31 @@ button:disabled {
 .table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.015); }
 .table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
+.playerSeasonNoteCell {
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.playerSeasonNote {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  text-align: center;
+  justify-content: center;
+}
+
+.playerSeasonNote::before,
+.playerSeasonNote::after {
+  content: "";
+  flex: 1 1 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .pollRankingsPage .hrow {
   margin-bottom: 10px;
 }
