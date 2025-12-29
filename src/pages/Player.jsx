@@ -17,6 +17,7 @@ const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
 const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense"];
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
+const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -51,6 +52,22 @@ function seasonGpFromRow(row) {
   const values = [gpOff, gpDef, gpSpec].filter((n) => Number.isFinite(n));
   if (!values.length) return 0;
   return Math.max(...values);
+}
+
+function formatHeight(value) {
+  const inches = Number(value);
+  if (!Number.isFinite(inches) || inches <= 0) return "";
+  const total = Math.round(inches);
+  const feet = Math.floor(total / 12);
+  const rem = total % 12;
+  if (feet <= 0) return "";
+  return `${feet}'${rem}"`;
+}
+
+function formatWeight(value) {
+  const pounds = Number(value);
+  if (!Number.isFinite(pounds) || pounds <= 0) return "";
+  return `${Math.round(pounds)} lbs`;
 }
 
 function computeTotals(rows) {
@@ -287,6 +304,49 @@ export default function Player() {
     () => formatHometownLabel(identity?.hometown, hometownLookup),
     [identity, hometownLookup],
   );
+  const heightLabel = useMemo(() => {
+    const value = identity?.height ?? latestRow?.height;
+    return formatHeight(value);
+  }, [identity, latestRow]);
+  const weightLabel = useMemo(() => {
+    const value = identity?.weight ?? latestRow?.weight;
+    return formatWeight(value);
+  }, [identity, latestRow]);
+  const captainBadges = useMemo(() => {
+    if (!playerRows.length || !teamBySeasonTgid.size) return [];
+    const out = [];
+    const seen = new Set();
+
+    for (const row of playerRows) {
+      const tgid = row?.tgid != null ? String(row.tgid) : "";
+      const pgid = Number(row?.pgid);
+      const seasonYear = row?.seasonYear;
+      if (!tgid || !Number.isFinite(pgid) || seasonYear == null) continue;
+      const teamRow = teamBySeasonTgid.get(`${seasonYear}|${tgid}`) || null;
+      if (!teamRow) continue;
+      const tgidNum = Number(tgid);
+      if (!Number.isFinite(tgidNum)) continue;
+      const offset = pgid - tgidNum * 70;
+      if (!Number.isFinite(offset)) continue;
+
+      const isOcap =
+        Number.isFinite(teamRow?.ocap) && offset === Number(teamRow.ocap);
+      const isDcap =
+        Number.isFinite(teamRow?.dcap) && offset === Number(teamRow.dcap);
+      if (!isOcap && !isDcap) continue;
+
+      const type = isOcap && isDcap ? "Captain" : isOcap ? "Offensive Captain" : "Defensive Captain";
+      const teamLabel = `${String(teamRow.tdna ?? "").trim()} ${String(teamRow.tmna ?? "").trim()}`.trim();
+      const title = `${seasonYear}${teamLabel ? ` - ${teamLabel}` : ""} - ${type}`;
+      const key = `${seasonYear}|${type}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ key, title });
+    }
+
+    out.sort((a, b) => Number(String(a.key).split("|")[0]) - Number(String(b.key).split("|")[0]));
+    return out;
+  }, [playerRows, teamBySeasonTgid]);
 
   const showGroup = () => true;
 
@@ -485,20 +545,107 @@ export default function Player() {
         />
       </div>
 
-      <h2 style={{ marginTop: 6, marginBottom: 6, textAlign: "center" }}>{displayName}</h2>
+      <h2
+        style={{
+          marginTop: 6,
+          marginBottom: 18,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "baseline",
+          gap: 10,
+        }}
+      >
+        {latestRow?.jersey != null ? <span style={{ fontWeight: 700 }}>#{latestRow.jersey}</span> : null}
+        <span>{displayName}</span>
+      </h2>
 
-      <div className="card" style={{ padding: 14, marginBottom: 16 }}>
-        <div className="muted" style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-          {latestRow?.jersey != null ? <span>#{latestRow.jersey}</span> : null}
-          {latestRow?.position != null ? <span>{positionLabel(latestRow.position)}</span> : null}
-          {latestRow?.classYear != null ? (
-            <span>
-              {classLabel(latestRow.classYear)}
-              {Number(latestRow.redshirt) >= 1 ? " (RS)" : ""}
-            </span>
-          ) : null}
-          {hometownLabel ? <span>Hometown: {hometownLabel}</span> : null}
-          {seasonsLabel ? <span>Seasons: {seasonsLabel}</span> : null}
+      <div
+        style={{
+          display: "flex",
+          gap: 18,
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: "stretch",
+          marginBottom: 16,
+        }}
+      >
+        <div className="card" style={{ marginBottom: 0, flex: "1 1 320px", maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div className="kicker" style={{ fontWeight: 700 }}>
+              Player Summary
+            </div>
+          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+          <div className="muted" style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            {latestRow?.position != null ? <span>{positionLabel(latestRow.position)}</span> : null}
+            {latestRow?.classYear != null ? (
+              <span>
+                {classLabel(latestRow.classYear)}
+                {Number(latestRow.redshirt) >= 1 ? " (RS)" : ""}
+              </span>
+            ) : null}
+            {heightLabel ? <span>Height: {heightLabel}</span> : null}
+            {weightLabel ? <span>Weight: {weightLabel}</span> : null}
+            {hometownLabel ? <span>Hometown: {hometownLabel}</span> : null}
+            {seasonsLabel ? <span>Seasons: {seasonsLabel}</span> : null}
+          </div>
+        </div>
+        <div className="card" style={{ marginBottom: 0, flex: "1 1 320px", maxWidth: 560 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div className="kicker" style={{ fontWeight: 700 }}>
+              Trophy Room
+            </div>
+          </div>
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
+          {!captainBadges.length ? (
+            <p className="kicker" style={{ margin: 0 }}>
+              No trophies yet.
+            </p>
+          ) : (
+            <div style={{ display: "flex" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingLeft: 2, paddingRight: 2 }}>
+                {(() => {
+                  const size = 42;
+                  const renderBadge = ({ key, title, logoUrl }) => (
+                    <div
+                      key={key}
+                      title={title}
+                      style={{
+                        width: size,
+                        height: size,
+                        borderRadius: 999,
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        position: "relative",
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid var(--border)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      <img
+                        src={logoUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
+                      />
+                    </div>
+                  );
+
+                  return captainBadges.map((badge) =>
+                    renderBadge({
+                      key: badge.key,
+                      title: badge.title,
+                      logoUrl: CAPTAIN_LOGO,
+                    }),
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

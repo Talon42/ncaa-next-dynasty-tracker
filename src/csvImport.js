@@ -254,7 +254,10 @@ function createPlayerStatsAccumulator({
         lastName: String(getRowValue(row, "LastName") ?? "").trim(),
         hometown: String(getRowValue(row, "RCHD") ?? "").trim(),
         height: toNumberOrNull(getRowValue(row, "PHGT")),
-        weight: toNumberOrNull(getRowValue(row, "PWGT")),
+        weight: (() => {
+          const raw = toNumberOrNull(getRowValue(row, "PWGT"));
+          return raw == null ? null : raw + 160;
+        })(),
         jersey: toNumberOrNull(getRowValue(row, "PJEN")),
         position: toNumberOrNull(getRowValue(row, "PPOS")),
         classYear: toNumberOrNull(getRowValue(row, "PYER")),
@@ -584,6 +587,8 @@ function createPlayerStatsAccumulator({
           firstName: info.firstName ?? "",
           lastName: info.lastName ?? "",
           hometown: info.hometown ?? "",
+          height: info.height ?? null,
+          weight: info.weight ?? null,
           position: info.position ?? null,
           redshirt: info.redshirt ?? null,
           skin: info.skin ?? null,
@@ -616,6 +621,8 @@ function createPlayerStatsAccumulator({
         position: info.position ?? null,
         classYear: info.classYear ?? null,
         redshirt: info.redshirt ?? null,
+        height: info.height ?? null,
+        weight: info.weight ?? null,
 
         passComp,
         passAtt,
@@ -756,6 +763,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       return Number.isFinite(n) ? n : null;
     })(),
     tcrk: toNumberOrNull(r.TCRK ?? r.tcrk),
+    ocap: toNumberOrNull(r.OCAP ?? r.ocap),
+    dcap: toNumberOrNull(r.DCAP ?? r.dcap),
   }));
 
   const teams = teamSeasons.map((t) => ({ dynastyId, tgid: t.tgid }));
