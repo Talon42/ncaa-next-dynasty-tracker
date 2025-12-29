@@ -9,6 +9,7 @@ import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
 import TeamStats from "./pages/TeamStats";
 import PlayerStats from "./pages/PlayerStats";
+import Player from "./pages/Player";
 import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
 import Coaches from "./pages/Coaches";
@@ -899,6 +900,7 @@ export default function App() {
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
                 <Route path="/player-stats" element={<PlayerStats />} />
+                <Route path="/player/:playerUid" element={<Player />} />
                 <Route path="/coaches" element={<Coaches />} />
                 <Route path="/coaches-poll" element={<CoachesPollRankings />} />
                 <Route path="/coach/:ccid" element={<Coach />} />
