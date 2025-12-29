@@ -337,6 +337,12 @@ function createPlayerStatsAccumulator({
     addStat(entry.def, "ff", getRowValueFast(row, lc, "slff"));
     addStat(entry.def, "fr", getRowValueFast(row, lc, "slfr"));
     addStat(entry.def, "dtd", getRowValueFast(row, lc, "ssdt"));
+    addStat(entry.def, "blk", getRowValueFast(row, lc, "slbl"));
+    addStat(entry.def, "intYds", getRowValueFast(row, lc, "ssiy"));
+    const intLongRaw = getRowValueFast(row, lc, "ssIR") ?? getRowValueFast(row, lc, "sslR");
+    addStat(entry.def, "intLong", intLongRaw);
+    addStat(entry.def, "safety", getRowValueFast(row, lc, "slsa"));
+    addStat(entry.def, "fumYds", getRowValueFast(row, lc, "slfy"));
   };
 
   const addKickingRow = (row) => {
@@ -641,6 +647,11 @@ function createPlayerStatsAccumulator({
         defFF: entry.def.ff ?? null,
         defFR: entry.def.fr ?? null,
         defDTD: entry.def.dtd ?? null,
+        defBlk: entry.def.blk ?? null,
+        defIntYds: entry.def.intYds ?? null,
+        defIntLong: entry.def.intLong ?? null,
+        defSafety: entry.def.safety ?? null,
+        defFumYds: entry.def.fumYds ?? null,
 
         fgm,
         fga,

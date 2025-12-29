@@ -21,6 +21,7 @@ export const STAT_DEFS = [
   { key: "rushFum", label: "Fum", fullLabel: "Rushing Fumbles", group: "Rushing" },
   { key: "rushBtk", label: "BTk", fullLabel: "Broken Tackles", group: "Rushing" },
   { key: "rush20", label: "20+", fullLabel: "Rush 20+ Yards", group: "Rushing" },
+  { key: "rushYac", label: "YAC", fullLabel: "Yards After Contact", group: "Rushing" },
 
   // Receiving
   { key: "recvCat", label: "Cat", fullLabel: "Catches", group: "Receiving" },
@@ -42,6 +43,11 @@ export const STAT_DEFS = [
   { key: "defFF", label: "FF", fullLabel: "Forced Fumbles", group: "Defense" },
   { key: "defFR", label: "FR", fullLabel: "Fumble Recoveries", group: "Defense" },
   { key: "defDTD", label: "DTD", fullLabel: "Defensive TD", group: "Defense" },
+  { key: "defFumYds", label: "Fum Yds", fullLabel: "Fumble Yards", group: "Defense" },
+  { key: "defIntYds", label: "Int Yds", fullLabel: "Interception Yards", group: "Defense" },
+  { key: "defIntLong", label: "Int Long", fullLabel: "Longest Interception Return", group: "Defense" },
+  { key: "defSafety", label: "Safety", fullLabel: "Safeties", group: "Defense" },
+  { key: "defBlk", label: "Blk", fullLabel: "Blocks", group: "Defense" },
 
   // Special Teams (Kicking)
   { key: "fgm", label: "FGM", fullLabel: "Field Goals Made", group: "Special Teams" },
