@@ -666,7 +666,7 @@ export default function PlayerStats() {
                     style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                     title="Sort"
                   >
-                    GP{sortIndicator("gp")}
+                    G{sortIndicator("gp")}
                   </th>
 
                   {colsForTab.map((c) => (
@@ -740,7 +740,7 @@ export default function PlayerStats() {
                     </td>
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>
-                    <td data-label="GP">
+                    <td data-label="G">
                       {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
                         ? getGpForTab(r, normalizeTab(tab))
                         : ""}

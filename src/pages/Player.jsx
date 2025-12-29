@@ -697,7 +697,7 @@ export default function Player() {
                 <th>Season</th>
                 <th>Team</th>
                 <th>Class</th>
-                <th>GP</th>
+                <th>G</th>
                 {activeDefs.map((c) => (
                   <th key={c.key} title={c.fullLabel}>
                     {c.label}

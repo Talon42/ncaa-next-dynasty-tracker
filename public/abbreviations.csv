@@ -31,7 +31,7 @@ Baylor,BAY
 Iowa State,ISU
 Kansas,KU
 Kansas State,KSU
-Oklahoma,OKLA or OU
+Oklahoma,OU
 Oklahoma State,OKST
 TCU,TCU
 Texas,TEX
@@ -41,25 +41,25 @@ Arizona,ARIZ
 Arizona State,ASU
 Cal,CAL
 Colorado,COLO
-Oregon,ORE or UO
+Oregon,ORE
 Oregon State,ORST
 Stanford,STAN
 UCLA,UCLA
 USC,USC
 Utah,UTAH
-Washington,WASH or UW
+Washington,WASH
 Washington State,WSU
-Alabama,ALA or BAMA
+Alabama,ALA
 Arkansas,ARK
 Auburn,AUB
-Florida,FLA or UF
+Florida,FLA
 Georgia,UGA
 Kentucky,UK
 LSU,LSU
 Ole Miss,MISS
 Mississippi State,MSST
-Missouri,MIZ or MIZZ
-South Carolina,SC or SCAR
+Missouri,MIZ
+South Carolina,SC
 Tennessee,TENN
 Texas A&M,TAMU
 Vanderbilt,VAN
@@ -102,7 +102,7 @@ Kent State,KENT
 Miami (OH),M-OH
 Northern Illinois,NIU
 Ohio,OHIO
-Toledo,TOL or TOLEDO
+Toledo,TOL
 Western Michigan,WMU
 Air Force,AFA
 Boise State,BSU
@@ -119,7 +119,7 @@ Wyoming,WYO
 Appalachian State,APP
 Arkansas State,ARST
 Georgia Southern,GASO
-Georgia State,GAST or GSU
+Georgia State,GAST
 Idaho,IDHO
 Louisiana Lafayette,ULL
 Louisiana Monroe,ULM

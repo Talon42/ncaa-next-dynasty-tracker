@@ -2,15 +2,16 @@ export const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Special
 
 export const STAT_DEFS = [
   // Passing
-  { key: "passQbr", label: "QBR", fullLabel: "Quarterback Rating", group: "Passing" },
-  { key: "passComp", label: "Comp", fullLabel: "Pass Completions", group: "Passing" },
-  { key: "passAtt", label: "Att", fullLabel: "Pass Attempts", group: "Passing" },
-  { key: "passPct", label: "Pct", fullLabel: "Completion Percentage", group: "Passing" },
-  { key: "passYds", label: "Yds", fullLabel: "Passing Yards", group: "Passing" },
+  { key: "passQbr", label: "RTG", fullLabel: "Quarterback Rating", group: "Passing" },
+  { key: "passComp", label: "CMP", fullLabel: "Pass Completions", group: "Passing" },
+  { key: "passAtt", label: "ATT", fullLabel: "Pass Attempts", group: "Passing" },
+  { key: "passPct", label: "CMP%", fullLabel: "Completion Percentage", group: "Passing" },
+  { key: "passYds", label: "YDS", fullLabel: "Passing Yards", group: "Passing" },
+  { key: "passAvg", label: "AVG", fullLabel: "Yards Per Attempt", group: "Passing" },
   { key: "passYpg", label: "YPG", fullLabel: "Passing Yards Per Game", group: "Passing" },
   { key: "passTd", label: "TD", fullLabel: "Passing TD", group: "Passing" },
-  { key: "passInt", label: "Int", fullLabel: "Passing INT", group: "Passing" },
-  { key: "passSacks", label: "Sacks", fullLabel: "Times Sacked", group: "Passing" },
+  { key: "passInt", label: "INT", fullLabel: "Passing INT", group: "Passing" },
+  { key: "passSacks", label: "SACK", fullLabel: "Times Sacked", group: "Passing" },
 
   // Rushing
   { key: "rushAtt", label: "Att", fullLabel: "Rush Attempts", group: "Rushing" },
@@ -79,6 +80,7 @@ export const STAT_DEFS = [
 
 export const ONE_DECIMAL_KEYS = new Set([
   "passPct",
+  "passAvg",
   "passYpg",
   "passQbr",
   "rushYpc",
@@ -167,6 +169,8 @@ export function derivedValue(row, key, gp) {
       return round1(safeDiv(passComp * 100, passAtt));
     case "passYpg":
       return round1(safeDiv(passYds, gp));
+    case "passAvg":
+      return round1(safeDiv(passYds, passAtt));
     case "rushYpc":
       return round1(safeDiv(rushYds, rushAtt));
     case "rushYpg":
@@ -261,15 +265,30 @@ export function getPlayerCardStatDefs(tab) {
   }
 
   if (tab === "Passing") {
-    const order = ["passQbr", "passComp", "passAtt", "passPct", "passYds", "passTd", "passInt", "passSacks"];
+    const order = [
+      "passComp",
+      "passAtt",
+      "passPct",
+      "passYds",
+      "passAvg",
+      "passTd",
+      "passInt",
+      "passSacks",
+      "passQbr",
+    ];
     const map = new Map(defs.map((d) => [d.key, d]));
     return order
       .map((key) => {
         const def = map.get(key);
         if (!def) return null;
-        if (def.key === "passQbr") return { ...def, label: "QB Rating" };
-        if (def.key === "passPct") return { ...def, label: "Comp %" };
-        if (def.key === "passSacks") return { ...def, label: "Sacked" };
+        if (def.key === "passQbr") return { ...def, label: "RTG" };
+        if (def.key === "passComp") return { ...def, label: "CMP" };
+        if (def.key === "passAtt") return { ...def, label: "ATT" };
+        if (def.key === "passPct") return { ...def, label: "CMP%" };
+        if (def.key === "passYds") return { ...def, label: "YDS" };
+        if (def.key === "passAvg") return { ...def, label: "AVG" };
+        if (def.key === "passInt") return { ...def, label: "INT" };
+        if (def.key === "passSacks") return { ...def, label: "SACK" };
         return def;
       })
       .filter(Boolean);
