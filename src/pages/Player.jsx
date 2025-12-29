@@ -14,6 +14,8 @@ import {
 
 const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
 const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense"];
+const FALLBACK_LOGO =
+  "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -41,6 +43,15 @@ function valueForStat(row, key, group) {
   return row[key];
 }
 
+function seasonGpFromRow(row) {
+  const gpOff = Number(row.gpOff);
+  const gpDef = Number(row.gpDef);
+  const gpSpec = Number(row.gpSpec);
+  const values = [gpOff, gpDef, gpSpec].filter((n) => Number.isFinite(n));
+  if (!values.length) return 0;
+  return Math.max(...values);
+}
+
 export default function Player() {
   const { playerUid } = useParams();
   const [dynastyId, setDynastyId] = useState(null);
@@ -49,6 +60,11 @@ export default function Player() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("Passing");
   const [tabInitialized, setTabInitialized] = useState(false);
+  const [teamLogoUrl, setTeamLogoUrl] = useState(null);
+  const [teamName, setTeamName] = useState("");
+  const [teamBySeasonTgid, setTeamBySeasonTgid] = useState(new Map());
+  const [logoByTgid, setLogoByTgid] = useState(new Map());
+  const [overrideByTgid, setOverrideByTgid] = useState(new Map());
 
   useEffect(() => {
     (async () => {
@@ -86,6 +102,41 @@ export default function Player() {
       alive = false;
     };
   }, [dynastyId, playerUid]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!dynastyId) {
+        setTeamBySeasonTgid(new Map());
+        setLogoByTgid(new Map());
+        setOverrideByTgid(new Map());
+        return;
+      }
+
+      const [teams, logos, overrides] = await Promise.all([
+        db.teamSeasons.where({ dynastyId }).toArray(),
+        db.teamLogos.where({ dynastyId }).toArray(),
+        db.logoOverrides.where({ dynastyId }).toArray(),
+      ]);
+
+      if (!alive) return;
+
+      const teamMap = new Map();
+      for (const t of teams) {
+        const tgid = String(t.tgid ?? "");
+        if (!tgid) continue;
+        teamMap.set(`${t.seasonYear}|${tgid}`, t);
+      }
+      setTeamBySeasonTgid(teamMap);
+      setLogoByTgid(new Map(logos.map((r) => [String(r.tgid), r.url])));
+      setOverrideByTgid(new Map(overrides.map((r) => [String(r.tgid), r.url])));
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId]);
 
   const careerTotals = useMemo(() => {
     const totals = {
@@ -135,6 +186,48 @@ export default function Player() {
     }, null);
   }, [playerRows]);
 
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!dynastyId || !latestRow?.tgid) {
+        setTeamLogoUrl(null);
+        setTeamName("");
+        return;
+      }
+
+      const tgid = String(latestRow.tgid).trim();
+      if (!tgid) {
+        setTeamLogoUrl(null);
+        setTeamName("");
+        return;
+      }
+
+      const [logoRow, overrideRow, teamRows] = await Promise.all([
+        db.teamLogos.get([dynastyId, tgid]),
+        db.logoOverrides.get([dynastyId, tgid]),
+        db.teamSeasons.where({ dynastyId, tgid }).toArray(),
+      ]);
+
+      if (!alive) return;
+
+      const latestTeam = teamRows.reduce((acc, row) => {
+        if (!acc) return row;
+        return Number(row.seasonYear) > Number(acc.seasonYear) ? row : acc;
+      }, null);
+      const name = latestTeam
+        ? `${String(latestTeam.tdna ?? "").trim()} ${String(latestTeam.tmna ?? "").trim()}`.trim()
+        : `TGID ${tgid}`;
+
+      setTeamLogoUrl(overrideRow?.url || logoRow?.url || null);
+      setTeamName(name);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId, latestRow]);
+
   const availableTabs = TAB_GROUPS;
 
   useEffect(() => {
@@ -175,14 +268,35 @@ export default function Player() {
   const showGroup = () => true;
 
   const activeDefs = useMemo(() => defsByGroup.get(tab) || [], [defsByGroup, tab]);
-  const careerGp = getGpForTab(careerTotals, tab);
   const seasonRowsForTab = useMemo(() => {
     if (!activeDefs.length) return [];
-    return playerRows.map((row) => ({
-      row,
-      hasStats: rowHasStatsForTab(row, activeDefs, tab),
-    }));
-  }, [activeDefs, playerRows, tab]);
+    const groups = Array.from(defsByGroup.keys());
+    return playerRows.map((row) => {
+      const hasAnyStats = groups.some((group) => {
+        const defs = defsByGroup.get(group) || [];
+        return defs.length ? rowHasStatsForTab(row, defs, group) : false;
+      });
+      return {
+        row,
+        hasStats: rowHasStatsForTab(row, activeDefs, tab),
+        hasAnyStats,
+        seasonGp: hasAnyStats ? seasonGpFromRow(row) : 0,
+      };
+    });
+  }, [activeDefs, defsByGroup, playerRows, tab]);
+
+  const careerGp = useMemo(() => {
+    const groups = Array.from(defsByGroup.keys());
+    let total = 0;
+    for (const row of playerRows) {
+      const hasAnyStats = groups.some((group) => {
+        const defs = defsByGroup.get(group) || [];
+        return defs.length ? rowHasStatsForTab(row, defs, group) : false;
+      });
+      if (hasAnyStats) total += seasonGpFromRow(row);
+    }
+    return total;
+  }, [defsByGroup, playerRows]);
 
   if (loading) {
     return <div className="muted">Loading...</div>;
@@ -194,12 +308,20 @@ export default function Player() {
 
   return (
     <div style={{ width: "100%", maxWidth: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>{displayName}</h2>
-        <Link to="/player-stats" className="muted" style={{ textDecoration: "none" }}>
-          Back to Player Stats
-        </Link>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <img
+          src={teamLogoUrl || FALLBACK_LOGO}
+          alt={teamName || "Team"}
+          style={{ width: 180, height: 180, objectFit: "contain" }}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_LOGO;
+          }}
+        />
       </div>
+
+      <h2 style={{ marginTop: 6, marginBottom: 6, textAlign: "center" }}>{displayName}</h2>
 
       <div className="card" style={{ padding: 14, marginBottom: 16 }}>
         <div className="muted" style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -251,6 +373,8 @@ export default function Player() {
             <thead>
               <tr>
                 <th>Season</th>
+                <th>Team</th>
+                <th>Class</th>
                 <th>GP</th>
                 {activeDefs.map((c) => (
                   <th key={c.key} title={c.fullLabel}>
@@ -260,12 +384,59 @@ export default function Player() {
               </tr>
             </thead>
             <tbody>
-              {seasonRowsForTab.map(({ row, hasStats }) => {
-                const gp = getGpForTab(row, tab);
+              {seasonRowsForTab.map(({ row, hasStats, hasAnyStats, seasonGp }) => {
+                const gp = hasAnyStats ? seasonGp : 0;
                 const redshirtYear = Number(row.redshirt) === 1;
+                const yearLabel = row.classYear != null ? classLabel(row.classYear) : "";
+                const yearText = yearLabel
+                  ? `${yearLabel}${Number(row.redshirt) >= 2 ? " (RS)" : ""}`
+                  : "";
+                const tgid = row.tgid != null ? String(row.tgid) : "";
+                const teamRow = tgid ? teamBySeasonTgid.get(`${row.seasonYear}|${tgid}`) || null : null;
+                const teamLabel = teamRow
+                  ? `${String(teamRow.tdna ?? "").trim()} ${String(teamRow.tmna ?? "").trim()}`.trim()
+                  : tgid
+                    ? `TGID ${tgid}`
+                    : "Unknown";
+                const logoUrl = overrideByTgid.get(tgid) || logoByTgid.get(tgid) || null;
                 return (
                   <tr key={row.seasonYear}>
                     <td>{row.seasonYear}</td>
+                    <td>
+                      {tgid ? (
+                        <Link
+                          to={`/team/${tgid}?season=${row.seasonYear}`}
+                          style={{ color: "inherit", textDecoration: "none" }}
+                        >
+                          <div className="teamCell">
+                            {logoUrl ? (
+                              <img
+                                className="teamLogo"
+                                src={logoUrl}
+                                alt=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : null}
+                            <span>{teamLabel}</span>
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="teamCell">
+                          {logoUrl ? (
+                            <img
+                              className="teamLogo"
+                              src={logoUrl}
+                              alt=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                          <span>{teamLabel}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td>{yearText}</td>
                     {hasStats ? (
                       <>
                         <td>{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
@@ -273,18 +444,27 @@ export default function Player() {
                           <td key={c.key}>{formatStat(valueForStat(row, c.key, tab), c.key)}</td>
                         ))}
                       </>
-                    ) : (
+                    ) : !hasAnyStats ? (
                       <td className="playerSeasonNoteCell" colSpan={activeDefs.length + 1}>
                         <div className="playerSeasonNote">
                           <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
                         </div>
                       </td>
+                    ) : (
+                      <>
+                        <td>{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
+                        {activeDefs.map((c) => (
+                          <td key={c.key}>0</td>
+                        ))}
+                      </>
                     )}
                   </tr>
                 );
               })}
               <tr>
                 <td>Career</td>
+                <td></td>
+                <td></td>
                 <td>{Number.isFinite(careerGp) && careerGp > 0 ? careerGp : ""}</td>
                 {activeDefs.map((c) => {
                   const value = ONE_DECIMAL_KEYS.has(c.key)
