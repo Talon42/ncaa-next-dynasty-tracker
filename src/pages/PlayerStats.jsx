@@ -608,7 +608,11 @@ export default function PlayerStats() {
 
           <select
             value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setTeamFilter(next);
+              if (next !== "All") setConfFilter("All");
+            }}
             disabled={!teamOptions.length}
             aria-label="Team"
           >
