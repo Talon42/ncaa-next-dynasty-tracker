@@ -735,6 +735,16 @@ button:disabled {
   white-space: nowrap;
 }
 
+.table thead th.tableGroupHeader {
+  text-align: center;
+  color: var(--text);
+}
+
+.table thead th.tableGroupDivider,
+.table tbody td.tableGroupDivider {
+  border-left: 1px solid var(--border);
+}
+
 .table tbody td {
   padding: 10px 12px;
   font-size: var(--app-table-cell-font-size);
@@ -1743,18 +1753,9 @@ button:disabled {
 }
 
 @media (max-width: 1400px) {
-  .table {
-    font-size: 18px;
-  }
-
   .table thead th,
   .table tbody td {
     padding: 8px 8px;
-  }
-
-  .table thead th {
-    font-size: 16px;
-    letter-spacing: 0.2px;
   }
 
   .teamStatsTable .teamCol {

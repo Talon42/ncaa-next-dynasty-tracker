@@ -97,12 +97,14 @@ function statsDefsForTab(tab) {
   const returnsKeys = new Set([
     "krAtt",
     "krYds",
-    "krTd",
+    "krAvg",
     "krLong",
+    "krTd",
     "prAtt",
     "prYds",
-    "prTd",
+    "prAvg",
     "prLong",
+    "prTd",
   ]);
   const allowed = tab === "Kicking" ? kickingKeys : tab === "Punting" ? puntingKeys : returnsKeys;
   return all.filter((d) => allowed.has(d.key));
@@ -517,6 +519,7 @@ export default function PlayerStats() {
   }
 
   const hasAnyYears = availableYears.length > 0;
+  const isReturnsTab = tab === "Returns";
   const headerScope = useMemo(() => {
     if (teamFilter !== "All") return teamNameByTgid.get(teamFilter) || `TGID ${teamFilter}`;
     if (confFilter !== "All") return confFilter;
@@ -671,49 +674,109 @@ export default function PlayerStats() {
           <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
             <table className="table">
               <thead>
-                <tr>
-                  <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
-                  <th
-                    onClick={() => clickSort("playerName")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    Player{sortIndicator("playerName")}
-                  </th>
-                  <th
-                    onClick={() => clickSort("position")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    Pos{sortIndicator("position")}
-                  </th>
-                  <th
-                    onClick={() => clickSort("classYear")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    Class{sortIndicator("classYear")}
-                  </th>
-                  <th
-                    onClick={() => clickSort("gp")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    G{sortIndicator("gp")}
-                  </th>
+                {isReturnsTab ? (
+                  <>
+                    <tr>
+                      <th colSpan={2} className="tableGroupDivider"></th>
+                      <th colSpan={3} className="tableGroupDivider"></th>
+                      <th colSpan={5} className="tableGroupHeader tableGroupDivider">Kickoffs</th>
+                      <th colSpan={5} className="tableGroupHeader tableGroupDivider">Punts</th>
+                    </tr>
+                    <tr>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                      <th
+                        onClick={() => clickSort("playerName")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        Player{sortIndicator("playerName")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("position")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                        className="tableGroupDivider"
+                      >
+                        POS{sortIndicator("position")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("classYear")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        YR{sortIndicator("classYear")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("gp")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        G{sortIndicator("gp")}
+                      </th>
 
-                  {colsForTab.map((c) => (
+                      {colsForTab.map((c, idx) => {
+                        const isKickoffStart = idx === 0;
+                        const isPuntStart = idx === 5;
+                        return (
+                          <th
+                            key={c.key}
+                            onClick={() => clickSort(c.key)}
+                            style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                            title={c.fullLabel}
+                            className={isKickoffStart || isPuntStart ? "tableGroupDivider" : undefined}
+                          >
+                            {c.label}
+                            {sortIndicator(c.key)}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </>
+                ) : (
+                  <tr>
+                    <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
                     <th
-                      key={c.key}
-                      onClick={() => clickSort(c.key)}
+                      onClick={() => clickSort("playerName")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                      title={c.fullLabel}
+                      title="Sort"
                     >
-                      {c.label}
-                      {sortIndicator(c.key)}
+                      Player{sortIndicator("playerName")}
                     </th>
-                  ))}
-                </tr>
+                    <th
+                      onClick={() => clickSort("position")}
+                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                      title="Sort"
+                    >
+                      POS{sortIndicator("position")}
+                    </th>
+                    <th
+                      onClick={() => clickSort("classYear")}
+                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                      title="Sort"
+                    >
+                      YR{sortIndicator("classYear")}
+                    </th>
+                    <th
+                      onClick={() => clickSort("gp")}
+                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                      title="Sort"
+                    >
+                      G{sortIndicator("gp")}
+                    </th>
+
+                    {colsForTab.map((c) => (
+                      <th
+                        key={c.key}
+                        onClick={() => clickSort(c.key)}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title={c.fullLabel}
+                      >
+                        {c.label}
+                        {sortIndicator(c.key)}
+                      </th>
+                    ))}
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {displayedRows.map((r) => (
@@ -771,18 +834,30 @@ export default function PlayerStats() {
                         ) : null}
                       </span>
                     </td>
-                    <td data-label="Pos">{positionLabel(r.position)}</td>
-                    <td data-label="Yr">{classLabel(r.classYear)}</td>
+                    <td data-label="POS" className={isReturnsTab ? "tableGroupDivider" : undefined}>
+                      {positionLabel(r.position)}
+                    </td>
+                    <td data-label="YR">{classLabel(r.classYear)}</td>
                     <td data-label="G">
                       {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
                         ? getGpForTab(r, normalizeTab(tab))
                         : ""}
                     </td>
-                    {colsForTab.map((c) => (
-                      <td key={c.key} data-label={c.fullLabel || c.label}>
-                        {formatStat(valueForStat(r, c.key, tab), c.key)}
-                      </td>
-                    ))}
+                    {colsForTab.map((c, idx) => {
+                      const isKickoffStart = idx === 0;
+                      const isPuntStart = idx === 5;
+                      return (
+                        <td
+                          key={c.key}
+                          data-label={c.fullLabel || c.label}
+                          className={
+                            isReturnsTab && (isKickoffStart || isPuntStart) ? "tableGroupDivider" : undefined
+                          }
+                        >
+                          {formatStat(valueForStat(r, c.key, tab), c.key)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

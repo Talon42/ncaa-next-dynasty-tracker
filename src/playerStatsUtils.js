@@ -68,14 +68,16 @@ export const STAT_DEFS = [
   { key: "puntBlocked", label: "Blk", fullLabel: "Punts Blocked", group: "Special Teams" },
 
   // Special Teams (Returns)
-  { key: "krAtt", label: "KR", fullLabel: "Kick Returns", group: "Special Teams" },
-  { key: "krYds", label: "KR Yds", fullLabel: "Kick Return Yards", group: "Special Teams" },
-  { key: "krTd", label: "KR TD", fullLabel: "Kick Return TD", group: "Special Teams" },
-  { key: "krLong", label: "KR Long", fullLabel: "Longest Kick Return", group: "Special Teams" },
-  { key: "prAtt", label: "PR", fullLabel: "Punt Returns", group: "Special Teams" },
-  { key: "prYds", label: "PR Yds", fullLabel: "Punt Return Yards", group: "Special Teams" },
-  { key: "prTd", label: "PR TD", fullLabel: "Punt Return TD", group: "Special Teams" },
-  { key: "prLong", label: "PR Long", fullLabel: "Longest Punt Return", group: "Special Teams" },
+  { key: "krAtt", label: "ATT", fullLabel: "Kick Return Attempts", group: "Special Teams" },
+  { key: "krYds", label: "YDS", fullLabel: "Kick Return Yards", group: "Special Teams" },
+  { key: "krAvg", label: "AVG", fullLabel: "Kick Return Avg", group: "Special Teams" },
+  { key: "krTd", label: "TD", fullLabel: "Kick Return TD", group: "Special Teams" },
+  { key: "krLong", label: "LNG", fullLabel: "Longest Kick Return", group: "Special Teams" },
+  { key: "prAtt", label: "ATT", fullLabel: "Punt Return Attempts", group: "Special Teams" },
+  { key: "prYds", label: "YDS", fullLabel: "Punt Return Yards", group: "Special Teams" },
+  { key: "prAvg", label: "AVG", fullLabel: "Punt Return Avg", group: "Special Teams" },
+  { key: "prTd", label: "TD", fullLabel: "Punt Return TD", group: "Special Teams" },
+  { key: "prLong", label: "LNG", fullLabel: "Longest Punt Return", group: "Special Teams" },
 ];
 
 export const ONE_DECIMAL_KEYS = new Set([
@@ -91,6 +93,8 @@ export const ONE_DECIMAL_KEYS = new Set([
   "fgPct",
   "xpPct",
   "puntAvg",
+  "krAvg",
+  "prAvg",
 ]);
 
 export const POSITION_LABELS = [
@@ -161,6 +165,10 @@ export function derivedValue(row, key, gp) {
   const xpa = Number(row.xpa ?? 0);
   const puntAtt = Number(row.puntAtt ?? 0);
   const puntYds = Number(row.puntYds ?? 0);
+  const krAtt = Number(row.krAtt ?? 0);
+  const krYds = Number(row.krYds ?? 0);
+  const prAtt = Number(row.prAtt ?? 0);
+  const prYds = Number(row.prYds ?? 0);
 
   switch (key) {
     case "passQbr":
@@ -187,6 +195,10 @@ export function derivedValue(row, key, gp) {
       return round1(safeDiv(xpm * 100, xpa));
     case "puntAvg":
       return round1(safeDiv(puntYds, puntAtt));
+    case "krAvg":
+      return round1(safeDiv(krYds, krAtt));
+    case "prAvg":
+      return round1(safeDiv(prYds, prAtt));
     default:
       return null;
   }
