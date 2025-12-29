@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { loadTeamAbbreviationIndex, matchTeamAbbreviation } from "../abbreviationService";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
@@ -109,6 +110,14 @@ function valueForStat(row, key, tab) {
   return row[key];
 }
 
+function fallbackTeamAbbr(name) {
+  const cleaned = String(name ?? "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9&]/g, "");
+  if (!cleaned) return "";
+  return cleaned.length > 4 ? cleaned.slice(0, 4) : cleaned;
+}
+
 
 export default function PlayerStats() {
   const location = useLocation();
@@ -125,6 +134,7 @@ export default function PlayerStats() {
   const [teamSeasons, setTeamSeasons] = useState([]);
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
+  const [abbrIndex, setAbbrIndex] = useState(null);
 
   const [confFilter, setConfFilter] = useState("All");
   const [teamFilter, setTeamFilter] = useState("All");
@@ -309,6 +319,20 @@ export default function PlayerStats() {
     };
   }, [dynastyId]);
 
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const index = await loadTeamAbbreviationIndex();
+      if (!alive) return;
+      setAbbrIndex(index);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const teamNameByTgid = useMemo(() => {
     const map = new Map();
     for (const t of teamSeasons) {
@@ -319,6 +343,19 @@ export default function PlayerStats() {
     }
     return map;
   }, [teamSeasons]);
+
+  const teamAbbrByTgid = useMemo(() => {
+    const map = new Map();
+    for (const t of teamSeasons) {
+      const tgid = String(t.tgid ?? "");
+      if (!tgid) continue;
+      const explicit = String(t.tmab ?? "").trim();
+      const name = teamNameByTgid.get(tgid) || `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
+      const fromCsv = matchTeamAbbreviation(name, abbrIndex);
+      map.set(tgid, fromCsv || explicit || fallbackTeamAbbr(name));
+    }
+    return map;
+  }, [teamSeasons, teamNameByTgid, abbrIndex]);
 
   const confByTgid = useMemo(() => {
     return new Map(teamSeasons.map((t) => [String(t.tgid), t.cgid]));
@@ -333,6 +370,7 @@ export default function PlayerStats() {
       const nameBase = `${first} ${last}`.trim() || `PGID ${r.pgid}`;
       const name = nameBase;
       const teamName = tgid ? teamNameByTgid.get(tgid) || `TGID ${tgid}` : "Unknown";
+      const teamAbbr = tgid ? teamAbbrByTgid.get(tgid) || "" : "";
       const confName = tgid ? getConferenceName(confByTgid.get(tgid)) : "Unknown";
       const logoUrl = overrideByTgid.get(tgid) || logoByTgid.get(tgid) || null;
       return {
@@ -342,12 +380,13 @@ export default function PlayerStats() {
         playerNameBase: nameBase,
         playerSortName: `${last} ${first}`.trim() || nameBase,
         teamName,
+        teamAbbr,
         confName,
         logoUrl,
         jerseyNumber: jersey,
       };
     });
-  }, [rows, teamNameByTgid, confByTgid, logoByTgid, overrideByTgid]);
+  }, [rows, teamNameByTgid, teamAbbrByTgid, confByTgid, logoByTgid, overrideByTgid]);
 
   const confOptions = useMemo(() => {
     const uniq = new Set();
@@ -565,7 +604,6 @@ export default function PlayerStats() {
 
               const allowedKeys = new Set([
                 "playerName",
-                "teamName",
                 "position",
                 "classYear",
                 "gp",
@@ -601,19 +639,13 @@ export default function PlayerStats() {
             <table className="table">
               <thead>
                 <tr>
+                  <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
                   <th
                     onClick={() => clickSort("playerName")}
                     style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                     title="Sort"
                   >
                     Player{sortIndicator("playerName")}
-                  </th>
-                  <th
-                    onClick={() => clickSort("teamName")}
-                    style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                    title="Sort"
-                  >
-                    Team{sortIndicator("teamName")}
                   </th>
                   <th
                     onClick={() => clickSort("position")}
@@ -653,18 +685,35 @@ export default function PlayerStats() {
               <tbody>
                 {displayedRows.map((r) => (
                   <tr key={`${r.pgid}-${r.seasonYear}`}>
+                    <td data-label="#" style={{ textAlign: "right" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          minWidth: 28,
+                          color: "var(--muted)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {r.jerseyNumber != null ? `#${r.jerseyNumber}` : ""}
+                      </span>
+                    </td>
                     <td data-label="Player">
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span
-                          style={{
-                            minWidth: 28,
-                            textAlign: "right",
-                            color: "var(--muted)",
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {r.jerseyNumber != null ? `#${r.jerseyNumber}` : ""}
-                        </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        {r.tgid && r.logoUrl ? (
+                          <Link
+                            to={`/team/${r.tgid}`}
+                            style={{ color: "inherit", textDecoration: "none" }}
+                            title={r.teamName}
+                          >
+                            <img
+                              className="teamLogo"
+                              src={r.logoUrl}
+                              alt=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          </Link>
+                        ) : null}
                         {r.playerUid ? (
                           <Link
                             to={`/player/${r.playerUid}`}
@@ -675,27 +724,19 @@ export default function PlayerStats() {
                         ) : (
                           <span>{r.playerNameBase || r.playerName}</span>
                         )}
+                        {r.teamAbbr ? (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              fontWeight: 400,
+                              fontSize: "0.8em",
+                              color: "var(--muted)",
+                            }}
+                          >
+                            {r.teamAbbr}
+                          </span>
+                        ) : null}
                       </span>
-                    </td>
-                    <td data-label="Team">
-                      {r.tgid ? (
-                        <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
-                          <div className="teamCell">
-                            {r.logoUrl ? (
-                              <img
-                                className="teamLogo"
-                                src={r.logoUrl}
-                                alt=""
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                              />
-                            ) : null}
-                            <span>{r.teamName}</span>
-                          </div>
-                        </Link>
-                      ) : (
-                        r.teamName
-                      )}
                     </td>
                     <td data-label="Pos">{positionLabel(r.position)}</td>
                     <td data-label="Yr">{classLabel(r.classYear)}</td>

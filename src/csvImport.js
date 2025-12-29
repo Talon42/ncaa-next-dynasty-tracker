@@ -796,6 +796,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     cgid: normId(r.CGID), // conference id (season snapshot; supports realignment)
     tdna: String(r.TDNA ?? "").trim(),
     tmna: String(r.TMNA ?? "").trim(),
+    tmab: String(getRowValue(r, "TMAB") ?? "").trim(),
     tmpr: (() => {
       const n = Number(String(r.TMPR ?? "").trim());
       return Number.isFinite(n) ? n : null;
