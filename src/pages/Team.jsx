@@ -287,9 +287,10 @@ useEffect(() => {
         return acc == null ? yr : Math.max(acc, yr);
       }, null);
       const headerYear = latestTeamYear != null ? latestTeamYear : latestYear;
+      const coachYear = seasonYear === "All" ? headerYear : Number(seasonYear);
       const coachRows =
-        headerYear != null
-          ? await db.coaches.where({ dynastyId, seasonYear: headerYear }).toArray()
+        coachYear != null
+          ? await db.coaches.where({ dynastyId, seasonYear: coachYear }).toArray()
           : [];
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
@@ -531,7 +532,7 @@ useEffect(() => {
 
       {coachName ? (
         <div className="kicker" style={{ textAlign: "center", marginBottom: 6 }}>
-          Coach:{" "}
+          {seasonYear === "All" ? "Current Coach: " : "Coach: "}
           {coachId ? (
             <Link to={`/coach/${coachId}`} style={{ color: "inherit", textDecoration: "none" }}>
               {coachName}
