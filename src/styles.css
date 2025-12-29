@@ -1254,6 +1254,25 @@ button:disabled {
     min-width: 0;
     width: 100%;
   }
+  .mobileHeader {
+    --header-control-h: 30px;
+    padding: 10px;
+  }
+  .headerMenus { gap: 6px; }
+  .headerNavButtons {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .headerTrigger {
+    font-size: 11px;
+    padding: 0 8px;
+  }
+  .headerNavBtn {
+    font-size: 11px;
+    padding: 4px 6px;
+    max-width: 140px;
+  }
+  .headerAddSeason { font-size: 20px; }
 }
 
 /* Team cell */
