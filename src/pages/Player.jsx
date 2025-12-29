@@ -8,6 +8,7 @@ import {
   classLabel,
   derivedValue,
   formatStat,
+  getPlayerCardStatDefs,
   getGpForTab,
   positionLabel,
   rowHasStatsForTab,
@@ -106,6 +107,7 @@ export default function Player() {
   const [playerRows, setPlayerRows] = useState([]);
   const [identity, setIdentity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [tab, setTab] = useState("Passing");
   const [tabInitialized, setTabInitialized] = useState(false);
   const [teamLogoUrl, setTeamLogoUrl] = useState(null);
@@ -143,7 +145,8 @@ export default function Player() {
       if (!dynastyId || !playerUid) {
         setPlayerRows([]);
         setIdentity(null);
-        setLoading(false);
+        setLoading(true);
+        setHasLoaded(false);
         return;
       }
 
@@ -158,6 +161,7 @@ export default function Player() {
       statsRows.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
       setPlayerRows(statsRows);
       setIdentity(identityRow ?? null);
+      setHasLoaded(true);
       setLoading(false);
     })();
 
@@ -350,110 +354,7 @@ export default function Player() {
 
   const showGroup = () => true;
 
-  const activeDefs = useMemo(() => {
-    const defs = defsByGroup.get(tab) || [];
-    if (tab === "Rushing") {
-      const order = [
-        "rushAtt",
-        "rushYds",
-        "rushYpc",
-        "rushTd",
-        "rushBtk",
-        "rushFum",
-        "rush20",
-        "rushYac",
-      ];
-      const labelOverrides = {
-        rushAtt: { label: "Rush Att" },
-        rushYds: { label: "Rush Yds" },
-        rushYpc: { label: "Avg" },
-        rushBtk: { label: "Broken Tackle" },
-        rushFum: { label: "Fumb" },
-        rush20: { label: "20+ Yd Runs" },
-        rushYac: { label: "YAC", fullLabel: "Yards After Contact" },
-      };
-      const map = new Map(defs.map((d) => [d.key, d]));
-      return order
-        .map((key) => {
-          const def = map.get(key);
-          if (!def) return null;
-          const override = labelOverrides[key];
-          return override ? { ...def, ...override } : def;
-        })
-        .filter(Boolean);
-    }
-    if (tab === "Passing") {
-      const order = ["passQbr", "passComp", "passAtt", "passPct", "passYds", "passTd", "passInt", "passSacks"];
-      const map = new Map(defs.map((d) => [d.key, d]));
-      return order
-        .map((key) => {
-          const def = map.get(key);
-          if (!def) return null;
-          if (def.key === "passQbr") return { ...def, label: "QB Rating" };
-          if (def.key === "passPct") return { ...def, label: "Comp %" };
-          if (def.key === "passSacks") return { ...def, label: "Sacked" };
-          return def;
-        })
-        .filter(Boolean);
-    }
-    if (tab === "Receiving") {
-      const order = ["recvCat", "recvYds", "recvYpc", "recvTd", "recvYac", "recvDrops"];
-      const labelOverrides = {
-        recvCat: { label: "Rec" },
-        recvYds: { label: "Rec Yds" },
-        recvYpc: { label: "Avg" },
-        recvTd: { label: "Rec TD" },
-        recvYac: { label: "RAC" },
-      };
-      const map = new Map(defs.map((d) => [d.key, d]));
-      return order
-        .map((key) => {
-          const def = map.get(key);
-          if (!def) return null;
-          const override = labelOverrides[key];
-          return override ? { ...def, ...override } : def;
-        })
-        .filter(Boolean);
-    }
-    if (tab === "Defense") {
-      const order = [
-        "defTkl",
-        "defTfl",
-        "defSack",
-        "defInt",
-        "defFF",
-        "defFR",
-        "defDTD",
-        "defPDef",
-        "defFumYds",
-        "defIntYds",
-        "defIntLong",
-        "defSafety",
-        "defBlk",
-      ];
-      const labelOverrides = {
-        defTkl: { label: "Tackle" },
-        defSack: { label: "Sacks" },
-        defFF: { label: "Forced Fumb" },
-        defFR: { label: "Fumb Rec" },
-        defDTD: { label: "Def TD" },
-        defPDef: { label: "Pass Defl" },
-        defFumYds: { label: "Fumb Yds" },
-        defIntYds: { label: "Int Yds" },
-        defIntLong: { label: "Int Long" },
-      };
-      const map = new Map(defs.map((d) => [d.key, d]));
-      return order
-        .map((key) => {
-          const def = map.get(key);
-          if (!def) return null;
-          const override = labelOverrides[key];
-          return override ? { ...def, ...override } : def;
-        })
-        .filter(Boolean);
-    }
-    return defs;
-  }, [defsByGroup, tab]);
+  const activeDefs = useMemo(() => getPlayerCardStatDefs(tab), [tab]);
   const seasonRowsForTab = useMemo(() => {
     if (!activeDefs.length) return [];
     const groups = Array.from(defsByGroup.keys());
@@ -522,7 +423,7 @@ export default function Player() {
     return result;
   }, [defsByGroup, playerRows]);
 
-  if (loading) {
+  if (loading || !dynastyId || !playerUid || !hasLoaded) {
     return <div className="muted">Loading...</div>;
   }
 

@@ -10,6 +10,7 @@ import {
   classLabel,
   derivedValue,
   formatStat,
+  getPlayerCardStatDefs,
   getGpForTab,
   positionLabel,
   rowHasStatsForTab,
@@ -79,6 +80,8 @@ export default function PlayerStats() {
   const [seasonYear, setSeasonYear] = useState(null);
   const [tab, setTab] = useState("Passing");
   const [loading, setLoading] = useState(true);
+  const [initLoaded, setInitLoaded] = useState(false);
+  const [seasonLoaded, setSeasonLoaded] = useState(false);
 
   const [rows, setRows] = useState([]);
   const [teamSeasons, setTeamSeasons] = useState([]);
@@ -121,11 +124,13 @@ export default function PlayerStats() {
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const id = await getActiveDynastyId();
       setDynastyId(id);
       if (!id) {
         setAvailableYears([]);
         setSeasonYear(null);
+        setInitLoaded(true);
         setLoading(false);
         return;
       }
@@ -143,6 +148,7 @@ export default function PlayerStats() {
         const pickedNum = Number(picked);
         return Number.isFinite(pickedNum) ? pickedNum : years[0] ?? null;
       });
+      setInitLoaded(true);
       setLoading(false);
     })();
   }, []);
@@ -204,10 +210,12 @@ export default function PlayerStats() {
         setTeamSeasons([]);
         setLogoByTgid(new Map());
         setOverrideByTgid(new Map());
+        setSeasonLoaded(false);
         setLoading(false);
         return;
       }
 
+      setSeasonLoaded(false);
       setLoading(true);
       const [statsRows, seasonTeams] = await Promise.all([
         db.playerSeasonStats.where({ dynastyId, seasonYear }).toArray(),
@@ -218,6 +226,7 @@ export default function PlayerStats() {
 
       setRows(statsRows);
       setTeamSeasons(seasonTeams);
+      setSeasonLoaded(true);
       setLoading(false);
     })();
 
@@ -336,7 +345,7 @@ export default function PlayerStats() {
     });
   }, [mergedRows, confFilter, teamFilter, posFilter, playerFilter]);
 
-  const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
+  const colsForTab = useMemo(() => getPlayerCardStatDefs(tab), [tab]);
 
   const tabRows = useMemo(() => {
     if (!colsForTab.length) return filteredRows;
@@ -512,7 +521,7 @@ export default function PlayerStats() {
                 "position",
                 "classYear",
                 "gp",
-                ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
+                ...getPlayerCardStatDefs(t).map((d) => d.key),
               ]);
               setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
             }}
@@ -530,7 +539,7 @@ export default function PlayerStats() {
         ))}
       </div>
 
-      {loading ? (
+      {loading || !initLoaded || (dynastyId && seasonYear != null && !seasonLoaded) ? (
         <div className="muted">Loading...</div>
       ) : !hasAnyYears ? (
         <div className="muted">
