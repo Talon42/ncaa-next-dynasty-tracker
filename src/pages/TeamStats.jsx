@@ -423,7 +423,7 @@ export default function TeamStats() {
 
   function sortIndicator(key) {
     if (sortKey !== key) return "";
-    return sortDir === "asc" ? " ▲" : " ▼";
+    return sortDir === "asc" ? " ↑" : " ↓";
   }
 
   const hasAnyYears = availableYears.length > 0;

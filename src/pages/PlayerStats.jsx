@@ -401,7 +401,7 @@ export default function PlayerStats() {
 
   function sortIndicator(key) {
     if (sortKey !== key) return "";
-    return sortDir === "asc" ? " ^" : " v";
+    return sortDir === "asc" ? " ↑" : " ↓";
   }
 
   const hasAnyYears = availableYears.length > 0;

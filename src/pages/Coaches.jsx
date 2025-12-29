@@ -293,7 +293,7 @@ export default function Coaches() {
 
   function sortIndicator(key) {
     if (sortKey !== key) return "";
-    return sortDir === "asc" ? " ▴" : " ▾";
+    return sortDir === "asc" ? " ↑" : " ↓";
   }
 
   function approvalLabel(value) {
