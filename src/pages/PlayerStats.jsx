@@ -579,7 +579,7 @@ export default function PlayerStats() {
                     style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                     title="Sort"
                   >
-                    Yr{sortIndicator("classYear")}
+                    Class{sortIndicator("classYear")}
                   </th>
                   <th
                     onClick={() => clickSort("gp")}

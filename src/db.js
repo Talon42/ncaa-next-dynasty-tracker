@@ -262,6 +262,38 @@ db.version(12).stores({
     "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, playerUid",
 });
 
+// v13 (player awards)
+db.version(13).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons: "[dynastyId+seasonYear+tgid],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid], dynastyId, seasonYear, tgid",
+  bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
+  coaches:
+    "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+  coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+  coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
+  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
+  playerSeasonStats:
+    "[dynastyId+seasonYear+pgid],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+  playerIdentities:
+    "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+  playerIdentitySeasonMap:
+    "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, playerUid",
+  playerAllAmericans:
+    "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid",
+});
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -329,6 +361,7 @@ export async function deleteDynasty(id) {
     db.playerSeasonStats.where("dynastyId").equals(id).delete(),
     db.playerIdentities.where("dynastyId").equals(id).delete(),
     db.playerIdentitySeasonMap.where("dynastyId").equals(id).delete(),
+    db.playerAllAmericans.where("dynastyId").equals(id).delete(),
   ]);
 
   const active = await getActiveDynastyId();

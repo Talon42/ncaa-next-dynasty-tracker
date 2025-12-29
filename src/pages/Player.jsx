@@ -15,10 +15,12 @@ import {
 } from "../playerStatsUtils";
 
 const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
-const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense"];
+const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense", "Special Teams"];
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
+const ALL_AMERICAN_LOGO =
+  "https://github.com/Talon42/ncaa-next-26/blob/main/textures/SLUS-21214/replacements/general/dynasty-mode/d6ce085a9cf265a1-7d77d8b3187e07c4-00005553.png?raw=true";
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -37,6 +39,7 @@ function defaultTabForPosition(value) {
   if (pos === "QB") return "Passing";
   if (pos === "HB" || pos === "FB") return "Rushing";
   if (pos === "WR" || pos === "TE") return "Receiving";
+  if (pos === "K" || pos === "P") return "Special Teams";
   return "Defense";
 }
 
@@ -116,6 +119,7 @@ export default function Player() {
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
   const [hometownLookup, setHometownLookup] = useState(null);
+  const [allAmericanRows, setAllAmericanRows] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -163,6 +167,26 @@ export default function Player() {
       setIdentity(identityRow ?? null);
       setHasLoaded(true);
       setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId, playerUid]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!dynastyId || !playerUid) {
+        setAllAmericanRows([]);
+        return;
+      }
+
+      const rows = await db.playerAllAmericans.where({ dynastyId, playerUid }).toArray();
+      if (!alive) return;
+      rows.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
+      setAllAmericanRows(rows);
     })();
 
     return () => {
@@ -267,24 +291,30 @@ export default function Player() {
     };
   }, [dynastyId, latestRow]);
 
-  const availableTabs = TAB_GROUPS;
+  const isKicker = useMemo(() => positionLabel(latestRow?.position) === "K", [latestRow]);
+  const isPunter = useMemo(() => positionLabel(latestRow?.position) === "P", [latestRow]);
+  const showSpecialTeams = isKicker || isPunter;
+  const availableTabs = useMemo(
+    () => (showSpecialTeams ? TAB_GROUPS : TAB_GROUPS.filter((g) => g !== "Special Teams")),
+    [showSpecialTeams],
+  );
 
   useEffect(() => {
     if (!latestRow) return;
     const preferred = defaultTabForPosition(latestRow.position);
     if (!tabInitialized) {
-      if (TAB_GROUPS.includes(preferred)) {
+      if (availableTabs.includes(preferred)) {
         setTab(preferred);
       } else {
-        setTab(TAB_GROUPS[0] || "Passing");
+        setTab(availableTabs[0] || "Passing");
       }
       setTabInitialized(true);
       return;
     }
-    if (!TAB_GROUPS.includes(tab)) {
-      setTab(TAB_GROUPS[0] || "Passing");
+    if (!availableTabs.includes(tab)) {
+      setTab(availableTabs[0] || "Passing");
     }
-  }, [latestRow, tab, tabInitialized]);
+  }, [availableTabs, latestRow, tab, tabInitialized]);
 
   const seasonsLabel = useMemo(() => {
     if (!playerRows.length) return "";
@@ -345,16 +375,97 @@ export default function Player() {
       const key = `${seasonYear}|${type}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push({ key, title });
+      out.push({ key, title, seasonYear: Number(seasonYear) || 0, logoUrl: CAPTAIN_LOGO });
     }
 
     out.sort((a, b) => Number(String(a.key).split("|")[0]) - Number(String(b.key).split("|")[0]));
     return out;
   }, [playerRows, teamBySeasonTgid]);
+  const allAmericanBadges = useMemo(() => {
+    if (!allAmericanRows.length) return [];
+    const seen = new Set();
+    const labelForType = (value) => {
+      const t = Number(value);
+      if (t === 0) return "1st Team All-American";
+      if (t === 1) return "2nd Team All-American";
+      if (t === 2) return "Freshman All-American";
+      return "All-American";
+    };
+
+    return allAmericanRows
+      .map((row) => {
+        const seasonYear = Number(row.seasonYear) || 0;
+        const typeLabel = labelForType(row.ttyp);
+        const key = `${seasonYear}|${row.ttyp ?? "na"}|${row.seyr ?? "na"}|${row.pgid ?? "na"}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return {
+          key,
+          title: `${seasonYear} - ${typeLabel}`,
+          seasonYear,
+          logoUrl: ALL_AMERICAN_LOGO,
+        };
+      })
+      .filter(Boolean);
+  }, [allAmericanRows]);
+  const trophyBadges = useMemo(() => {
+    const all = [...captainBadges, ...allAmericanBadges];
+    all.sort((a, b) => (a.seasonYear || 0) - (b.seasonYear || 0));
+    return all;
+  }, [allAmericanBadges, captainBadges]);
 
   const showGroup = () => true;
 
-  const activeDefs = useMemo(() => getPlayerCardStatDefs(tab), [tab]);
+  const specialTeamsStatsByKey = useMemo(() => {
+    const keys = [
+      "fgm",
+      "fga",
+      "fgPct",
+      "fgLong",
+      "xpm",
+      "xpa",
+      "xpPct",
+      "puntAtt",
+      "puntYds",
+      "puntAvg",
+      "puntLong",
+      "puntIn20",
+      "puntBlocked",
+    ];
+    const result = new Map(keys.map((k) => [k, false]));
+    if (!playerRows.length) return result;
+
+    for (const row of playerRows) {
+      for (const key of keys) {
+        if (result.get(key)) continue;
+        const value = ONE_DECIMAL_KEYS.has(key)
+          ? derivedValue(row, key, getGpForTab(row, "Special Teams"))
+          : row[key];
+        if (Number.isFinite(value) && value !== 0) result.set(key, true);
+      }
+    }
+
+    return result;
+  }, [playerRows]);
+
+  const activeDefs = useMemo(() => {
+    const defs = getPlayerCardStatDefs(tab);
+    if (tab !== "Special Teams") return defs;
+
+    const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct"]);
+    const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
+    const allowedKeys = new Set([...kickingKeys, ...puntingKeys]);
+
+    let filtered = defs.filter((d) => allowedKeys.has(d.key));
+    if (isKicker && !isPunter) {
+      filtered = filtered.filter((d) => !puntingKeys.has(d.key) || specialTeamsStatsByKey.get(d.key));
+    }
+    if (isPunter && !isKicker) {
+      filtered = filtered.filter((d) => !kickingKeys.has(d.key) || specialTeamsStatsByKey.get(d.key));
+    }
+
+    return filtered;
+  }, [isKicker, isPunter, specialTeamsStatsByKey, tab]);
   const seasonRowsForTab = useMemo(() => {
     if (!activeDefs.length) return [];
     const groups = Array.from(defsByGroup.keys());
@@ -488,7 +599,6 @@ export default function Player() {
             {heightLabel ? <span>Height: {heightLabel}</span> : null}
             {weightLabel ? <span>Weight: {weightLabel}</span> : null}
             {hometownLabel ? <span>Hometown: {hometownLabel}</span> : null}
-            {seasonsLabel ? <span>Seasons: {seasonsLabel}</span> : null}
           </div>
         </div>
         <div className="card" style={{ marginBottom: 0, flex: "1 1 320px", maxWidth: 560 }}>
@@ -498,7 +608,7 @@ export default function Player() {
             </div>
           </div>
           <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
-          {!captainBadges.length ? (
+          {!trophyBadges.length ? (
             <p className="kicker" style={{ margin: 0 }}>
               No trophies yet.
             </p>
@@ -536,11 +646,11 @@ export default function Player() {
                     </div>
                   );
 
-                  return captainBadges.map((badge) =>
+                  return trophyBadges.map((badge) =>
                     renderBadge({
                       key: badge.key,
                       title: badge.title,
-                      logoUrl: CAPTAIN_LOGO,
+                      logoUrl: badge.logoUrl,
                     }),
                   );
                 })()}
@@ -552,7 +662,7 @@ export default function Player() {
 
       {availableTabs.length ? (
         <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {TAB_GROUPS.map((group) => {
+          {availableTabs.map((group) => {
             if (!showGroup(group)) return null;
             return (
               <button

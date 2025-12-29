@@ -21,6 +21,7 @@ const DYNASTY_TABLES = [
   "playerSeasonStats",
   "playerIdentities",
   "playerIdentitySeasonMap",
+  "playerAllAmericans",
 ];
 
 function normalizeName(name) {

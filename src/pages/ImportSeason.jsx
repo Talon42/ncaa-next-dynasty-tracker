@@ -3,7 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId, getDynasty } from "../db";
 import { importSeasonBatch, seasonExists } from "../csvImport";
 
-const REQUIRED_TYPES = ["TEAM", "SCHD", "TSSE", "BOWL", "COCH", "PLAY", "PSOF", "PSDE", "PSKI", "PSKP"];
+const REQUIRED_TYPES = [
+  "TEAM",
+  "SCHD",
+  "TSSE",
+  "BOWL",
+  "COCH",
+  "PLAY",
+  "PSOF",
+  "PSDE",
+  "PSKI",
+  "PSKP",
+  "AAPL",
+];
 
 function getTypeFromName(fileName) {
   const m = String(fileName ?? "").match(/([A-Za-z0-9]{4})\.csv$/i);
@@ -254,7 +266,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
 
       if (!seasonsToImport.length) {
         setStatus(
-          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PLAY/PSOF/PSDE/PSKI/PSKP CSVs."
+          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PLAY/PSOF/PSDE/PSKI/PSKP/AAPL CSVs."
         );
         return;
       }
@@ -264,7 +276,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         setStatus(
           `Missing required CSV(s) for: ${bad
             .map((s) => `${s.year} (${s.missingTypes.join(", ")})`)
-            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, and PSKP.`
+            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, and AAPL.`
         );
         return;
       }
@@ -294,7 +306,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     }
     if (!files.length) {
       setStatus(
-        "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, and PSKP.csv."
+        "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, and AAPL.csv."
       );
       return;
     }

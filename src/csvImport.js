@@ -717,11 +717,23 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   }
 
   // Mandatory set for now (and will remain mandatory)
-  const requiredTypes = ["TEAM", "SCHD", "TSSE", "BOWL", "COCH", "PLAY", "PSOF", "PSDE", "PSKI", "PSKP"];
+  const requiredTypes = [
+    "TEAM",
+    "SCHD",
+    "TSSE",
+    "BOWL",
+    "COCH",
+    "PLAY",
+    "PSOF",
+    "PSDE",
+    "PSKI",
+    "PSKP",
+    "AAPL",
+  ];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(
-      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, and PSKP.`
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, and AAPL.`
     );
   }
 
@@ -965,6 +977,34 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
   });
 
   const { playerSeasonStats, seasonIdentityMapRows, newIdentities } = statsAccumulator.finalize();
+  const playerUidByPgid = new Map(
+    seasonIdentityMapRows
+      .map((r) => [String(r.pgid ?? "").trim(), String(r.playerUid ?? "").trim()])
+      .filter(([pgid, uid]) => pgid && uid)
+  );
+  const allAmericanRows = [];
+
+  await parseCsvFileStream(byType.AAPL, {
+    label: "AAPL",
+    requiredColumns: ["CGID", "PGID", "TTYP", "SEYR", "PPOS"],
+    onRow: (row) => {
+      const lc = toLowerKeyMap(row);
+      const pgid = normId(getRowValueFast(row, lc, "PGID"));
+      if (!pgid) return;
+      const playerUid = playerUidByPgid.get(pgid);
+      if (!playerUid) return;
+      allAmericanRows.push({
+        dynastyId,
+        seasonYear: year,
+        playerUid,
+        pgid,
+        cgid: normId(getRowValueFast(row, lc, "CGID")),
+        ttyp: toNumberOrNull(getRowValueFast(row, lc, "TTYP")),
+        seyr: toNumberOrNull(getRowValueFast(row, lc, "SEYR")),
+        ppos: toNumberOrNull(getRowValueFast(row, lc, "PPOS")),
+      });
+    },
+  });
 
   await db.transaction(
     "rw",
@@ -981,6 +1021,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.pskiRows,
     db.pskpRows,
     db.playerSeasonStats,
+    db.playerAllAmericans,
     db.playerIdentities,
     db.playerIdentitySeasonMap,
     db.dynasties,
@@ -997,6 +1038,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.pskiRows.where({ dynastyId, seasonYear: year }).delete();
       await db.pskpRows.where({ dynastyId, seasonYear: year }).delete();
       await db.playerSeasonStats.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerAllAmericans.where({ dynastyId, seasonYear: year }).delete();
       await db.playerIdentitySeasonMap.where({ dynastyId, seasonYear: year }).delete();
 
       await db.teams.bulkPut(teams);
@@ -1006,6 +1048,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.bowlGames.bulkPut(bowlGames);
       await db.coaches.bulkPut(coaches);
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
+      if (allAmericanRows.length) await db.playerAllAmericans.bulkPut(allAmericanRows);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
 
