@@ -737,29 +737,55 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     );
   }
 
-  const [teamText, schdText, tsseText, bowlText, cochText] = await Promise.all([
-    byType.TEAM.text(),
-    byType.SCHD.text(),
-    byType.TSSE.text(),
-    byType.BOWL.text(),
-    byType.COCH.text(),
-  ]);
+  const teamRows = [];
+  const schdRows = [];
+  const tsseRows = [];
+  const bowlRows = [];
+  const cochRowsRaw = [];
 
-  const teamRows = parseCsvText(teamText);
-  const schdRows = parseCsvText(schdText);
-  const tsseRows = parseCsvText(tsseText);
-  const bowlRows = parseCsvText(bowlText);
-  const cochRowsRaw = parseCsvText(cochText);
-  // Contract (confirmed headers)
-  requireColumns(teamRows, ["TGID", "CGID", "TDNA", "TMNA", "TMPR"], "TEAM");
-  requireColumns(schdRows, ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"], "SCHD");
-  requireColumns(tsseRows, ["TGID"], "TSSE");
-  requireColumns(bowlRows, ["SEWN", "SGNM", "BNME"], "BOWL");
-  requireColumns(
-    cochRowsRaw,
-    ["CCID", "CLFN", "CLLN", "TGID", "CFUC", "CPRE", "CCPO", "CTOP", "CSWI", "CSLO", "CPID", "CDST", "COST"],
-    "COCH"
-  );
+  await parseCsvFileStream(byType.TEAM, {
+    label: "TEAM",
+    requiredColumns: ["TGID", "CGID", "TDNA", "TMNA", "TMPR"],
+    onRow: (row) => teamRows.push(row),
+  });
+
+  await parseCsvFileStream(byType.SCHD, {
+    label: "SCHD",
+    requiredColumns: ["GATG", "GHTG", "GASC", "GHSC", "SEWN", "SGNM"],
+    onRow: (row) => schdRows.push(row),
+  });
+
+  await parseCsvFileStream(byType.TSSE, {
+    label: "TSSE",
+    requiredColumns: ["TGID"],
+    onRow: (row) => tsseRows.push(row),
+  });
+
+  await parseCsvFileStream(byType.BOWL, {
+    label: "BOWL",
+    requiredColumns: ["SEWN", "SGNM", "BNME"],
+    onRow: (row) => bowlRows.push(row),
+  });
+
+  await parseCsvFileStream(byType.COCH, {
+    label: "COCH",
+    requiredColumns: [
+      "CCID",
+      "CLFN",
+      "CLLN",
+      "TGID",
+      "CFUC",
+      "CPRE",
+      "CCPO",
+      "CTOP",
+      "CSWI",
+      "CSLO",
+      "CPID",
+      "CDST",
+      "COST",
+    ],
+    onRow: (row) => cochRowsRaw.push(row),
+  });
 
   const cochRows = dedupeCoachRows(cochRowsRaw);
 
