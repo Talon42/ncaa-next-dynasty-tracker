@@ -33,6 +33,8 @@ const POSITION_FILTER_ORDER = [
 ];
 
 const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking", "Returns"];
+const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
+const CATEGORY_TABS = ["Offense", "Defense", "Scoring", "Special Teams"];
 
 function positionCategory(value) {
   const label = positionLabel(value);
@@ -66,6 +68,21 @@ function toComparable(v) {
 
 function normalizeTab(tab) {
   return tab === "Kicking" || tab === "Returns" ? "Special Teams" : tab;
+}
+
+function categoryForTab(tab) {
+  if (OFFENSE_TABS.includes(tab)) return "Offense";
+  if (tab === "Defense") return "Defense";
+  if (tab === "Kicking") return "Scoring";
+  if (tab === "Returns") return "Special Teams";
+  return "Offense";
+}
+
+function defaultTabForCategory(category) {
+  if (category === "Defense") return "Defense";
+  if (category === "Scoring") return "Kicking";
+  if (category === "Special Teams") return "Returns";
+  return "Passing";
 }
 
 function statsDefsForTab(tab) {
@@ -433,6 +450,7 @@ export default function PlayerStats() {
   }, [mergedRows, confFilter, teamFilter, posFilter, playerFilter]);
 
   const colsForTab = useMemo(() => statsDefsForTab(tab), [tab]);
+  const category = useMemo(() => categoryForTab(tab), [tab]);
 
   const tabRows = useMemo(() => {
     if (!colsForTab.length) return filteredRows;
@@ -486,143 +504,143 @@ export default function PlayerStats() {
     setSortDir((curDir) => (curDir === "asc" ? "desc" : "asc"));
   }
 
+  function setTabWithSort(nextTab) {
+    setTab(nextTab);
+    const allowedKeys = new Set([
+      "playerName",
+      "position",
+      "classYear",
+      "gp",
+      ...statsDefsForTab(nextTab).map((d) => d.key),
+    ]);
+    setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
+  }
+
   function sortIndicator(key) {
     if (sortKey !== key) return "";
     return sortDir === "asc" ? " ↑" : " ↓";
   }
 
   const hasAnyYears = availableYears.length > 0;
+  const headerScope = useMemo(() => {
+    if (teamFilter !== "All") return teamNameByTgid.get(teamFilter) || `TGID ${teamFilter}`;
+    if (confFilter !== "All") return confFilter;
+    return "All Conferences";
+  }, [teamFilter, confFilter, teamNameByTgid]);
+  const headerStatLabel = category === "Offense" ? tab : category;
+  const headerYear = seasonYear != null ? String(seasonYear) : "";
+  const headerText = `${headerScope} Player ${headerStatLabel} Stats${headerYear ? ` ${headerYear}` : ""}`;
 
   return (
     <div>
-      <div className="hrow">
-        <h2>Player Stats - {tab}</h2>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Season
-            </span>
-            <select
-              value={seasonYear ?? ""}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setSeasonYear(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasAnyYears}
-            >
-              {!hasAnyYears ? (
-                <option value="">No stats imported</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Player
-            </span>
-            <input
-              value={playerFilter}
-              onChange={(e) => setPlayerFilter(e.target.value)}
-              placeholder="Search name or PGID"
-            />
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Conference
-            </span>
-            <select
-              value={confFilter}
-              onChange={(e) => {
-                setConfFilter(e.target.value);
-                setTeamFilter("All");
-              }}
-              disabled={!confOptions.length}
-            >
-              <option value="All">All</option>
-              {confOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Team
-            </span>
-            <select
-              value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value)}
-              disabled={!teamOptions.length}
-            >
-              <option value="All">All</option>
-              {teamOptions.map((t) => (
-                <option key={t.tgid} value={t.tgid}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Position
-            </span>
-            <select
-              value={posFilter}
-              onChange={(e) => setPosFilter(e.target.value)}
-              disabled={!positionOptions.length}
-            >
-              <option value="All">All</option>
-              {positionOptions.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <div className="playerStatsHeader">
+        <h2>{headerText}</h2>
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-        {TAB_ORDER.map((t) => (
+      <div className="playerStatsCategoryRow">
+        {CATEGORY_TABS.map((cat) => (
           <button
-            key={t}
-            className="toggleBtn"
+            key={cat}
+            className={`toggleBtn playerStatsCategoryBtn${category === cat ? " active" : ""}`}
             onClick={() => {
-              setTab(t);
-
-              const allowedKeys = new Set([
-                "playerName",
-                "position",
-                "classYear",
-                "gp",
-                ...statsDefsForTab(t).map((d) => d.key),
-              ]);
-              setSortKey((cur) => (allowedKeys.has(cur) ? cur : "playerName"));
-            }}
-            style={{
-              fontWeight: tab === t ? 800 : 600,
-              opacity: 1,
-              color: tab === t ? "var(--text)" : "var(--muted)",
-              borderColor: tab === t ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-              background: tab === t ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-              boxShadow: tab === t ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
+              const nextTab = defaultTabForCategory(cat);
+              setTabWithSort(nextTab);
             }}
           >
-            {t}
+            {cat}
           </button>
         ))}
+      </div>
+
+      <div className="playerStatsControlRow">
+        {category === "Offense" ? (
+          <div className="playerStatsSubTabs">
+            {OFFENSE_TABS.map((t) => (
+              <button
+                key={t}
+                className={`toggleBtn playerStatsSubTabBtn${tab === t ? " active" : ""}`}
+                onClick={() => setTabWithSort(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="playerStatsFilters">
+          <select
+            value={seasonYear ?? ""}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setSeasonYear(next);
+              writeSeasonFilter(next);
+            }}
+            disabled={!hasAnyYears}
+            aria-label="Year"
+          >
+            {!hasAnyYears ? (
+              <option value="">No stats imported</option>
+            ) : (
+              availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))
+            )}
+          </select>
+
+          <select
+            value={confFilter}
+            onChange={(e) => {
+              setConfFilter(e.target.value);
+              setTeamFilter("All");
+            }}
+            disabled={!confOptions.length}
+            aria-label="Conference"
+          >
+            <option value="All">All Conferences</option>
+            {confOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={teamFilter}
+            onChange={(e) => setTeamFilter(e.target.value)}
+            disabled={!teamOptions.length}
+            aria-label="Team"
+          >
+            <option value="All">All Teams</option>
+            {teamOptions.map((t) => (
+              <option key={t.tgid} value={t.tgid}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={posFilter}
+            onChange={(e) => setPosFilter(e.target.value)}
+            disabled={!positionOptions.length}
+            aria-label="Position"
+          >
+            <option value="All">All Positions</option>
+            {positionOptions.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+
+          <input
+            value={playerFilter}
+            onChange={(e) => setPlayerFilter(e.target.value)}
+            placeholder="Search player"
+            aria-label="Search player"
+          />
+        </div>
       </div>
 
       {loading || !initLoaded || (dynastyId && seasonYear != null && !seasonLoaded) ? (

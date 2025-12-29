@@ -1164,6 +1164,90 @@ button:disabled {
 
 .hrow h2 { margin: 0; font-size: 18px; }
 
+.playerStatsHeader {
+  margin-bottom: 10px;
+}
+
+.playerStatsHeader h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.playerStatsCategoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.playerStatsCategoryBtn {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 6px 12px 8px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+  box-shadow: none;
+}
+
+.playerStatsCategoryBtn.active {
+  color: var(--text);
+  border-bottom-color: var(--red);
+}
+
+.playerStatsControlRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.playerStatsSubTabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.playerStatsSubTabBtn {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.playerStatsSubTabBtn.active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.playerStatsFilters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.playerStatsFilters select,
+.playerStatsFilters input {
+  max-width: 180px;
+}
+
 .breadcrumbRow {
   display: flex;
   align-items: center;
