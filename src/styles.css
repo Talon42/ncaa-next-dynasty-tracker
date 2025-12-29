@@ -794,6 +794,7 @@ button:disabled {
 }
 
 .pollRankingsPage .hrow h2 {
+  margin: 10px 0;
   font-size: var(--app-header-font-size);
   font-weight: var(--app-header-font-weight);
   line-height: var(--app-header-line-height);
@@ -1261,18 +1262,19 @@ button:disabled {
 }
 
 .hrow h2 {
-  margin: 0;
+  margin: 10px 0;
   font-size: var(--app-header-font-size);
   font-weight: var(--app-header-font-weight);
   line-height: var(--app-header-line-height);
 }
 
 .playerStatsHeader {
+  margin-top: 10px;
   margin-bottom: 10px;
 }
 
 .playerStatsHeader h2 {
-  margin: 0;
+  margin: 10px 0;
   font-size: var(--app-header-font-size);
   font-weight: var(--app-header-font-weight);
   line-height: var(--app-header-line-height);
@@ -1382,7 +1384,6 @@ button:disabled {
 .breadcrumbRow {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .breadcrumbBack {

@@ -32,14 +32,14 @@ const POSITION_FILTER_ORDER = [
   "P",
 ];
 
-const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking", "Punting", "Returns"];
+const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Scoring", "Kicking", "Punting", "Returns"];
 const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
 const SPECIAL_TEAMS_TABS = [
   { key: "Returns", label: "Returning" },
   { key: "Kicking", label: "Kicking" },
   { key: "Punting", label: "Punting" },
 ];
-const CATEGORY_TABS = ["Offense", "Defense", "Special Teams"];
+const CATEGORY_TABS = ["Offense", "Defense", "Scoring", "Special Teams"];
 
 function positionCategory(value) {
   const label = positionLabel(value);
@@ -78,12 +78,14 @@ function normalizeTab(tab) {
 function categoryForTab(tab) {
   if (OFFENSE_TABS.includes(tab)) return "Offense";
   if (tab === "Defense") return "Defense";
+  if (tab === "Scoring") return "Scoring";
   if (tab === "Kicking" || tab === "Returns" || tab === "Punting") return "Special Teams";
   return "Offense";
 }
 
 function defaultTabForCategory(category) {
   if (category === "Defense") return "Defense";
+  if (category === "Scoring") return "Scoring";
   if (category === "Special Teams") return "Returns";
   return "Passing";
 }
@@ -110,10 +112,12 @@ function statsDefsForTab(tab) {
   return all.filter((d) => allowed.has(d.key));
 }
 
+const DERIVED_STAT_KEYS = new Set(["retTd", "totalTd", "scoringPts"]);
+
 function valueForStat(row, key, tab) {
   const effectiveTab = normalizeTab(tab);
   if (key === "gp") return getGpForTab(row, effectiveTab);
-  if (ONE_DECIMAL_KEYS.has(key)) {
+  if (ONE_DECIMAL_KEYS.has(key) || DERIVED_STAT_KEYS.has(key)) {
     return derivedValue(row, key, getGpForTab(row, effectiveTab));
   }
   return row[key];
@@ -152,7 +156,7 @@ export default function PlayerStats() {
 
   const [sortKey, setSortKey] = useState("playerName");
   const [sortDir, setSortDir] = useState("asc");
-  const [visibleCount, setVisibleCount] = useState(200);
+  const [visibleCount, setVisibleCount] = useState(100);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -172,6 +176,8 @@ export default function PlayerStats() {
     }
     if (tabParam === "Special Teams") {
       setTab("Returns");
+    } else if (tabParam === "Scoring") {
+      setTab("Scoring");
     } else if (tabParam === "Returning") {
       setTab("Returns");
     } else if (tabParam && TAB_ORDER.includes(tabParam)) {
@@ -248,7 +254,7 @@ export default function PlayerStats() {
   ]);
 
   useEffect(() => {
-    setVisibleCount(200);
+    setVisibleCount(100);
   }, [seasonYear, tab, confFilter, teamFilter, posFilter, playerFilter]);
 
   useEffect(() => {
@@ -269,6 +275,9 @@ export default function PlayerStats() {
       setSortDir("desc");
     } else if (tab === "Punting") {
       setSortKey("puntYds");
+      setSortDir("desc");
+    } else if (tab === "Scoring") {
+      setSortKey("scoringPts");
       setSortDir("desc");
     }
   }, [tab]);
@@ -520,6 +529,7 @@ export default function PlayerStats() {
 
   const hasAnyYears = availableYears.length > 0;
   const isReturnsTab = tab === "Returns";
+  const isScoringTab = tab === "Scoring";
   const headerScope = useMemo(() => {
     if (teamFilter !== "All") return teamNameByTgid.get(teamFilter) || `TGID ${teamFilter}`;
     if (confFilter !== "All") return confFilter;
@@ -706,13 +716,13 @@ export default function PlayerStats() {
                       >
                         YR{sortIndicator("classYear")}
                       </th>
-                      <th
-                        onClick={() => clickSort("gp")}
-                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                        title="Sort"
-                      >
-                        G{sortIndicator("gp")}
-                      </th>
+                        <th
+                          onClick={() => clickSort("gp")}
+                          style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                          title="Sort"
+                        >
+                          G{sortIndicator("gp")}
+                        </th>
 
                       {colsForTab.map((c, idx) => {
                         const isKickoffStart = idx === 0;
@@ -724,6 +734,64 @@ export default function PlayerStats() {
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
                             className={isKickoffStart || isPuntStart ? "tableGroupDivider" : undefined}
+                          >
+                            {c.label}
+                            {sortIndicator(c.key)}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </>
+                ) : isScoringTab ? (
+                  <>
+                      <tr>
+                        <th colSpan={2}></th>
+                        <th colSpan={3} className="tableGroupDivider"></th>
+                        <th colSpan={4} className="tableGroupHeader tableGroupDivider">TOUCHDOWNS</th>
+                        <th colSpan={5} className="tableGroupHeader tableGroupDivider">SCORING</th>
+                      </tr>
+                    <tr>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                      <th
+                        onClick={() => clickSort("playerName")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        Player{sortIndicator("playerName")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("position")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                        className="tableGroupDivider"
+                      >
+                        POS{sortIndicator("position")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("classYear")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        YR{sortIndicator("classYear")}
+                      </th>
+                      <th
+                        onClick={() => clickSort("gp")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                      >
+                        G{sortIndicator("gp")}
+                      </th>
+
+                      {colsForTab.map((c, idx) => {
+                        const isTdStart = idx === 0;
+                        const isScoreStart = idx === 4;
+                        return (
+                          <th
+                            key={c.key}
+                            onClick={() => clickSort(c.key)}
+                            style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                            title={c.fullLabel}
+                            className={isTdStart || isScoreStart ? "tableGroupDivider" : undefined}
                           >
                             {c.label}
                             {sortIndicator(c.key)}
@@ -834,27 +902,41 @@ export default function PlayerStats() {
                         ) : null}
                       </span>
                     </td>
-                    <td data-label="POS" className={isReturnsTab ? "tableGroupDivider" : undefined}>
-                      {positionLabel(r.position)}
-                    </td>
+                      <td
+                        data-label="POS"
+                        className={
+                          isReturnsTab || isScoringTab ? "tableGroupDivider" : undefined
+                        }
+                      >
+                        {positionLabel(r.position)}
+                      </td>
                     <td data-label="YR">{classLabel(r.classYear)}</td>
-                    <td data-label="G">
-                      {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
-                        ? getGpForTab(r, normalizeTab(tab))
-                        : ""}
-                    </td>
+                      <td data-label="G">
+                        {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
+                          ? getGpForTab(r, normalizeTab(tab))
+                          : ""}
+                      </td>
                     {colsForTab.map((c, idx) => {
                       const isKickoffStart = idx === 0;
                       const isPuntStart = idx === 5;
+                      const isTdStart = idx === 0;
+                      const isScoreStart = idx === 4;
+                      const isGroupStart = isReturnsTab
+                        ? isKickoffStart || isPuntStart
+                        : isScoringTab
+                          ? isTdStart || isScoreStart
+                          : false;
+                      const rawValue = valueForStat(r, c.key, tab);
+                      const displayValue = isScoringTab && !Number.isFinite(rawValue)
+                        ? "0"
+                        : formatStat(rawValue, c.key);
                       return (
                         <td
                           key={c.key}
                           data-label={c.fullLabel || c.label}
-                          className={
-                            isReturnsTab && (isKickoffStart || isPuntStart) ? "tableGroupDivider" : undefined
-                          }
+                          className={isGroupStart ? "tableGroupDivider" : undefined}
                         >
-                          {formatStat(valueForStat(r, c.key, tab), c.key)}
+                          {displayValue}
                         </td>
                       );
                     })}
@@ -868,10 +950,10 @@ export default function PlayerStats() {
             <div style={{ marginTop: 12 }}>
               <button
                 className="toggleBtn"
-                onClick={() => setVisibleCount((cur) => cur + 200)}
-              >
-                Load 200 more
-              </button>
+                  onClick={() => setVisibleCount((cur) => cur + 100)}
+                >
+                  Load 100 more
+                </button>
             </div>
           ) : null}
         </div>

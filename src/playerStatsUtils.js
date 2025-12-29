@@ -78,6 +78,16 @@ export const STAT_DEFS = [
   { key: "prAvg", label: "AVG", fullLabel: "Punt Return Avg", group: "Special Teams" },
   { key: "prTd", label: "TD", fullLabel: "Punt Return TD", group: "Special Teams" },
   { key: "prLong", label: "LNG", fullLabel: "Longest Punt Return", group: "Special Teams" },
+
+  // Scoring
+  { key: "rushTd", label: "RUSH", fullLabel: "Rushing TD", group: "Scoring" },
+  { key: "recvTd", label: "REC", fullLabel: "Receiving TD", group: "Scoring" },
+  { key: "retTd", label: "RET", fullLabel: "Return TD", group: "Scoring" },
+  { key: "totalTd", label: "TD", fullLabel: "Total TD", group: "Scoring" },
+  { key: "fgm", label: "FG", fullLabel: "Field Goals Made", group: "Scoring" },
+  { key: "xpm", label: "XP", fullLabel: "Extra Points Made", group: "Scoring" },
+  { key: "scoringPts", label: "PTS", fullLabel: "Total Points", group: "Scoring" },
+  { key: "scoringPtsPg", label: "PTS/G", fullLabel: "Points Per Game", group: "Scoring" },
 ];
 
 export const ONE_DECIMAL_KEYS = new Set([
@@ -95,6 +105,7 @@ export const ONE_DECIMAL_KEYS = new Set([
   "puntAvg",
   "krAvg",
   "prAvg",
+  "scoringPtsPg",
 ]);
 
 export const POSITION_LABELS = [
@@ -169,6 +180,9 @@ export function derivedValue(row, key, gp) {
   const krYds = Number(row.krYds ?? 0);
   const prAtt = Number(row.prAtt ?? 0);
   const prYds = Number(row.prYds ?? 0);
+  const retTd = Number(row.krTd ?? 0) + Number(row.prTd ?? 0);
+  const totalTd = Number(row.rushTd ?? 0) + Number(row.recvTd ?? 0) + retTd;
+  const scoringPts = totalTd * 6 + Number(row.fgm ?? 0) * 3 + Number(row.xpm ?? 0) * 1;
 
   switch (key) {
     case "passQbr":
@@ -199,6 +213,14 @@ export function derivedValue(row, key, gp) {
       return round1(safeDiv(krYds, krAtt));
     case "prAvg":
       return round1(safeDiv(prYds, prAtt));
+    case "retTd":
+      return retTd;
+    case "totalTd":
+      return totalTd;
+    case "scoringPts":
+      return scoringPts;
+    case "scoringPtsPg":
+      return round1(safeDiv(scoringPts, gp));
     default:
       return null;
   }
@@ -219,6 +241,16 @@ export function getGpForTab(row, tab) {
     const gpOff = Number(row.gpOff);
     return Number.isFinite(gpOff) ? gpOff : legacy;
   }
+  if (tab === "Scoring") {
+    const gpOff = Number(row.gpOff);
+    const gpSpec = Number(row.gpSpec);
+    const off = Number.isFinite(gpOff) ? gpOff : null;
+    const spec = Number.isFinite(gpSpec) ? gpSpec : null;
+    if (off != null && spec != null) return Math.max(off, spec);
+    if (off != null) return off;
+    if (spec != null) return spec;
+    return legacy;
+  }
   if (tab === "Defense") {
     const gpDef = Number(row.gpDef);
     return Number.isFinite(gpDef) ? gpDef : legacy;
@@ -233,9 +265,14 @@ export function getGpForTab(row, tab) {
 
 export function rowHasStatsForTab(row, defs, tab) {
   for (const c of defs) {
-    const value = ONE_DECIMAL_KEYS.has(c.key)
-      ? derivedValue(row, c.key, getGpForTab(row, tab))
-      : row[c.key];
+    const value =
+      ONE_DECIMAL_KEYS.has(c.key) ||
+      c.key === "retTd" ||
+      c.key === "totalTd" ||
+      c.key === "scoringPts" ||
+      c.key === "scoringPtsPg"
+        ? derivedValue(row, c.key, getGpForTab(row, tab))
+        : row[c.key];
     if (Number.isFinite(value) && value !== 0) return true;
   }
   return false;
@@ -362,6 +399,12 @@ export function getPlayerCardStatDefs(tab) {
         return override ? { ...def, ...override } : def;
       })
       .filter(Boolean);
+  }
+
+  if (tab === "Scoring") {
+    const order = ["rushTd", "recvTd", "retTd", "totalTd", "fgm", "xpm", "scoringPts", "scoringPtsPg"];
+    const map = new Map(defs.map((d) => [d.key, d]));
+    return order.map((key) => map.get(key)).filter(Boolean);
   }
 
   return defs;

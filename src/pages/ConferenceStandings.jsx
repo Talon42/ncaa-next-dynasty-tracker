@@ -481,7 +481,7 @@ useEffect(() => {
   return (
     <div>
       <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <h2 style={{ margin: 0 }}>
+        <h2>
           {cgid === "All" ? (
             "Conference Standings"
           ) : (
