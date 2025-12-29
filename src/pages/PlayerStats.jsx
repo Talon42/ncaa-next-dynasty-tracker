@@ -32,9 +32,14 @@ const POSITION_FILTER_ORDER = [
   "P",
 ];
 
-const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking", "Returns"];
+const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Kicking", "Punting", "Returns"];
 const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
-const CATEGORY_TABS = ["Offense", "Defense", "Scoring", "Special Teams"];
+const SPECIAL_TEAMS_TABS = [
+  { key: "Returns", label: "Returning" },
+  { key: "Kicking", label: "Kicking" },
+  { key: "Punting", label: "Punting" },
+];
+const CATEGORY_TABS = ["Offense", "Defense", "Special Teams"];
 
 function positionCategory(value) {
   const label = positionLabel(value);
@@ -67,43 +72,28 @@ function toComparable(v) {
 }
 
 function normalizeTab(tab) {
-  return tab === "Kicking" || tab === "Returns" ? "Special Teams" : tab;
+  return tab === "Kicking" || tab === "Returns" || tab === "Punting" ? "Special Teams" : tab;
 }
 
 function categoryForTab(tab) {
   if (OFFENSE_TABS.includes(tab)) return "Offense";
   if (tab === "Defense") return "Defense";
-  if (tab === "Kicking") return "Scoring";
-  if (tab === "Returns") return "Special Teams";
+  if (tab === "Kicking" || tab === "Returns" || tab === "Punting") return "Special Teams";
   return "Offense";
 }
 
 function defaultTabForCategory(category) {
   if (category === "Defense") return "Defense";
-  if (category === "Scoring") return "Kicking";
   if (category === "Special Teams") return "Returns";
   return "Passing";
 }
 
 function statsDefsForTab(tab) {
-  if (tab !== "Kicking" && tab !== "Returns") return getPlayerCardStatDefs(tab);
+  if (tab !== "Kicking" && tab !== "Returns" && tab !== "Punting") return getPlayerCardStatDefs(tab);
 
   const all = getPlayerCardStatDefs("Special Teams");
-  const kickingKeys = new Set([
-    "fgm",
-    "fga",
-    "fgPct",
-    "fgLong",
-    "xpm",
-    "xpa",
-    "xpPct",
-    "puntAtt",
-    "puntYds",
-    "puntAvg",
-    "puntLong",
-    "puntIn20",
-    "puntBlocked",
-  ]);
+  const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct", "puntBlocked"]);
+  const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
   const returnsKeys = new Set([
     "krAtt",
     "krYds",
@@ -114,7 +104,7 @@ function statsDefsForTab(tab) {
     "prTd",
     "prLong",
   ]);
-  const allowed = tab === "Kicking" ? kickingKeys : returnsKeys;
+  const allowed = tab === "Kicking" ? kickingKeys : tab === "Punting" ? puntingKeys : returnsKeys;
   return all.filter((d) => allowed.has(d.key));
 }
 
@@ -179,7 +169,9 @@ export default function PlayerStats() {
       if (Number.isFinite(n)) setSeasonYear(n);
     }
     if (tabParam === "Special Teams") {
-      setTab("Kicking");
+      setTab("Returns");
+    } else if (tabParam === "Returning") {
+      setTab("Returns");
     } else if (tabParam && TAB_ORDER.includes(tabParam)) {
       setTab(tabParam);
     }
@@ -272,6 +264,9 @@ export default function PlayerStats() {
       setSortDir("desc");
     } else if (tab === "Returns") {
       setSortKey("krYds");
+      setSortDir("desc");
+    } else if (tab === "Punting") {
+      setSortKey("puntYds");
       setSortDir("desc");
     }
   }, [tab]);
@@ -527,7 +522,9 @@ export default function PlayerStats() {
     if (confFilter !== "All") return confFilter;
     return "All Conferences";
   }, [teamFilter, confFilter, teamNameByTgid]);
-  const headerStatLabel = category === "Offense" ? tab : category;
+  const tabLabel = tab === "Returns" ? "Returning" : tab;
+  const headerStatLabel =
+    category === "Offense" || category === "Special Teams" ? tabLabel : category;
   const headerYear = seasonYear != null ? String(seasonYear) : "";
   const headerText = `${headerScope} Player ${headerStatLabel} Stats${headerYear ? ` ${headerYear}` : ""}`;
 
@@ -562,6 +559,20 @@ export default function PlayerStats() {
                 onClick={() => setTabWithSort(t)}
               >
                 {t}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {category === "Special Teams" ? (
+          <div className="playerStatsSubTabs">
+            {SPECIAL_TEAMS_TABS.map((t) => (
+              <button
+                key={t.key}
+                className={`toggleBtn playerStatsSubTabBtn${tab === t.key ? " active" : ""}`}
+                onClick={() => setTabWithSort(t.key)}
+              >
+                {t.label}
               </button>
             ))}
           </div>
