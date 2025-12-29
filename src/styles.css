@@ -357,6 +357,10 @@ a { color: inherit; }
   max-width: var(--teams-max);
 }
 
+.routedCard.cardPlayer {
+  max-width: 1570px;
+}
+
 .routedCard.cardSchedule {
   max-width: var(--schedule-max);
   padding-left: 24px;
@@ -689,6 +693,14 @@ button:disabled {
   height: 1px;
   background: rgba(255, 255, 255, 0.2);
 }
+
+.table tbody tr.playerTotalsDivider td {
+  padding: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2) inset;
+}
+
 
 .pollRankingsPage .hrow {
   margin-bottom: 10px;

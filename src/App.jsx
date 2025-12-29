@@ -885,6 +885,7 @@ export default function App() {
                   "routedCard",
                   isTeamsPage ? "cardWide" : "",
                   isSchedulePage ? "cardSchedule" : "",
+                  location.pathname.startsWith("/player/") ? "cardPlayer" : "",
                   location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
                 ]
                   .filter(Boolean)

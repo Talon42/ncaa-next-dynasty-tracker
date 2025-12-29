@@ -52,6 +52,36 @@ function seasonGpFromRow(row) {
   return Math.max(...values);
 }
 
+function computeTotals(rows) {
+  const totals = {
+    gpOff: 0,
+    gpDef: 0,
+    gpSpec: 0,
+    fgLong: null,
+    puntLong: null,
+    krLong: null,
+    prLong: null,
+  };
+
+  for (const row of rows) {
+    totals.gpOff += sumOrZero(row.gpOff);
+    totals.gpDef += sumOrZero(row.gpDef);
+    totals.gpSpec += sumOrZero(row.gpSpec);
+
+    for (const def of STAT_DEFS) {
+      const key = def.key;
+      if (ONE_DECIMAL_KEYS.has(key)) continue;
+      if (LONG_KEYS.has(key)) {
+        totals[key] = maxOrNull(totals[key], Number(row[key]));
+      } else {
+        totals[key] = sumOrZero(totals[key]) + sumOrZero(row[key]);
+      }
+    }
+  }
+
+  return totals;
+}
+
 export default function Player() {
   const { playerUid } = useParams();
   const [dynastyId, setDynastyId] = useState(null);
@@ -138,35 +168,7 @@ export default function Player() {
     };
   }, [dynastyId]);
 
-  const careerTotals = useMemo(() => {
-    const totals = {
-      gpOff: 0,
-      gpDef: 0,
-      gpSpec: 0,
-      fgLong: null,
-      puntLong: null,
-      krLong: null,
-      prLong: null,
-    };
-
-    for (const row of playerRows) {
-      totals.gpOff += sumOrZero(row.gpOff);
-      totals.gpDef += sumOrZero(row.gpDef);
-      totals.gpSpec += sumOrZero(row.gpSpec);
-
-      for (const def of STAT_DEFS) {
-        const key = def.key;
-        if (ONE_DECIMAL_KEYS.has(key)) continue;
-        if (LONG_KEYS.has(key)) {
-          totals[key] = maxOrNull(totals[key], Number(row[key]));
-        } else {
-          totals[key] = sumOrZero(totals[key]) + sumOrZero(row[key]);
-        }
-      }
-    }
-
-    return totals;
-  }, [playerRows]);
+  const careerTotals = useMemo(() => computeTotals(playerRows), [playerRows]);
 
   const defsByGroup = useMemo(() => {
     const map = new Map();
@@ -401,6 +403,44 @@ export default function Player() {
     return total;
   }, [defsByGroup, playerRows]);
 
+  const teamTotals = useMemo(() => {
+    const groups = Array.from(defsByGroup.keys());
+    const totalsByTeam = new Map();
+    const seasonMeta = new Map();
+
+    for (const row of playerRows) {
+      const tgid = row.tgid != null ? String(row.tgid) : "";
+      if (!tgid) continue;
+      const entry = totalsByTeam.get(tgid) || { rows: [] };
+      entry.rows.push(row);
+      totalsByTeam.set(tgid, entry);
+
+      const meta = seasonMeta.get(tgid) || { firstSeason: Number(row.seasonYear) || 0, lastSeason: 0 };
+      const seasonValue = Number(row.seasonYear) || 0;
+      meta.firstSeason = meta.firstSeason ? Math.min(meta.firstSeason, seasonValue) : seasonValue;
+      meta.lastSeason = Math.max(meta.lastSeason, seasonValue);
+      seasonMeta.set(tgid, meta);
+    }
+
+    const result = [];
+    for (const [tgid, entry] of totalsByTeam.entries()) {
+      const totals = computeTotals(entry.rows);
+      let gpTotal = 0;
+      for (const row of entry.rows) {
+        const hasAnyStats = groups.some((group) => {
+          const defs = defsByGroup.get(group) || [];
+          return defs.length ? rowHasStatsForTab(row, defs, group) : false;
+        });
+        if (hasAnyStats) gpTotal += seasonGpFromRow(row);
+      }
+      const meta = seasonMeta.get(tgid) || { firstSeason: 0, lastSeason: 0 };
+      result.push({ tgid, totals, gpTotal, firstSeason: meta.firstSeason, lastSeason: meta.lastSeason });
+    }
+
+    result.sort((a, b) => a.firstSeason - b.firstSeason);
+    return result;
+  }, [defsByGroup, playerRows]);
+
   if (loading) {
     return <div className="muted">Loading...</div>;
   }
@@ -561,6 +601,54 @@ export default function Player() {
                         ))}
                       </>
                     )}
+                  </tr>
+                );
+              })}
+              {teamTotals.length ? (
+                <tr className="playerTotalsDivider">
+                  <td colSpan={activeDefs.length + 4}></td>
+                </tr>
+              ) : null}
+              {teamTotals.map((team) => {
+                const teamRow =
+                  teamBySeasonTgid.get(`${team.lastSeason}|${team.tgid}`) ||
+                  teamBySeasonTgid.get(`${team.firstSeason}|${team.tgid}`) ||
+                  null;
+                const teamLabel = teamRow
+                  ? `${String(teamRow.tdna ?? "").trim()} ${String(teamRow.tmna ?? "").trim()}`.trim()
+                  : `TGID ${team.tgid}`;
+                const logoUrl = overrideByTgid.get(team.tgid) || logoByTgid.get(team.tgid) || null;
+                const teamGp = team.gpTotal;
+                return (
+                  <tr key={`team-${team.tgid}`}>
+                    <td>Team Total</td>
+                    <td>
+                      <Link
+                        to={`/team/${team.tgid}?season=${team.lastSeason || team.firstSeason}`}
+                        style={{ color: "inherit", textDecoration: "none" }}
+                      >
+                        <div className="teamCell">
+                          {logoUrl ? (
+                            <img
+                              className="teamLogo"
+                              src={logoUrl}
+                              alt=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                          <span>{teamLabel}</span>
+                        </div>
+                      </Link>
+                    </td>
+                    <td></td>
+                    <td>{Number.isFinite(teamGp) && teamGp > 0 ? teamGp : ""}</td>
+                    {activeDefs.map((c) => {
+                      const value = ONE_DECIMAL_KEYS.has(c.key)
+                        ? derivedValue(team.totals, c.key, teamGp)
+                        : team.totals[c.key];
+                      return <td key={c.key}>{formatStat(value, c.key)}</td>;
+                    })}
                   </tr>
                 );
               })}
