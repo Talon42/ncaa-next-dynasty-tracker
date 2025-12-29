@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
+import { formatHometownLabel, loadHometownLookup } from "../hometownService";
 import {
   ONE_DECIMAL_KEYS,
   STAT_DEFS,
@@ -95,12 +96,27 @@ export default function Player() {
   const [teamBySeasonTgid, setTeamBySeasonTgid] = useState(new Map());
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
+  const [hometownLookup, setHometownLookup] = useState(null);
 
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
       setDynastyId(id);
     })();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const lookup = await loadHometownLookup();
+      if (!alive) return;
+      setHometownLookup(lookup);
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -266,6 +282,11 @@ export default function Player() {
     const full = `${first} ${last}`.trim();
     return full || "Player";
   }, [identity, latestRow]);
+
+  const hometownLabel = useMemo(
+    () => formatHometownLabel(identity?.hometown, hometownLookup),
+    [identity, hometownLookup],
+  );
 
   const showGroup = () => true;
 
@@ -476,7 +497,7 @@ export default function Player() {
               {Number(latestRow.redshirt) >= 1 ? " (RS)" : ""}
             </span>
           ) : null}
-          {identity?.hometown ? <span>Hometown: {identity.hometown}</span> : null}
+          {hometownLabel ? <span>Hometown: {hometownLabel}</span> : null}
           {seasonsLabel ? <span>Seasons: {seasonsLabel}</span> : null}
         </div>
       </div>
