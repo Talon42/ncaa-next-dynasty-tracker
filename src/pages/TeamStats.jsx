@@ -450,7 +450,7 @@ export default function TeamStats() {
                   setSortKey((cur) => (allowedKeys.has(cur) ? cur : "teamName"));
                 }}
                 style={{
-                  fontWeight: tab === t ? 800 : 600,
+                  fontWeight: "var(--app-control-font-weight)",
                   opacity: 1,
                   color: tab === t ? "var(--text)" : "var(--muted)",
                   borderColor: tab === t ? "rgba(211, 0, 0, 0.55)" : "var(--border)",

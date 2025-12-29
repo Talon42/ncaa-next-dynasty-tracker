@@ -567,7 +567,7 @@ export default function Player() {
           gap: 10,
         }}
       >
-        {latestRow?.jersey != null ? <span style={{ fontWeight: 700 }}>#{latestRow.jersey}</span> : null}
+        {latestRow?.jersey != null ? <span>#{latestRow.jersey}</span> : null}
         <span>{displayName}</span>
       </h2>
 
@@ -583,7 +583,7 @@ export default function Player() {
       >
         <div className="card" style={{ marginBottom: 0, flex: "1 1 320px", maxWidth: 560 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div className="kicker" style={{ fontWeight: 700 }}>
+            <div className="kicker infoCardTitle">
               Player Summary
             </div>
           </div>
@@ -603,7 +603,7 @@ export default function Player() {
         </div>
         <div className="card" style={{ marginBottom: 0, flex: "1 1 320px", maxWidth: 560 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div className="kicker" style={{ fontWeight: 700 }}>
+            <div className="kicker infoCardTitle">
               Trophy Room
             </div>
           </div>
@@ -674,7 +674,7 @@ export default function Player() {
                   setTabInitialized(true);
                 }}
                 style={{
-                  fontWeight: tab === group ? 800 : 600,
+                  fontWeight: "var(--app-control-font-weight)",
                   opacity: 1,
                   color: tab === group ? "var(--text)" : "var(--muted)",
                   borderColor: tab === group ? "rgba(211, 0, 0, 0.55)" : "var(--border)",

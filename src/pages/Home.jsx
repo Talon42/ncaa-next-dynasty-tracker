@@ -52,7 +52,7 @@ export default function Home() {
   const [confOptions, setConfOptions] = useState([]);
 
   const viewButtonStyle = (active) => ({
-    fontWeight: active ? 800 : 600,
+    fontWeight: "var(--app-control-font-weight)",
     opacity: 1,
     color: active ? "var(--text)" : "var(--muted)",
     borderColor: active ? "rgba(211, 0, 0, 0.55)" : "var(--border)",

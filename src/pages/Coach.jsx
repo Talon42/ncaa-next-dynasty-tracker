@@ -80,7 +80,7 @@ function PrestigeStars({ value }) {
         textAlign: "center",
         marginTop: -6,
         marginBottom: 10,
-        fontSize: 30,
+        fontSize: "2rem",
         letterSpacing: 2,
         opacity: 0.95,
         userSelect: "none",
@@ -619,7 +619,15 @@ export default function Coach() {
         />
       </div>
 
-      <h2 style={{ marginTop: 6, marginBottom: 6, textAlign: "center" }}>
+      <h2
+        style={{
+          marginTop: 6,
+          marginBottom: 6,
+          textAlign: "center",
+          fontSize: "var(--app-font-size)",
+          fontWeight: "var(--app-font-weight)",
+        }}
+      >
         {header.name || `Coach ${coachId}`}
       </h2>
 
@@ -631,7 +639,6 @@ export default function Coach() {
             textAlign: "center",
             marginTop: 0,
             marginBottom: 16,
-            fontSize: 16,
             fontStyle: "italic",
             opacity: 0.75,
           }}
@@ -644,7 +651,7 @@ export default function Coach() {
           const meta = approvalLabel(coachApproval);
           return (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span className="kicker" style={{ fontWeight: 700 }}>
+              <span style={{ color: "var(--muted)" }}>
                 Job Security:
               </span>
               <span
@@ -684,10 +691,10 @@ export default function Coach() {
       >
         <div className="card" style={{ marginBottom: 0, flex: "1 1 360px", maxWidth: 560 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div className="kicker" style={{ fontWeight: 700 }}>
+            <div className="kicker infoCardTitle">
               Career Summary
             </div>
-            <div className="kicker" style={{ fontWeight: 700, textAlign: "right" }}>
+            <div className="kicker" style={{ textAlign: "right" }}>
               Coach Age: {coachStats.coachAge ?? "-"}
             </div>
           </div>
@@ -705,55 +712,55 @@ export default function Coach() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Career Record</div>
-              <div style={{ fontWeight: 700 }}>
+              <div className="kicker infoCardTitle">Career Record</div>
+              <div className="infoCardValue">
                 {coachStats.careerWins ?? "-"}-{coachStats.careerLosses ?? "-"}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Postseason Record</div>
-              <div style={{ fontWeight: 700 }}>
+              <div className="kicker infoCardTitle">Postseason Record</div>
+              <div className="infoCardValue">
                 {coachStats.postseasonWins ?? "-"}-{coachStats.postseasonLosses ?? "-"}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Top-25 Record</div>
-              <div style={{ fontWeight: 700 }}>
+              <div className="kicker infoCardTitle">Top-25 Record</div>
+              <div className="infoCardValue">
                 {coachStats.top25Wins ?? "-"}-{coachStats.top25Losses ?? "-"}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Winning Seasons</div>
-              <div style={{ fontWeight: 700 }}>{coachStats.winningSeasons ?? "-"}</div>
+              <div className="kicker infoCardTitle">Winning Seasons</div>
+              <div className="infoCardValue">{coachStats.winningSeasons ?? "-"}</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Conf Titles</div>
-              <div style={{ fontWeight: 700 }}>{coachStats.conferenceTitles ?? "-"}</div>
+              <div className="kicker infoCardTitle">Conf Titles</div>
+              <div className="infoCardValue">{coachStats.conferenceTitles ?? "-"}</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <div className="kicker">Nat Titles</div>
-              <div style={{ fontWeight: 700 }}>{coachStats.nationalTitles ?? "-"}</div>
+              <div className="kicker infoCardTitle">Nat Titles</div>
+              <div className="infoCardValue">{coachStats.nationalTitles ?? "-"}</div>
             </div>
           </div>
           <div style={{ height: 16 }} />
-          <div className="kicker" style={{ fontWeight: 700, marginBottom: 10 }}>
+          <div className="kicker infoCardTitle" style={{ marginBottom: 10 }}>
             Team
           </div>
           <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div className="kicker">Years with Team</div>
-              <div style={{ fontWeight: 700 }}>{teamStats.yearsWithTeam ?? "-"}</div>
+              <div className="kicker infoCardTitle">Years with Team</div>
+              <div className="infoCardValue">{teamStats.yearsWithTeam ?? "-"}</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div className="kicker">Record</div>
-              <div style={{ fontWeight: 700 }}>
+              <div className="kicker infoCardTitle">Record</div>
+              <div className="infoCardValue">
                 {teamStats.teamWins ?? "-"}-{teamStats.teamLosses ?? "-"}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div className="kicker">Postseason Record</div>
-              <div style={{ fontWeight: 700 }}>
+              <div className="kicker infoCardTitle">Postseason Record</div>
+              <div className="infoCardValue">
                 {teamStats.postseasonWins ?? "-"}-{teamStats.postseasonLosses ?? "-"}
               </div>
             </div>
@@ -762,14 +769,14 @@ export default function Coach() {
 
         <div className="card" style={{ marginBottom: 0, flex: "1 1 240px", maxWidth: 420 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div className="kicker" style={{ fontWeight: 700 }}>
+            <div className="kicker infoCardTitle">
               Trophy Room
             </div>
           </div>
           <div style={{ height: 1, background: "var(--border)", marginBottom: 12 }} />
 
           {!trophyWins.length ? (
-            <p className="kicker" style={{ margin: 0 }}>
+            <p className="kicker infoCardValue" style={{ margin: 0 }}>
               No postseason wins yet.
             </p>
           ) : (
@@ -825,7 +832,7 @@ export default function Coach() {
                           style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
                         />
                       ) : (
-                        <span style={{ fontWeight: 800, letterSpacing: 0.5 }}>W</span>
+                        <span style={{ fontWeight: "var(--app-font-weight)", letterSpacing: 0.5 }}>W</span>
                       )}
                     </div>
                   );
@@ -909,7 +916,7 @@ export default function Coach() {
                             padding: "2px 6px",
                             borderRadius: 999,
                             fontSize: 12,
-                            fontWeight: 800,
+                            fontWeight: "var(--app-font-weight)",
                             background: "rgba(0,0,0,0.75)",
                             color: "white",
                             border: "1px solid rgba(255,255,255,0.2)",
@@ -931,7 +938,7 @@ export default function Coach() {
 
         <div className="card" style={{ marginBottom: 0, flex: "1 1 280px", maxWidth: 420 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
-            <div className="kicker" style={{ fontWeight: 700 }}>
+            <div className="kicker infoCardTitle">
               Run/Pass Tendency
             </div>
           </div>
@@ -955,12 +962,12 @@ export default function Coach() {
 
             return (
               <div>
-                <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                <div className="kicker infoCardTitle" style={{ marginBottom: 6 }}>
                   Offense
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span className="kicker">Run</span>
-                  <span className="kicker">Pass</span>
+                  <span className="kicker infoCardTitle infoCardLabelStrong">Run</span>
+                  <span className="kicker infoCardTitle infoCardLabelStrong">Pass</span>
                 </div>
 
                 <div
@@ -1033,12 +1040,12 @@ export default function Coach() {
 
                   return (
                     <div>
-                      <div className="kicker" style={{ fontWeight: 700, marginBottom: 6 }}>
+                      <div className="kicker infoCardTitle" style={{ marginBottom: 6 }}>
                         Defense
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span className="kicker">Man</span>
-                        <span className="kicker">Zone</span>
+                        <span className="kicker infoCardTitle infoCardLabelStrong">Man</span>
+                        <span className="kicker infoCardTitle infoCardLabelStrong">Zone</span>
                       </div>
 
                       <div
@@ -1101,16 +1108,16 @@ export default function Coach() {
                 <div style={{ height: 12 }} />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div className="kicker">Playbook</div>
-                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(PLAYBOOK_LABELS, coachStats.playbookId)}</div>
+                    <div className="kicker infoCardTitle">Playbook</div>
+                    <div className="infoCardValue">{resolveCoachLabel(PLAYBOOK_LABELS, coachStats.playbookId)}</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div className="kicker">Base Defense</div>
-                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(BASE_DEFENSE_LABELS, coachStats.baseDefenseId)}</div>
+                    <div className="kicker infoCardTitle">Base Defense</div>
+                    <div className="infoCardValue">{resolveCoachLabel(BASE_DEFENSE_LABELS, coachStats.baseDefenseId)}</div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div className="kicker">Offense Type</div>
-                    <div style={{ fontWeight: 700 }}>{resolveCoachLabel(OFFENSE_TYPE_LABELS, coachStats.offenseTypeId)}</div>
+                    <div className="kicker infoCardTitle">Offense Type</div>
+                    <div className="infoCardValue">{resolveCoachLabel(OFFENSE_TYPE_LABELS, coachStats.offenseTypeId)}</div>
                   </div>
                 </div>
               </div>
@@ -1169,7 +1176,7 @@ export default function Coach() {
                         {p.outcome ? (
                           <span
                             style={{
-                              fontWeight: 800,
+                              fontWeight: 700,
                               marginLeft: 8,
                               color: p.outcome === "W" ? "#4caf50" : p.outcome === "L" ? "#d30000" : "inherit",
                             }}

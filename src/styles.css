@@ -24,33 +24,34 @@
   --app-font-size: 1rem;
   --app-font-weight: 400;
 
-  --app-header-font-size: 1.25rem;
-  --app-header-font-weight: 800;
+  --app-header-font-size: 1.5rem;
+  --app-header-font-weight: 700;
   --app-header-line-height: 1.25;
-  --app-header-mobile-font-size: 1.125rem;
 
   --app-control-font-size: 0.9rem;
   --app-control-font-weight: 400;
 
-  --app-table-header-font-size: 0.75rem;
+  --app-table-header-font-size: 0.8rem;
   --app-table-header-font-weight: 700;
-  --app-table-cell-font-size: 1rem;
-  --app-table-cell-font-weight: 400;
+  --app-table-cell-font-size: 0.95rem;
+  --app-table-cell-font-weight: 0;
 
   --app-sidebar-title-font-size: 1rem;
   --app-sidebar-title-font-weight: 700;
   --app-sidebar-label-font-size: 0.75rem;
   --app-sidebar-label-font-weight: 700;
   --app-sidebar-item-font-size: 0.9rem;
-  --app-sidebar-item-font-weight: 400;
+  --app-sidebar-item-font-weight: 600;
 
   --app-header-menu-font-size: 0.9rem;
   --app-header-menu-font-weight: 400;
   --app-header-control-height: 36px;
 
-  --control-font-family: var(--app-font-family);
-  --control-font-size: var(--app-control-font-size);
-  --control-font-weight: var(--app-control-font-weight);
+  --app-infocard-title-font-size: 0.8rem;
+  --app-infocard-title-font-weight: 700;
+  --app-infocard-value-font-size: 1rem;
+  --app-infocard-value-font-weight: 500;
+
 
   /* page widths */
   --page-max: 980px;   /* default pages (Home/Team/Import) */
@@ -91,43 +92,26 @@ textarea {
 
 a { color: inherit; }
 
+.infoCardTitle {
+  font-size: var(--app-infocard-title-font-size);
+  font-weight: var(--app-infocard-title-font-weight);
+}
+
+.infoCardValue {
+  font-size: var(--app-infocard-value-font-size);
+  font-weight: var(--app-infocard-value-font-weight);
+}
+
+.infoCardLabelStrong {
+  color: var(--text);
+}
+
 h2 {
   font-size: var(--app-header-font-size);
   font-weight: var(--app-header-font-weight);
   line-height: var(--app-header-line-height);
 }
 
-.appHeader {
-  margin: 0;
-  font-size: var(--app-header-font-size);
-  font-weight: var(--app-header-font-weight);
-  line-height: var(--app-header-line-height);
-}
-
-.appHeaderMobile {
-  margin: 0;
-  font-size: var(--app-header-mobile-font-size);
-  font-weight: var(--app-header-font-weight);
-  line-height: var(--app-header-line-height);
-}
-
-.appButton,
-.appInput,
-.appSelect {
-  font-family: var(--app-font-family);
-  font-size: var(--app-control-font-size);
-  font-weight: var(--app-control-font-weight);
-}
-
-.appTableHeaderCell {
-  font-size: var(--app-table-header-font-size);
-  font-weight: var(--app-table-header-font-weight);
-}
-
-.appTableCell {
-  font-size: var(--app-table-cell-font-size);
-  font-weight: var(--app-table-cell-font-weight);
-}
 
 /* App shell */
 .shell {
@@ -890,9 +874,19 @@ button:disabled {
 
 .kicker {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--app-table-cell-font-size);
+  font-weight: var(--app-table-cell-font-weight);
   margin: 0;
   line-height: 1.45;
+}
+
+.kicker.infoCardTitle {
+  font-size: var(--app-infocard-title-font-size);
+  font-weight: var(--app-infocard-title-font-weight);
+}
+
+.kicker.infoCardLabelStrong {
+  color: var(--text);
 }
 
 .postseasonMeta {
@@ -900,9 +894,8 @@ button:disabled {
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: var(--app-table-cell-font-weight);
+  font-size: var(--app-table-cell-font-size);
 }
 
 .postseasonMeta img {
@@ -1292,9 +1285,9 @@ button:disabled {
   border-bottom: 2px solid transparent;
   border-radius: 0;
   padding: 6px 12px 8px;
-  font-family: var(--control-font-family);
-  font-size: var(--control-font-size);
-  font-weight: var(--control-font-weight);
+  font-family: var(--app-font-family);
+  font-size: var(--app-control-font-size);
+  font-weight: var(--app-control-font-weight);
   color: var(--muted);
   letter-spacing: 0.2px;
   box-shadow: none;
@@ -1327,9 +1320,9 @@ button:disabled {
 .playerStatsSubTabBtn {
   border-radius: 999px;
   padding: 6px 14px;
-  font-family: var(--control-font-family);
-  font-size: var(--control-font-size);
-  font-weight: var(--control-font-weight);
+  font-family: var(--app-font-family);
+  font-size: var(--app-control-font-size);
+  font-weight: var(--app-control-font-weight);
   color: var(--muted);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
@@ -1355,9 +1348,9 @@ button:disabled {
   max-width: 180px;
   border-radius: 999px;
   padding: 6px 14px;
-  font-family: var(--control-font-family);
-  font-size: var(--control-font-size);
-  font-weight: var(--control-font-weight);
+  font-family: var(--app-font-family);
+  font-size: var(--app-control-font-size);
+  font-weight: var(--app-control-font-weight);
   color: var(--muted);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
@@ -1430,7 +1423,6 @@ button:disabled {
 @media (max-width: 1400px) {
   .shell { padding: 0 0 32px; }
   .shellGrid { grid-template-columns: 1fr; margin-top: 17px; }
-  .kicker { font-size: 17px; }
   .mobileHeader { font-size: 1rem; }
   .headerTrigger,
   .headerNavBtn {
@@ -1475,11 +1467,11 @@ button:disabled {
     flex-wrap: nowrap;
   }
   .headerTrigger {
-    font-size: 11px;
+    font-size: var(--app-header-menu-font-size);
     padding: 0 8px;
   }
   .headerNavBtn {
-    font-size: 11px;
+    font-size: var(--app-header-menu-font-size);
     padding: 4px 6px;
     max-width: 140px;
   }

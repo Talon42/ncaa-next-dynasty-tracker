@@ -110,7 +110,7 @@ export default function Postseason() {
   const [confLogoMap, setConfLogoMap] = useState(new Map());
 
   const viewButtonStyle = (active) => ({
-    fontWeight: active ? 800 : 600,
+    fontWeight: "var(--app-control-font-weight)",
     opacity: 1,
     color: active ? "var(--text)" : "var(--muted)",
     borderColor: active ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
@@ -885,7 +885,7 @@ export default function Postseason() {
               className="toggleBtn"
               onClick={() => setTabAndUrl("confChamp")}
               style={{
-                fontWeight: tab === "confChamp" ? 800 : 600,
+                fontWeight: "var(--app-control-font-weight)",
                 opacity: 1,
                 color: tab === "confChamp" ? "var(--text)" : "var(--muted)",
                 borderColor: tab === "confChamp" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
@@ -899,7 +899,7 @@ export default function Postseason() {
               className="toggleBtn"
               onClick={() => setTabAndUrl("bowls")}
               style={{
-                fontWeight: tab === "bowls" ? 800 : 600,
+                fontWeight: "var(--app-control-font-weight)",
                 opacity: 1,
                 color: tab === "bowls" ? "var(--text)" : "var(--muted)",
                 borderColor: tab === "bowls" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
@@ -913,7 +913,7 @@ export default function Postseason() {
               className="toggleBtn"
               onClick={() => setTabAndUrl("bracket")}
               style={{
-                fontWeight: tab === "bracket" ? 800 : 600,
+                fontWeight: "var(--app-control-font-weight)",
                 opacity: 1,
                 color: tab === "bracket" ? "var(--text)" : "var(--muted)",
                 borderColor: tab === "bracket" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",

@@ -92,7 +92,7 @@ function OutcomeBadge({ outcome }) {
       style={{
         display: "inline-block",
         minWidth: 16,
-        fontWeight: 900,
+        fontWeight: 700,
         marginRight: 8,
         color,
       }}
@@ -119,7 +119,7 @@ function PrestigeStars({ value }) {
         textAlign: "center",
         marginTop: -6,
         marginBottom: 10,
-        fontSize: 30,
+        fontSize: "2rem",
         letterSpacing: 2,
         opacity: 0.95,
         userSelect: "none",
