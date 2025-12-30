@@ -9,6 +9,7 @@ import {
   derivedValue,
   formatStat,
   getPlayerCardStatDefs,
+  getPlayerStatsPageDefs,
   getGpForTab,
   positionLabel,
   rowHasStatsForTab,
@@ -16,8 +17,14 @@ import {
 
 const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
 const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
-const TAB_GROUPS = [...OFFENSE_TABS, "Defense", "Special Teams"];
+const SPECIAL_TEAMS_KEYS = ["Returns", "Kicking", "Punting"];
+const TAB_GROUPS = [...OFFENSE_TABS, "Defense", ...SPECIAL_TEAMS_KEYS];
 const CATEGORY_TABS = ["Offense", "Defense", "Special Teams"];
+const SPECIAL_TEAMS_TABS = [
+  { key: "Returns", label: "Returning" },
+  { key: "Kicking", label: "Kicking" },
+  { key: "Punting", label: "Punting" },
+];
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
@@ -41,19 +48,23 @@ function defaultTabForPosition(value) {
   if (pos === "QB") return "Passing";
   if (pos === "HB" || pos === "FB") return "Rushing";
   if (pos === "WR" || pos === "TE") return "Receiving";
-  if (pos === "K" || pos === "P") return "Special Teams";
+  if (pos === "K") return "Kicking";
+  if (pos === "P") return "Punting";
   return "Defense";
 }
 
 function categoryForTab(value) {
   if (OFFENSE_TABS.includes(value)) return "Offense";
   if (value === "Defense") return "Defense";
+  if (SPECIAL_TEAMS_KEYS.includes(value) || value === "Special Teams") return "Special Teams";
   return "Special Teams";
 }
 
 function defaultTabForCategory(category, currentTab) {
   if (category === "Defense") return "Defense";
-  if (category === "Special Teams") return "Special Teams";
+  if (category === "Special Teams") {
+    return SPECIAL_TEAMS_KEYS.includes(currentTab) ? currentTab : "Returns";
+  }
   return OFFENSE_TABS.includes(currentTab) ? currentTab : "Passing";
 }
 
@@ -306,8 +317,6 @@ export default function Player() {
     };
   }, [dynastyId, latestRow]);
 
-  const isKicker = useMemo(() => positionLabel(latestRow?.position) === "K", [latestRow]);
-  const isPunter = useMemo(() => positionLabel(latestRow?.position) === "P", [latestRow]);
   const availableTabs = useMemo(() => TAB_GROUPS, []);
   const availableCategories = useMemo(() => CATEGORY_TABS, []);
   const category = useMemo(() => categoryForTab(tab), [tab]);
@@ -427,56 +436,9 @@ export default function Player() {
     return all;
   }, [allAmericanBadges, captainBadges]);
 
-  const specialTeamsStatsByKey = useMemo(() => {
-    const keys = [
-      "fgm",
-      "fga",
-      "fgPct",
-      "fgLong",
-      "xpm",
-      "xpa",
-      "xpPct",
-      "puntAtt",
-      "puntYds",
-      "puntAvg",
-      "puntLong",
-      "puntIn20",
-      "puntBlocked",
-    ];
-    const result = new Map(keys.map((k) => [k, false]));
-    if (!playerRows.length) return result;
-
-    for (const row of playerRows) {
-      for (const key of keys) {
-        if (result.get(key)) continue;
-        const value = ONE_DECIMAL_KEYS.has(key)
-          ? derivedValue(row, key, getGpForTab(row, "Special Teams"))
-          : row[key];
-        if (Number.isFinite(value) && value !== 0) result.set(key, true);
-      }
-    }
-
-    return result;
-  }, [playerRows]);
-
   const activeDefs = useMemo(() => {
-    const defs = getPlayerCardStatDefs(tab);
-    if (tab !== "Special Teams") return defs;
-
-    const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct"]);
-    const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
-    const allowedKeys = new Set([...kickingKeys, ...puntingKeys]);
-
-    let filtered = defs.filter((d) => allowedKeys.has(d.key));
-    if (isKicker && !isPunter) {
-      filtered = filtered.filter((d) => !puntingKeys.has(d.key) || specialTeamsStatsByKey.get(d.key));
-    }
-    if (isPunter && !isKicker) {
-      filtered = filtered.filter((d) => !kickingKeys.has(d.key) || specialTeamsStatsByKey.get(d.key));
-    }
-
-    return filtered;
-  }, [isKicker, isPunter, specialTeamsStatsByKey, tab]);
+    return getPlayerStatsPageDefs(tab);
+  }, [tab]);
 
   useEffect(() => {
     let alive = true;
@@ -750,6 +712,26 @@ export default function Player() {
                 }}
               >
                 {group}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {category === "Special Teams" ? (
+        <div className="playerStatsControlRow">
+          <div className="playerStatsSubTabs">
+            {SPECIAL_TEAMS_TABS.map((group) => (
+              <button
+                key={group.key}
+                type="button"
+                className={`toggleBtn playerStatsSubTabBtn${tab === group.key ? " active" : ""}`}
+                onClick={() => {
+                  setTab(group.key);
+                  setTabInitialized(true);
+                }}
+              >
+                {group.label}
               </button>
             ))}
           </div>

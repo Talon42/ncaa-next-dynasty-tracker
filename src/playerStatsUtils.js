@@ -255,7 +255,7 @@ export function getGpForTab(row, tab) {
     const gpDef = Number(row.gpDef);
     return Number.isFinite(gpDef) ? gpDef : legacy;
   }
-  if (tab === "Special Teams") {
+  if (tab === "Special Teams" || tab === "Returns" || tab === "Kicking" || tab === "Punting") {
     const gpSpec = Number(row.gpSpec);
     return Number.isFinite(gpSpec) ? gpSpec : legacy;
   }
@@ -414,4 +414,26 @@ export function getPlayerCardStatDefs(tab) {
   }
 
   return defs;
+}
+
+export function getPlayerStatsPageDefs(tab) {
+  if (tab !== "Kicking" && tab !== "Returns" && tab !== "Punting") return getPlayerCardStatDefs(tab);
+
+  const all = getPlayerCardStatDefs("Special Teams");
+  const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct"]);
+  const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
+  const returnsKeys = new Set([
+    "krAtt",
+    "krYds",
+    "krAvg",
+    "krLong",
+    "krTd",
+    "prAtt",
+    "prYds",
+    "prAvg",
+    "prLong",
+    "prTd",
+  ]);
+  const allowed = tab === "Kicking" ? kickingKeys : tab === "Punting" ? puntingKeys : returnsKeys;
+  return all.filter((d) => allowed.has(d.key));
 }

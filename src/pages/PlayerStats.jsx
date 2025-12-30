@@ -10,6 +10,7 @@ import {
   derivedValue,
   formatStat,
   getPlayerCardStatDefs,
+  getPlayerStatsPageDefs,
   getGpForTab,
   positionLabel,
   rowHasStatsForTab,
@@ -91,25 +92,7 @@ function defaultTabForCategory(category) {
 }
 
 function statsDefsForTab(tab) {
-  if (tab !== "Kicking" && tab !== "Returns" && tab !== "Punting") return getPlayerCardStatDefs(tab);
-
-  const all = getPlayerCardStatDefs("Special Teams");
-  const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct"]);
-  const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
-  const returnsKeys = new Set([
-    "krAtt",
-    "krYds",
-    "krAvg",
-    "krLong",
-    "krTd",
-    "prAtt",
-    "prYds",
-    "prAvg",
-    "prLong",
-    "prTd",
-  ]);
-  const allowed = tab === "Kicking" ? kickingKeys : tab === "Punting" ? puntingKeys : returnsKeys;
-  return all.filter((d) => allowed.has(d.key));
+  return getPlayerStatsPageDefs(tab);
 }
 
 const DERIVED_STAT_KEYS = new Set(["retTd", "totalTd", "scoringPts"]);
