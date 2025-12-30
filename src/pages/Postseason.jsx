@@ -1247,27 +1247,26 @@ useEffect(() => {
         }
 
         if (tab === "confChamp") {
-          if (confFilter && confFilter !== "All") {
+          const isAllConfs = !confFilter || confFilter === "All";
+          if (!isAllConfs) {
             filtered = filtered.filter((r) => {
               const confName = r.homeConfName || r.awayConfName;
               return confName === confFilter;
             });
           }
 
-          const confHeaderLogo =
-            confFilter === "All" || !confFilter ? "" : (filtered[0]?.bowlLogoUrl || "");
-          const confHeaderName =
-            confFilter === "All" || !confFilter
-              ? ""
-              : String(filtered[0]?.bowlName ?? confFilter)
-                  .replace(/^cfp\s*-\s*/i, "")
-                  .trim();
+          const confHeaderLogo = isAllConfs ? "" : (filtered[0]?.bowlLogoUrl || "");
+          const confHeaderName = isAllConfs
+            ? ""
+            : String(filtered[0]?.bowlName ?? confFilter)
+                .replace(/^cfp\s*-\s*/i, "")
+                .trim();
 
           return (
             <>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for this season.</p>
-              ) : confFilter !== "All" ? (
+              ) : !isAllConfs ? (
                 <>
                   <div className="bowlFilterHeader">
                     {confHeaderLogo ? (
@@ -1287,18 +1286,18 @@ useEffect(() => {
                   </div>
                   {renderBowlFilteredTable(filtered, {
                     showWinningCoach: false,
-                    showSeasonColumn: confFilter !== "All",
-                    showGameColumn: confFilter === "All",
-                    groupBySeason: confFilter === "All" && seasonYear === "All",
+                    showSeasonColumn: !isAllConfs,
+                    showGameColumn: isAllConfs,
+                    groupBySeason: isAllConfs && seasonYear === "All",
                     sortBy: "game",
                   })}
                 </>
               ) : effectiveView === "table" ? (
                 renderBowlFilteredTable(filtered, {
                   showWinningCoach: false,
-                  showSeasonColumn: confFilter !== "All",
-                  showGameColumn: confFilter === "All",
-                  groupBySeason: confFilter === "All" && seasonYear === "All",
+                  showSeasonColumn: !isAllConfs,
+                  showGameColumn: isAllConfs,
+                  groupBySeason: isAllConfs && seasonYear === "All",
                   sortBy: "game",
                 })
               ) : (
