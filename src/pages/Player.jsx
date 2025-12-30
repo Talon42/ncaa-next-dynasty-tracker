@@ -697,9 +697,9 @@ export default function Player() {
                 <th>Season</th>
                 <th>Team</th>
                 <th>Class</th>
-                <th>G</th>
+                <th className="centerCol">G</th>
                 {activeDefs.map((c) => (
-                  <th key={c.key} title={c.fullLabel}>
+                  <th key={c.key} title={c.fullLabel} className="statCol">
                     {c.label}
                   </th>
                 ))}
@@ -761,9 +761,11 @@ export default function Player() {
                     <td>{yearText}</td>
                     {hasStats ? (
                       <>
-                        <td>{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
+                        <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
                         {activeDefs.map((c) => (
-                          <td key={c.key}>{formatStat(valueForStat(row, c.key, tab), c.key)}</td>
+                          <td key={c.key} className="statCol">
+                            {formatStat(valueForStat(row, c.key, tab), c.key)}
+                          </td>
                         ))}
                       </>
                     ) : !hasAnyStats ? (
@@ -774,9 +776,11 @@ export default function Player() {
                       </td>
                     ) : (
                       <>
-                        <td>{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
+                        <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
                         {activeDefs.map((c) => (
-                          <td key={c.key}>0</td>
+                          <td key={c.key} className="statCol">
+                            0
+                          </td>
                         ))}
                       </>
                     )}
@@ -821,12 +825,16 @@ export default function Player() {
                       </Link>
                     </td>
                     <td></td>
-                    <td>{Number.isFinite(teamGp) && teamGp > 0 ? teamGp : ""}</td>
+                    <td className="centerCol">{Number.isFinite(teamGp) && teamGp > 0 ? teamGp : ""}</td>
                     {activeDefs.map((c) => {
                       const value = ONE_DECIMAL_KEYS.has(c.key)
                         ? derivedValue(team.totals, c.key, teamGp)
                         : team.totals[c.key];
-                      return <td key={c.key}>{formatStat(value, c.key)}</td>;
+                      return (
+                        <td key={c.key} className="statCol">
+                          {formatStat(value, c.key)}
+                        </td>
+                      );
                     })}
                   </tr>
                 );
@@ -835,12 +843,16 @@ export default function Player() {
                 <td>Career</td>
                 <td></td>
                 <td></td>
-                <td>{Number.isFinite(careerGp) && careerGp > 0 ? careerGp : ""}</td>
+                <td className="centerCol">{Number.isFinite(careerGp) && careerGp > 0 ? careerGp : ""}</td>
                 {activeDefs.map((c) => {
                   const value = ONE_DECIMAL_KEYS.has(c.key)
                     ? derivedValue(careerTotals, c.key, careerGp)
                     : careerTotals[c.key];
-                  return <td key={c.key}>{formatStat(value, c.key)}</td>;
+                  return (
+                    <td key={c.key} className="statCol">
+                      {formatStat(value, c.key)}
+                    </td>
+                  );
                 })}
               </tr>
             </tbody>

@@ -1131,9 +1131,9 @@ export default function Coach() {
           <tr>
             <th style={{ width: 100 }}>Year</th>
             <th>Team</th>
-            <th style={{ width: 120 }}>Record</th>
-            <th style={{ width: 120 }}>Conf Record</th>
-            <th style={{ width: 90 }}>Top 25</th>
+            <th style={{ width: 120 }} className="statCol">Record</th>
+            <th style={{ width: 120 }} className="statCol">Conf Record</th>
+            <th style={{ width: 90 }} className="statCol">Top 25</th>
             <th>Postseason</th>
           </tr>
         </thead>
@@ -1161,9 +1161,9 @@ export default function Coach() {
                   </div>
                 </Link>
               </td>
-              <td data-label="Record">{r.record}</td>
-              <td data-label="Conf Record">{r.confRecord}</td>
-              <td data-label="Top 25">{r.top25Rank ?? "-"}</td>
+              <td data-label="Record" className="statCol">{r.record}</td>
+              <td data-label="Conf Record" className="statCol">{r.confRecord}</td>
+              <td data-label="Top 25" className="statCol">{r.top25Rank ?? "-"}</td>
               <td data-label="Postseason">
                 {r.postseason.length ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

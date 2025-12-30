@@ -31,7 +31,7 @@
   --app-control-font-size: 0.9rem;
   --app-control-font-weight: 600;
 
-  --app-table-header-font-size: 0.8rem;
+  --app-table-header-font-size: 0.75rem;
   --app-table-header-font-weight: 700;
   --app-table-cell-font-size: 0.95rem;
   --app-table-cell-font-weight: 0;
@@ -737,7 +737,7 @@ button:disabled {
 
 .table thead th.tableGroupHeader {
   text-align: center;
-  color: var(--text);
+  color: var(--muted);
 }
 
 .table thead th.tableGroupDivider,
@@ -751,6 +751,16 @@ button:disabled {
   font-weight: var(--app-table-cell-font-weight);
   border-bottom: 1px solid rgba(42,42,42,0.85);
   white-space: nowrap;
+}
+
+.table th.statCol,
+.table td.statCol {
+  text-align: right;
+}
+
+.table th.centerCol,
+.table td.centerCol {
+  text-align: center;
 }
 
 .table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.015); }

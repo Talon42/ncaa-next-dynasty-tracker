@@ -54,10 +54,10 @@ export const STAT_DEFS = [
   { key: "fgm", label: "FGM", fullLabel: "Field Goals Made", group: "Special Teams" },
   { key: "fga", label: "FGA", fullLabel: "Field Goals Attempted", group: "Special Teams" },
   { key: "fgPct", label: "FG%", fullLabel: "Field Goal Percentage", group: "Special Teams" },
-  { key: "fgLong", label: "FG Long", fullLabel: "Longest Field Goal", group: "Special Teams" },
+  { key: "fgLong", label: "LNG", fullLabel: "Longest Field Goal", group: "Special Teams" },
   { key: "xpm", label: "XPM", fullLabel: "Extra Points Made", group: "Special Teams" },
   { key: "xpa", label: "XPA", fullLabel: "Extra Points Attempted", group: "Special Teams" },
-  { key: "xpPct", label: "XPA%", fullLabel: "Extra Point Percentage", group: "Special Teams" },
+  { key: "xpPct", label: "PCT", fullLabel: "Extra Point Percentage", group: "Special Teams" },
 
   // Special Teams (Punting)
   { key: "puntAtt", label: "Punt", fullLabel: "Punts", group: "Special Teams" },
@@ -288,18 +288,19 @@ export function getPlayerCardStatDefs(tab) {
       "rushYds",
       "rushYpc",
       "rushTd",
-      "rushBtk",
+      "rushYpg",
       "rushFum",
       "rush20",
       "rushYac",
     ];
     const labelOverrides = {
-      rushAtt: { label: "Rush Att" },
-      rushYds: { label: "Rush Yds" },
-      rushYpc: { label: "Avg" },
-      rushBtk: { label: "Broken Tackle" },
-      rushFum: { label: "Fumb" },
-      rush20: { label: "20+ Yd Runs" },
+      rushAtt: { label: "ATT" },
+      rushYds: { label: "YDS" },
+      rushYpc: { label: "AVG" },
+      rushTd: { label: "TD" },
+      rushYpg: { label: "YDS/G" },
+      rushFum: { label: "FUM" },
+      rush20: { label: "20+" },
       rushYac: { label: "YAC", fullLabel: "Yards After Contact" },
     };
     const map = new Map(defs.map((d) => [d.key, d]));
@@ -346,11 +347,12 @@ export function getPlayerCardStatDefs(tab) {
   if (tab === "Receiving") {
     const order = ["recvCat", "recvYds", "recvYpc", "recvTd", "recvYac", "recvDrops"];
     const labelOverrides = {
-      recvCat: { label: "Rec" },
-      recvYds: { label: "Rec Yds" },
-      recvYpc: { label: "Avg" },
-      recvTd: { label: "Rec TD" },
+      recvCat: { label: "REC" },
+      recvYds: { label: "YDS" },
+      recvYpc: { label: "AVG" },
+      recvTd: { label: "TD" },
       recvYac: { label: "RAC" },
+      recvDrops: { label: "DROP" },
     };
     const map = new Map(defs.map((d) => [d.key, d]));
     return order
@@ -368,27 +370,31 @@ export function getPlayerCardStatDefs(tab) {
       "defTkl",
       "defTfl",
       "defSack",
-      "defInt",
-      "defFF",
-      "defFR",
-      "defDTD",
       "defPDef",
-      "defFumYds",
+      "defInt",
       "defIntYds",
       "defIntLong",
+      "defFF",
+      "defFR",
+      "defFumYds",
+      "defDTD",
       "defSafety",
       "defBlk",
     ];
     const labelOverrides = {
-      defTkl: { label: "Tackle" },
-      defSack: { label: "Sacks" },
-      defFF: { label: "Forced Fumb" },
-      defFR: { label: "Fumb Rec" },
-      defDTD: { label: "Def TD" },
-      defPDef: { label: "Pass Defl" },
-      defFumYds: { label: "Fumb Yds" },
-      defIntYds: { label: "Int Yds" },
-      defIntLong: { label: "Int Long" },
+      defTkl: { label: "TOT" },
+      defTfl: { label: "TFL" },
+      defSack: { label: "SACK" },
+      defPDef: { label: "PD" },
+      defInt: { label: "INT" },
+      defIntYds: { label: "YDS" },
+      defIntLong: { label: "LNG" },
+      defFF: { label: "FF" },
+      defFR: { label: "FR" },
+      defFumYds: { label: "YDS" },
+      defDTD: { label: "TD" },
+      defSafety: { label: "SFTY" },
+      defBlk: { label: "BLK" },
     };
     const map = new Map(defs.map((d) => [d.key, d]));
     return order

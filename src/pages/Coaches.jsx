@@ -405,6 +405,7 @@ export default function Coaches() {
                 onClick={() => clickSort("record")}
                 style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Record{sortIndicator("record")}
               </th>
@@ -412,6 +413,7 @@ export default function Coaches() {
                 onClick={() => clickSort("winPct")}
                 style={{ width: 120, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Win%{sortIndicator("winPct")}
               </th>
@@ -419,6 +421,7 @@ export default function Coaches() {
                 onClick={() => clickSort("bowlRecord")}
                 style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Bowl Record{sortIndicator("bowlRecord")}
               </th>
@@ -426,6 +429,7 @@ export default function Coaches() {
                 onClick={() => clickSort("bowlWinPct")}
                 style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Bowl Win%{sortIndicator("bowlWinPct")}
               </th>
@@ -433,6 +437,7 @@ export default function Coaches() {
                 onClick={() => clickSort("prestige")}
                 style={{ width: 110, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Prestige{sortIndicator("prestige")}
               </th>
@@ -440,6 +445,7 @@ export default function Coaches() {
                 onClick={() => clickSort("approval")}
                 style={{ width: 110, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
+                className="statCol"
               >
                 Approval{sortIndicator("approval")}
               </th>
@@ -462,12 +468,22 @@ export default function Coaches() {
                     </Link>
                   )}
                 </td>
-                <td data-label="Record">{recordLabel(r.careerWins, r.careerLosses)}</td>
-                <td data-label="Win%">{winPctLabel(r.winPct)}</td>
-                <td data-label="Bowl Record">{bowlRecordLabel(r.bowlWins, r.bowlLosses)}</td>
-                <td data-label="Bowl Win%">{winPctLabel(r.bowlWinPct)}</td>
-                <td data-label="Prestige">{Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}</td>
-                <td data-label="Approval">
+                <td data-label="Record" className="statCol">
+                  {recordLabel(r.careerWins, r.careerLosses)}
+                </td>
+                <td data-label="Win%" className="statCol">
+                  {winPctLabel(r.winPct)}
+                </td>
+                <td data-label="Bowl Record" className="statCol">
+                  {bowlRecordLabel(r.bowlWins, r.bowlLosses)}
+                </td>
+                <td data-label="Bowl Win%" className="statCol">
+                  {winPctLabel(r.bowlWinPct)}
+                </td>
+                <td data-label="Prestige" className="statCol">
+                  {Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}
+                </td>
+                <td data-label="Approval" className="statCol">
                   {(() => {
                     const meta = approvalLabel(r.approval);
                     return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
