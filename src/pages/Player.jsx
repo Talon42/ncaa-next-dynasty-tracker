@@ -549,6 +549,12 @@ export default function Player() {
   const activeDefs = useMemo(() => {
     return getPlayerStatsPageDefs(tab);
   }, [tab]);
+  const isDefenseTab = tab === "Defense";
+  const defenseDividerClass = (idx) => {
+    if (!isDefenseTab) return "";
+    if (idx === 0 || idx === 3 || idx === 7 || idx === 10) return " tableGroupDivider";
+    return "";
+  };
 
   useEffect(() => {
     let alive = true;
@@ -894,17 +900,54 @@ export default function Player() {
         <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
           <table className="table">
             <thead>
-              <tr>
-                <th>Season</th>
-                <th>Team</th>
-                <th>Class</th>
-                <th className="centerCol">G</th>
-                {activeDefs.map((c) => (
-                  <th key={c.key} title={c.fullLabel} className="statCol">
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
+              {isDefenseTab ? (
+                <>
+                  <tr>
+                    <th colSpan={4}></th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">TACKLES</th>
+                    <th colSpan={4} className="tableGroupHeader tableGroupDivider">INTERCEPTIONS</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">FUMBLES</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">SCORING</th>
+                  </tr>
+                  <tr>
+                    <th>Season</th>
+                    <th>Team</th>
+                    <th>Class</th>
+                    <th className="centerCol">G</th>
+                    {activeDefs.map((c, idx) => {
+                      const isTackleStart = idx === 0;
+                      const isIntStart = idx === 3;
+                      const isFumbleStart = idx === 7;
+                      const isScoreStart = idx === 10;
+                      return (
+                        <th
+                          key={c.key}
+                          title={c.fullLabel}
+                          className={`${
+                            isTackleStart || isIntStart || isFumbleStart || isScoreStart
+                              ? "tableGroupDivider "
+                              : ""
+                          }statCol`}
+                        >
+                          {c.label}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </>
+              ) : (
+                <tr>
+                  <th>Season</th>
+                  <th>Team</th>
+                  <th>Class</th>
+                  <th className="centerCol">G</th>
+                  {activeDefs.map((c) => (
+                    <th key={c.key} title={c.fullLabel} className="statCol">
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              )}
             </thead>
             <tbody>
               {seasonRowsForTab.map(({ row, hasStats, hasAnyStats, seasonGp }) => {
@@ -963,7 +1006,7 @@ export default function Player() {
                     {hasStats ? (
                       <>
                         <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
-                        {activeDefs.map((c) => (
+                        {activeDefs.map((c, idx) => (
                           <td
                             key={c.key}
                             className={`statCol${
@@ -976,7 +1019,7 @@ export default function Player() {
                                   Number.isFinite(leaderValue) &&
                                   leaderValue > 0 &&
                                   value === leaderValue;
-                                return isLeader ? " playerStatLeader" : "";
+                                return `${isLeader ? " playerStatLeader" : ""}${defenseDividerClass(idx)}`;
                               })()
                             }`}
                           >
@@ -985,16 +1028,42 @@ export default function Player() {
                         ))}
                       </>
                     ) : !hasAnyStats ? (
-                      <td className="playerSeasonNoteCell" colSpan={activeDefs.length + 1}>
-                        <div className="playerSeasonNote">
-                          <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
-                        </div>
-                      </td>
+                      isDefenseTab ? (
+                        <>
+                          <td className="centerCol"></td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={3}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={4}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={3}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={3}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <td className="playerSeasonNoteCell" colSpan={activeDefs.length + 1}>
+                          <div className="playerSeasonNote">
+                            <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                          </div>
+                        </td>
+                      )
                     ) : (
                       <>
                         <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
-                        {activeDefs.map((c) => (
-                          <td key={c.key} className="statCol">
+                        {activeDefs.map((c, idx) => (
+                          <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
                             0
                           </td>
                         ))}
@@ -1042,12 +1111,12 @@ export default function Player() {
                     </td>
                     <td></td>
                     <td className="centerCol">{Number.isFinite(teamGp) && teamGp > 0 ? teamGp : ""}</td>
-                    {activeDefs.map((c) => {
+                    {activeDefs.map((c, idx) => {
                       const value = ONE_DECIMAL_KEYS.has(c.key)
                         ? derivedValue(team.totals, c.key, teamGp)
                         : team.totals[c.key];
                       return (
-                        <td key={c.key} className="statCol">
+                        <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
                           {formatStat(value, c.key)}
                         </td>
                       );
@@ -1060,12 +1129,12 @@ export default function Player() {
                 <td></td>
                 <td></td>
                 <td className="centerCol">{Number.isFinite(careerGp) && careerGp > 0 ? careerGp : ""}</td>
-                {activeDefs.map((c) => {
+                {activeDefs.map((c, idx) => {
                   const value = ONE_DECIMAL_KEYS.has(c.key)
                     ? derivedValue(careerTotals, c.key, careerGp)
                     : careerTotals[c.key];
                   return (
-                    <td key={c.key} className="statCol">
+                    <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
                       {formatStat(value, c.key)}
                     </td>
                   );
