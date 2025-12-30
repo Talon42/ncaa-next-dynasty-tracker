@@ -15,6 +15,7 @@ const REQUIRED_TYPES = [
   "PSKI",
   "PSKP",
   "AAPL",
+  "OSPA",
 ];
 
 function getTypeFromName(fileName) {
@@ -266,7 +267,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
 
       if (!seasonsToImport.length) {
         setStatus(
-          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PLAY/PSOF/PSDE/PSKI/PSKP/AAPL CSVs."
+          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PLAY/PSOF/PSDE/PSKI/PSKP/AAPL/OSPA CSVs."
         );
         return;
       }
@@ -276,7 +277,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         setStatus(
           `Missing required CSV(s) for: ${bad
             .map((s) => `${s.year} (${s.missingTypes.join(", ")})`)
-            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, and AAPL.`
+            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
         );
         return;
       }
@@ -306,7 +307,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     }
     if (!files.length) {
       setStatus(
-        "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, and AAPL.csv."
+        "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv."
       );
       return;
     }

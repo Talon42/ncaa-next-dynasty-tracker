@@ -663,7 +663,7 @@ export default function PlayerStats() {
         <div className="muted">Loading...</div>
       ) : !hasAnyYears ? (
         <div className="muted">
-          No Player Stats imported yet. Import a season with PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, and PSKP.csv.
+          No Player Stats imported yet. Import a season with PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv.
         </div>
       ) : filteredRows.length === 0 ? (
         <div className="muted">No player stats found for {seasonYear}.</div>

@@ -4,6 +4,24 @@ import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 import { computeCoachCareerBases } from "./coachRecords";
 
+const OSPA_AWARDS = new Map([
+  [0, "Heisman Memorial Trophy"],
+  [1, "Maxwell Award"],
+  [2, "Chuck Bednarik Award"],
+  [3, "Davey O'Brien Award"],
+  [4, "Doak Walker Award"],
+  [5, "Fred Biletnikoff Award"],
+  [6, "John Mackey Award"],
+  [7, "Outland Trophy"],
+  [8, "Rimington Trophy"],
+  [9, "Lombardi Award"],
+  [10, "Dick Butkus Award"],
+  [11, "Jim Thorpe Award"],
+  [12, "Lou Groza Award"],
+  [13, "Ray Guy Award"],
+  [14, "Paul Hornung Award"],
+]);
+
 function parseCsvText(text) {
   const res = Papa.parse(text, { header: true, skipEmptyLines: true });
   if (res.errors?.length) throw new Error(res.errors[0]?.message || "CSV parse error");
@@ -729,11 +747,12 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     "PSKI",
     "PSKP",
     "AAPL",
+    "OSPA",
   ];
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(
-      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, and AAPL.`
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
     );
   }
 
@@ -960,10 +979,13 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       .filter(Boolean)
   );
 
+  const seasonIndex = Number.isFinite(Number(dynasty.startYear))
+    ? year - Number(dynasty.startYear)
+    : null;
   const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
-    seasonIndex: Number.isFinite(Number(dynasty.startYear)) ? year - Number(dynasty.startYear) : null,
+    seasonIndex,
     existingIdentitiesByNameKey,
     identityByUid,
     priorSeasonByPgid,
@@ -1009,7 +1031,17 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       .map((r) => [String(r.pgid ?? "").trim(), String(r.playerUid ?? "").trim()])
       .filter(([pgid, uid]) => pgid && uid)
   );
+  const nameByPgid = new Map(
+    playerSeasonStats
+      .map((r) => {
+        const pgid = String(r.pgid ?? "").trim();
+        if (!pgid) return null;
+        return [pgid, { firstName: r.firstName ?? "", lastName: r.lastName ?? "" }];
+      })
+      .filter(Boolean)
+  );
   const allAmericanRows = [];
+  const awardRows = [];
 
   await parseCsvFileStream(byType.AAPL, {
     label: "AAPL",
@@ -1033,6 +1065,47 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     },
   });
 
+  const shouldIncludeSeasonRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
+    if (seyr == null) return true;
+    if (Number.isFinite(seasonIndex) && seyr === seasonIndex) return true;
+    if (seyr === year) return true;
+    return false;
+  };
+
+  await parseCsvFileStream(byType.OSPA, {
+    label: "OSPA",
+    requiredColumns: ["PGID", "POAR", "POAT", "SEYR"],
+    onRow: (row) => {
+      if (!shouldIncludeSeasonRow(row)) return;
+      const lc = toLowerKeyMap(row);
+      const pgid = normId(getRowValueFast(row, lc, "PGID"));
+      if (!pgid) return;
+      const playerUid = playerUidByPgid.get(pgid);
+      if (!playerUid) return;
+      const poar = toNumberOrNull(getRowValueFast(row, lc, "POAR"));
+      if (poar !== 0) return;
+      const poat = toNumberOrNull(getRowValueFast(row, lc, "POAT"));
+      if (!Number.isFinite(poat)) return;
+      const awardName = OSPA_AWARDS.get(poat);
+      if (!awardName) return;
+      const name = nameByPgid.get(pgid) || { firstName: "", lastName: "" };
+      awardRows.push({
+        dynastyId,
+        seasonYear: year,
+        playerUid,
+        pgid,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        awardKey: String(poat),
+        awardName,
+        poat,
+        poar,
+      });
+    },
+  });
+
   await db.transaction(
     "rw",
     db.teamSeasons,
@@ -1049,6 +1122,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.pskpRows,
     db.playerSeasonStats,
     db.playerAllAmericans,
+    db.playerAwards,
     db.playerIdentities,
     db.playerIdentitySeasonMap,
     db.dynasties,
@@ -1066,6 +1140,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.pskpRows.where({ dynastyId, seasonYear: year }).delete();
       await db.playerSeasonStats.where({ dynastyId, seasonYear: year }).delete();
       await db.playerAllAmericans.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerAwards.where({ dynastyId, seasonYear: year }).delete();
       await db.playerIdentitySeasonMap.where({ dynastyId, seasonYear: year }).delete();
 
       await db.teams.bulkPut(teams);
@@ -1076,6 +1151,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.coaches.bulkPut(coaches);
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
       if (allAmericanRows.length) await db.playerAllAmericans.bulkPut(allAmericanRows);
+      if (awardRows.length) await db.playerAwards.bulkPut(awardRows);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { formatHometownLabel, loadHometownLookup } from "../hometownService";
+import { loadAwardLogoMap } from "../logoService";
 import {
   ONE_DECIMAL_KEYS,
   STAT_DEFS,
@@ -30,6 +31,7 @@ const FALLBACK_LOGO =
 const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
 const ALL_AMERICAN_LOGO =
   "https://github.com/Talon42/ncaa-next-26/blob/main/textures/SLUS-21214/replacements/general/dynasty-mode/d6ce085a9cf265a1-7d77d8b3187e07c4-00005553.png?raw=true";
+const AWARD_LABEL_RE = /\s+(Award|Trophy)\s*$/i;
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -41,6 +43,13 @@ function maxOrNull(a, b) {
   if (!Number.isFinite(a)) return b;
   if (!Number.isFinite(b)) return a;
   return Math.max(a, b);
+}
+
+function awardShortLabel(name) {
+  const trimmed = String(name ?? "").trim();
+  if (!trimmed) return "";
+  const short = trimmed.replace(AWARD_LABEL_RE, "");
+  return short || trimmed;
 }
 
 function defaultTabForPosition(value) {
@@ -60,12 +69,18 @@ function categoryForTab(value) {
   return "Special Teams";
 }
 
-function defaultTabForCategory(category, currentTab) {
+function firstAvailableTab(tabKeys) {
+  return tabKeys[0] || null;
+}
+
+function defaultTabForCategory(category, currentTab, availableOffenseTabs, availableSpecialTeamsTabs) {
   if (category === "Defense") return "Defense";
   if (category === "Special Teams") {
-    return SPECIAL_TEAMS_KEYS.includes(currentTab) ? currentTab : "Returns";
+    if (SPECIAL_TEAMS_KEYS.includes(currentTab)) return currentTab;
+    return firstAvailableTab(availableSpecialTeamsTabs) || "Returns";
   }
-  return OFFENSE_TABS.includes(currentTab) ? currentTab : "Passing";
+  if (OFFENSE_TABS.includes(currentTab)) return currentTab;
+  return firstAvailableTab(availableOffenseTabs) || "Passing";
 }
 
 function valueForStat(row, key, group) {
@@ -144,7 +159,9 @@ export default function Player() {
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
   const [hometownLookup, setHometownLookup] = useState(null);
+  const [awardLogoMap, setAwardLogoMap] = useState(new Map());
   const [allAmericanRows, setAllAmericanRows] = useState([]);
+  const [awardRows, setAwardRows] = useState([]);
   const [leadersBySeason, setLeadersBySeason] = useState(new Map());
 
   useEffect(() => {
@@ -161,6 +178,20 @@ export default function Player() {
       const lookup = await loadHometownLookup();
       if (!alive) return;
       setHometownLookup(lookup);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const map = await loadAwardLogoMap();
+      if (!alive) return;
+      setAwardLogoMap(map);
     })();
 
     return () => {
@@ -213,6 +244,26 @@ export default function Player() {
       if (!alive) return;
       rows.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
       setAllAmericanRows(rows);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId, playerUid]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!dynastyId || !playerUid) {
+        setAwardRows([]);
+        return;
+      }
+
+      const rows = await db.playerAwards.where({ dynastyId, playerUid }).toArray();
+      if (!alive) return;
+      rows.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
+      setAwardRows(rows);
     })();
 
     return () => {
@@ -317,8 +368,43 @@ export default function Player() {
     };
   }, [dynastyId, latestRow]);
 
-  const availableTabs = useMemo(() => TAB_GROUPS, []);
-  const availableCategories = useMemo(() => CATEGORY_TABS, []);
+  const tabAvailability = useMemo(() => {
+    const result = new Map(TAB_GROUPS.map((key) => [key, false]));
+    if (!playerRows.length) return result;
+    for (const tabKey of TAB_GROUPS) {
+      const defs = getPlayerStatsPageDefs(tabKey);
+      if (!defs.length) continue;
+      for (const row of playerRows) {
+        if (rowHasStatsForTab(row, defs, tabKey)) {
+          result.set(tabKey, true);
+          break;
+        }
+      }
+    }
+    return result;
+  }, [playerRows]);
+
+  const availableTabs = useMemo(
+    () => TAB_GROUPS.filter((key) => tabAvailability.get(key)),
+    [tabAvailability],
+  );
+  const availableOffenseTabs = useMemo(
+    () => OFFENSE_TABS.filter((key) => tabAvailability.get(key)),
+    [tabAvailability],
+  );
+  const availableSpecialTeamsTabs = useMemo(
+    () => SPECIAL_TEAMS_KEYS.filter((key) => tabAvailability.get(key)),
+    [tabAvailability],
+  );
+  const availableCategories = useMemo(() => {
+    const hasDefense = tabAvailability.get("Defense");
+    return CATEGORY_TABS.filter((key) => {
+      if (key === "Offense") return availableOffenseTabs.length > 0;
+      if (key === "Defense") return hasDefense;
+      if (key === "Special Teams") return availableSpecialTeamsTabs.length > 0;
+      return false;
+    });
+  }, [availableOffenseTabs, availableSpecialTeamsTabs, tabAvailability]);
   const category = useMemo(() => categoryForTab(tab), [tab]);
 
   useEffect(() => {
@@ -327,14 +413,14 @@ export default function Player() {
     if (!tabInitialized) {
       if (availableTabs.includes(preferred)) {
         setTab(preferred);
-      } else {
-        setTab(availableTabs[0] || "Passing");
+      } else if (availableTabs.length) {
+        setTab(availableTabs[0]);
       }
       setTabInitialized(true);
       return;
     }
-    if (!availableTabs.includes(tab)) {
-      setTab(availableTabs[0] || "Passing");
+    if (!availableTabs.includes(tab) && availableTabs.length) {
+      setTab(availableTabs[0]);
     }
   }, [availableTabs, latestRow, tab, tabInitialized]);
 
@@ -430,11 +516,35 @@ export default function Player() {
       })
       .filter(Boolean);
   }, [allAmericanRows]);
+  const awardBadges = useMemo(() => {
+    if (!awardRows.length) return [];
+    const seen = new Set();
+
+    return awardRows
+      .map((row) => {
+        const seasonYear = Number(row.seasonYear) || 0;
+        const awardName = String(row.awardName ?? "").trim();
+        if (!awardName) return null;
+        const logoUrl = awardLogoMap.get(awardName.toLowerCase()) || null;
+        const key = `${seasonYear}|award|${row.awardKey ?? "na"}|${row.pgid ?? "na"}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return {
+          key,
+          title: `${seasonYear} - ${awardName}`,
+          seasonYear,
+          logoUrl,
+          label: awardShortLabel(awardName),
+          isHeisman: awardName.toLowerCase().includes("heisman"),
+        };
+      })
+      .filter(Boolean);
+  }, [awardLogoMap, awardRows]);
   const trophyBadges = useMemo(() => {
-    const all = [...captainBadges, ...allAmericanBadges];
+    const all = [...captainBadges, ...allAmericanBadges, ...awardBadges];
     all.sort((a, b) => (a.seasonYear || 0) - (b.seasonYear || 0));
     return all;
-  }, [allAmericanBadges, captainBadges]);
+  }, [allAmericanBadges, awardBadges, captainBadges]);
 
   const activeDefs = useMemo(() => {
     return getPlayerStatsPageDefs(tab);
@@ -553,6 +663,19 @@ export default function Player() {
     return result;
   }, [defsByGroup, playerRows]);
 
+  const teamTotalsForTab = useMemo(() => {
+    if (!activeDefs.length) return [];
+    return teamTotals.filter((team) => {
+      const gpTotal = team.gpTotal;
+      return activeDefs.some((def) => {
+        const value = ONE_DECIMAL_KEYS.has(def.key)
+          ? derivedValue(team.totals, def.key, gpTotal)
+          : team.totals[def.key];
+        return Number.isFinite(value) && value !== 0;
+      });
+    });
+  }, [activeDefs, teamTotals]);
+
   if (loading || !dynastyId || !playerUid || !hasLoaded) {
     return <div className="muted">Loading...</div>;
   }
@@ -636,40 +759,64 @@ export default function Player() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingLeft: 2, paddingRight: 2 }}>
                 {(() => {
                   const size = 42;
-                  const renderBadge = ({ key, title, logoUrl }) => (
-                    <div
-                      key={key}
-                      title={title}
-                      style={{
-                        width: size,
-                        height: size,
-                        borderRadius: 999,
-                        overflow: "hidden",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid var(--border)",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-                        flex: "0 0 auto",
-                      }}
-                    >
-                      <img
-                        src={logoUrl}
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
-                      />
-                    </div>
-                  );
+                  const renderBadge = ({ key, title, logoUrl, label, isHeisman }) => {
+                    const champBorder = "rgba(216,180,90,0.95)";
+                    return (
+                      <div
+                        key={key}
+                        title={title}
+                        style={{
+                          width: size,
+                          height: size,
+                          borderRadius: 999,
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          position: "relative",
+                          background: isHeisman
+                            ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
+                            : "rgba(255,255,255,0.06)",
+                          border: isHeisman ? `1px solid ${champBorder}` : "1px solid var(--border)",
+                          boxShadow: isHeisman
+                            ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
+                            : "0 2px 8px rgba(0,0,0,0.25)",
+                          flex: "0 0 auto",
+                        }}
+                      >
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            lineHeight: 1.1,
+                            textAlign: "center",
+                            padding: 6,
+                            fontWeight: 600,
+                            color: "var(--text)",
+                          }}
+                        >
+                          {label || "Award"}
+                        </span>
+                      )}
+                      </div>
+                    );
+                  };
 
                   return trophyBadges.map((badge) =>
                     renderBadge({
                       key: badge.key,
                       title: badge.title,
                       logoUrl: badge.logoUrl,
+                      label: badge.label,
+                      isHeisman: badge.isHeisman,
                     }),
                   );
                 })()}
@@ -687,7 +834,12 @@ export default function Player() {
               type="button"
               className={`playerStatsCategoryBtn${category === group ? " active" : ""}`}
               onClick={() => {
-                const nextTab = defaultTabForCategory(group, tab);
+                const nextTab = defaultTabForCategory(
+                  group,
+                  tab,
+                  availableOffenseTabs,
+                  availableSpecialTeamsTabs,
+                );
                 setTab(nextTab);
                 setTabInitialized(true);
               }}
@@ -701,7 +853,7 @@ export default function Player() {
       {category === "Offense" ? (
         <div className="playerStatsControlRow">
           <div className="playerStatsSubTabs">
-            {OFFENSE_TABS.map((group) => (
+            {availableOffenseTabs.map((group) => (
               <button
                 key={group}
                 type="button"
@@ -721,7 +873,7 @@ export default function Player() {
       {category === "Special Teams" ? (
         <div className="playerStatsControlRow">
           <div className="playerStatsSubTabs">
-            {SPECIAL_TEAMS_TABS.map((group) => (
+            {SPECIAL_TEAMS_TABS.filter((group) => availableSpecialTeamsTabs.includes(group.key)).map((group) => (
               <button
                 key={group.key}
                 type="button"
@@ -851,12 +1003,12 @@ export default function Player() {
                   </tr>
                 );
               })}
-              {teamTotals.length ? (
+              {teamTotalsForTab.length ? (
                 <tr className="playerTotalsDivider">
                   <td colSpan={activeDefs.length + 4}></td>
                 </tr>
               ) : null}
-              {teamTotals.map((team) => {
+              {teamTotalsForTab.map((team) => {
                 const teamRow =
                   teamBySeasonTgid.get(`${team.lastSeason}|${team.tgid}`) ||
                   teamBySeasonTgid.get(`${team.firstSeason}|${team.tgid}`) ||
