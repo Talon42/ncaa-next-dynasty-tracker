@@ -550,9 +550,15 @@ export default function Player() {
     return getPlayerStatsPageDefs(tab);
   }, [tab]);
   const isDefenseTab = tab === "Defense";
+  const isKickingTab = tab === "Kicking";
   const defenseDividerClass = (idx) => {
     if (!isDefenseTab) return "";
     if (idx === 0 || idx === 3 || idx === 7 || idx === 10) return " tableGroupDivider";
+    return "";
+  };
+  const kickingDividerClass = (idx) => {
+    if (!isKickingTab) return "";
+    if (idx === 0 || idx === 4) return " tableGroupDivider";
     return "";
   };
 
@@ -935,6 +941,33 @@ export default function Player() {
                     })}
                   </tr>
                 </>
+              ) : isKickingTab ? (
+                <>
+                  <tr>
+                    <th colSpan={4}></th>
+                    <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
+                  </tr>
+                  <tr>
+                    <th>Season</th>
+                    <th>Team</th>
+                    <th>Class</th>
+                    <th className="centerCol">G</th>
+                    {activeDefs.map((c, idx) => {
+                      const isFgStart = idx === 0;
+                      const isXpStart = idx === 4;
+                      return (
+                        <th
+                          key={c.key}
+                          title={c.fullLabel}
+                          className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol`}
+                        >
+                          {c.label}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </>
               ) : (
                 <tr>
                   <th>Season</th>
@@ -1019,7 +1052,7 @@ export default function Player() {
                                   Number.isFinite(leaderValue) &&
                                   leaderValue > 0 &&
                                   value === leaderValue;
-                                return `${isLeader ? " playerStatLeader" : ""}${defenseDividerClass(idx)}`;
+                                return `${isLeader ? " playerStatLeader" : ""}${defenseDividerClass(idx)}${kickingDividerClass(idx)}`;
                               })()
                             }`}
                           >
@@ -1052,6 +1085,20 @@ export default function Player() {
                             </div>
                           </td>
                         </>
+                      ) : isKickingTab ? (
+                        <>
+                          <td className="centerCol"></td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={4}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                          <td className="playerSeasonNoteCell tableGroupDivider" colSpan={3}>
+                            <div className="playerSeasonNote">
+                              <span>{redshirtYear ? "Redshirt Year" : "Did Not Play"}</span>
+                            </div>
+                          </td>
+                        </>
                       ) : (
                         <td className="playerSeasonNoteCell" colSpan={activeDefs.length + 1}>
                           <div className="playerSeasonNote">
@@ -1063,7 +1110,10 @@ export default function Player() {
                       <>
                         <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
                         {activeDefs.map((c, idx) => (
-                          <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
+                          <td
+                            key={c.key}
+                            className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                          >
                             0
                           </td>
                         ))}
@@ -1116,7 +1166,10 @@ export default function Player() {
                         ? derivedValue(team.totals, c.key, teamGp)
                         : team.totals[c.key];
                       return (
-                        <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
+                        <td
+                          key={c.key}
+                          className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                        >
                           {formatStat(value, c.key)}
                         </td>
                       );
@@ -1134,7 +1187,10 @@ export default function Player() {
                     ? derivedValue(careerTotals, c.key, careerGp)
                     : careerTotals[c.key];
                   return (
-                    <td key={c.key} className={`statCol${defenseDividerClass(idx)}`}>
+                    <td
+                      key={c.key}
+                      className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                    >
                       {formatStat(value, c.key)}
                     </td>
                   );

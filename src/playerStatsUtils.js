@@ -419,6 +419,28 @@ export function getPlayerCardStatDefs(tab) {
 export function getPlayerStatsPageDefs(tab) {
   if (tab !== "Kicking" && tab !== "Returns" && tab !== "Punting") return getPlayerCardStatDefs(tab);
 
+  if (tab === "Punting") {
+    const order = ["puntAtt", "puntYds", "puntLong", "puntAvg", "puntIn20", "puntBlocked"];
+    const labelOverrides = {
+      puntAtt: { label: "PUNTS" },
+      puntYds: { label: "YDS" },
+      puntLong: { label: "LNG" },
+      puntAvg: { label: "AVG" },
+      puntIn20: { label: "IN 20" },
+      puntBlocked: { label: "BLK" },
+    };
+    const defs = getPlayerCardStatDefs("Special Teams");
+    const map = new Map(defs.map((d) => [d.key, d]));
+    return order
+      .map((key) => {
+        const def = map.get(key);
+        if (!def) return null;
+        const override = labelOverrides[key];
+        return override ? { ...def, ...override } : def;
+      })
+      .filter(Boolean);
+  }
+
   const all = getPlayerCardStatDefs("Special Teams");
   const kickingKeys = new Set(["fgm", "fga", "fgPct", "fgLong", "xpm", "xpa", "xpPct"]);
   const puntingKeys = new Set(["puntAtt", "puntYds", "puntAvg", "puntLong", "puntIn20", "puntBlocked"]);
