@@ -703,6 +703,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
+                        className="playerStatsNameCol"
                       >
                         NAME{sortIndicator("playerName")}
                       </th>
@@ -762,6 +763,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
+                        className="playerStatsNameCol"
                       >
                         NAME{sortIndicator("playerName")}
                       </th>
@@ -823,6 +825,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
+                        className="playerStatsNameCol"
                       >
                         NAME{sortIndicator("playerName")}
                       </th>
@@ -885,11 +888,12 @@ export default function PlayerStats() {
                       </tr>
                     <tr>
                       <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
-                      <th
-                        onClick={() => clickSort("playerName")}
-                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                        title="Sort"
-                      >
+                    <th
+                      onClick={() => clickSort("playerName")}
+                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                      title="Sort"
+                      className="playerStatsNameCol"
+                    >
                         NAME{sortIndicator("playerName")}
                       </th>
                       <th
@@ -942,6 +946,7 @@ export default function PlayerStats() {
                       onClick={() => clickSort("playerName")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                       title="Sort"
+                      className="playerStatsNameCol"
                     >
                       NAME{sortIndicator("playerName")}
                     </th>
@@ -1000,7 +1005,7 @@ export default function PlayerStats() {
                         {r.jerseyNumber != null ? `#${r.jerseyNumber}` : ""}
                       </span>
                     </td>
-                    <td data-label="Player">
+                    <td data-label="Player" className="playerStatsNameCol">
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         {r.tgid && r.logoUrl ? (
                           <Link

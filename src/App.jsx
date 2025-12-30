@@ -886,6 +886,9 @@ export default function App() {
                   isTeamsPage ? "cardWide" : "",
                   isSchedulePage ? "cardSchedule" : "",
                   location.pathname.startsWith("/player/") ? "cardPlayer" : "",
+                  location.pathname === "/player-stats" || location.pathname === "/team-stats"
+                    ? "cardStatsWide"
+                    : "",
                   location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
                 ]
                   .filter(Boolean)

@@ -438,6 +438,10 @@ h2 {
   padding-right: 24px;
 }
 
+.routedCard.cardStatsWide {
+  max-width: 1500px;
+}
+
 @media (min-width: 1401px) {
   .routedCard.cardSchedule {
     max-width: calc(var(--schedule-max) * 1.15);
@@ -746,7 +750,7 @@ button:disabled {
 }
 
 .table tbody td {
-  padding: 10px 12px;
+  padding: 5px 12px;
   font-size: var(--app-table-cell-font-size);
   font-weight: var(--app-table-cell-font-weight);
   border-bottom: 1px solid rgba(42,42,42,0.85);
@@ -1290,6 +1294,14 @@ button:disabled {
   line-height: var(--app-header-line-height);
 }
 
+.playerStatsNameCol {
+  width: 250px;
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .playerStatsCategoryRow {
   display: flex;
   align-items: center;
@@ -1397,19 +1409,27 @@ button:disabled {
 }
 
 .breadcrumbBack {
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--muted);
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: var(--app-control-font-size);
-  font-weight: var(--app-control-font-weight);
-  letter-spacing: 0.2px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 
 .breadcrumbBack:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.breadcrumbBackIcon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Modal */
@@ -1769,17 +1789,21 @@ button:disabled {
     padding: 8px 8px;
   }
 
-  .teamStatsTable .teamCol {
-    white-space: nowrap;
-  }
+.teamStatsTable .teamCol {
+  white-space: nowrap;
+}
 
-  .teamStatsTable .teamCol .teamCell span {
-    white-space: nowrap;
-  }
+.teamStatsTable .teamCol .teamCell span {
+  white-space: nowrap;
+}
 
-  .teamStatsTable .teamCol {
-    padding-right: 16px;
-  }
+.teamStatsTable .teamCol {
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+  box-sizing: border-box;
+  padding: 5px 30px 5px 4px;
+}
 
   .teamStatsTable .statCol {
     padding-left: 6px;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
+import { getConferenceName } from "../conferences";
 
 const FALLBACK_TEAM_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -18,42 +19,46 @@ const FALLBACK_TEAM_LOGO =
  */
 const STAT_DEFS = [
   // Offense (requested order)
-  { key: "tsTy", label: "Tot Yds", fullLabel: "Total Yards", group: "Offense" },
-  { key: "tsoy", label: "Tot Off", fullLabel: "Total Offense", group: "Offense" },
-  { key: "tsop", label: "Pass Yds", fullLabel: "Passing Yards", group: "Offense" },
-  { key: "tsor", label: "Rush Yds", fullLabel: "Rushing Yards", group: "Offense" },
-  { key: "offPtsPerGame", label: "Pts/Gm", fullLabel: "Points Scored Per Game", group: "Offense" },
-  { key: "tspt", label: "Pass TD", fullLabel: "Passing TD", group: "Offense" },
-  { key: "tsrt", label: "Rush TD", fullLabel: "Rushing TD", group: "Offense" },
-  { key: "ts1d", label: "1D", fullLabel: "1st Downs", group: "Offense" },
-  { key: "tssa", label: "SACK", fullLabel: "Sacks", group: "Offense" },
-  { key: "tspi", label: "INT", fullLabel: "Interceptions", group: "Offense" },
+  { key: "tsoy", label: "TOT OFF", fullLabel: "Total Offense", group: "Offense" },
+  { key: "totOffYpg", label: "YDS/G", fullLabel: "Total Offense Yards Per Game", group: "Offense" },
+  { key: "tsop", label: "YDS", fullLabel: "Passing Yards", group: "Offense" },
+  { key: "passYpg", label: "YDS/G", fullLabel: "Passing Yards Per Game", group: "Offense" },
+  { key: "tspt", label: "TD", fullLabel: "Passing TD", group: "Offense" },
+  { key: "tsor", label: "YDS", fullLabel: "Rushing Yards", group: "Offense" },
+  { key: "rushYpg", label: "YDS/G", fullLabel: "Rushing Yards Per Game", group: "Offense" },
+  { key: "tsrt", label: "TD", fullLabel: "Rushing TD", group: "Offense" },
+  { key: "offPtsTotal", label: "PTS", fullLabel: "Total Points Scored", group: "Offense" },
+  { key: "offPtsPerGame", label: "PTS/GM", fullLabel: "Points Scored Per Game", group: "Offense" },
 
   // Defense (requested order + additions)
-  { key: "defTotYds", label: "Tot Yds", fullLabel: "Total Yards Allowed", group: "Defense" },
-  { key: "tsdp", label: "Pass Yds", fullLabel: "Passing Yards Allowed", group: "Defense" },
-  { key: "tsdy", label: "Rush Yds", fullLabel: "Rushing Yards Allowed", group: "Defense" },
-  { key: "defPtsPerGame", label: "Pts/Gm", fullLabel: "Points Allowed Per Game", group: "Defense" },
+  { key: "defTotYds", label: "TOT YDS", fullLabel: "Total Yards Allowed", group: "Defense" },
+  { key: "defTotYpg", label: "YDS/G", fullLabel: "Total Yards Allowed Per Game", group: "Defense" },
+  { key: "tsdp", label: "YDS", fullLabel: "Passing Yards Allowed", group: "Defense" },
+  { key: "defPassYpg", label: "YDS/G", fullLabel: "Passing Yards Allowed Per Game", group: "Defense" },
   { key: "tssk", label: "SACK", fullLabel: "Sacks", group: "Defense" },
+  { key: "tsdy", label: "YDS", fullLabel: "Rushing Yards Allowed", group: "Defense" },
+  { key: "defRushYpg", label: "YDS/G", fullLabel: "Rushing Yards Allowed Per Game", group: "Defense" },
+  { key: "defPtsPerGame", label: "PTS/G", fullLabel: "Points Allowed Per Game", group: "Defense" },
   { key: "tsdi", label: "INT", fullLabel: "Interceptions", group: "Defense" },
-  { key: "tsta", label: "TO", fullLabel: "Turnovers", group: "Defense" },
-  { key: "tsfr", label: "FUM", fullLabel: "Fumbles Recovered", group: "Defense" },
+  { key: "tsff", label: "FF", fullLabel: "Forced Fumbles", group: "Defense" },
+  { key: "tsfr", label: "FR", fullLabel: "Fumble Recoveries", group: "Defense" },
 
   // Efficiency (requested order)
   { key: "ts3c", label: "3DC", fullLabel: "3rd Down Conversions", group: "Efficiency" },
   { key: "ts3d", label: "3DA", fullLabel: "3rd Down Attempts", group: "Efficiency" },
   { key: "ts4c", label: "4DC", fullLabel: "4th Down Conversions", group: "Efficiency" },
   { key: "ts4d", label: "4DA", fullLabel: "4th Down Attempts", group: "Efficiency" },
-  { key: "tsoz", label: "RZ Att", fullLabel: "Offensive RZ Attempts", group: "Efficiency" },
-  { key: "tsot", label: "RZ TD", fullLabel: "Offensive RZ TD", group: "Efficiency" },
-  { key: "tsof", label: "RZ FG", fullLabel: "Offensive RZ FG", group: "Efficiency" },
-  { key: "tsdr", label: "RZ Att", fullLabel: "Defensive RZ Attempts", group: "Efficiency" },
-  { key: "tsdt", label: "RZ TD", fullLabel: "Defensive RZ TD", group: "Efficiency" },
-  { key: "tsdf", label: "RZ FG", fullLabel: "Defensive RZ FG", group: "Efficiency" },
   { key: "ts2c", label: "2PC", fullLabel: "2 Point Conversions", group: "Efficiency" },
   { key: "ts2a", label: "2PA", fullLabel: "2 Point Attempts", group: "Efficiency" },
+  { key: "tsoz", label: "ATT", fullLabel: "Offensive RZ Attempts", group: "Efficiency" },
+  { key: "tsot", label: "TD", fullLabel: "Offensive RZ TD", group: "Efficiency" },
+  { key: "tsof", label: "FG", fullLabel: "Offensive RZ FG", group: "Efficiency" },
+  { key: "tsdr", label: "ATT", fullLabel: "Defensive RZ Attempts", group: "Efficiency" },
+  { key: "tsdt", label: "TD", fullLabel: "Defensive RZ TD", group: "Efficiency" },
+  { key: "tsdf", label: "FG", fullLabel: "Defensive RZ FG", group: "Efficiency" },
   { key: "tspe", label: "PEN", fullLabel: "Penalties", group: "Efficiency" },
-  { key: "tspy", label: "Pen Yds", fullLabel: "Penalty Yards", group: "Efficiency" },
+  { key: "penPerGame", label: "PEN/G", fullLabel: "Penalties Per Game", group: "Efficiency" },
+  { key: "tspy", label: "PEN YDS", fullLabel: "Penalty Yards", group: "Efficiency" },
 ];
 
 const TAB_ORDER = ["Offense", "Defense", "Efficiency"];
@@ -149,6 +154,7 @@ export default function TeamStats() {
   const [seasonYear, setSeasonYear] = useState(null);
 
   const [tab, setTab] = useState("Offense");
+  const [confFilter, setConfFilter] = useState("All");
 
   const [loading, setLoading] = useState(true);
 
@@ -156,6 +162,7 @@ export default function TeamStats() {
   const [teamSeasons, setTeamSeasons] = useState([]);
   const [teamStats, setTeamStats] = useState([]);
   const [games, setGames] = useState([]);
+  const [playerSeasonStats, setPlayerSeasonStats] = useState([]);
 
   // Logos
   const [logoByTgid, setLogoByTgid] = useState(new Map());
@@ -171,6 +178,7 @@ export default function TeamStats() {
     const tabParam = params.get("tab");
     const sort = params.get("sort");
     const dir = params.get("dir");
+    const conf = params.get("conf");
 
     const resolved = getSeasonFromParamOrSaved(season);
     if (resolved != null) {
@@ -180,7 +188,21 @@ export default function TeamStats() {
     if (tabParam && TAB_ORDER.includes(tabParam)) setTab(tabParam);
     if (sort) setSortKey(sort);
     if (dir === "asc" || dir === "desc") setSortDir(dir);
+    if (conf) setConfFilter(conf);
   }, [location.search]);
+
+  useEffect(() => {
+    if (tab === "Offense") {
+      setSortKey("totOffYpg");
+      setSortDir("desc");
+    } else if (tab === "Defense") {
+      setSortKey("teamName");
+      setSortDir("asc");
+    } else if (tab === "Efficiency") {
+      setSortKey("teamName");
+      setSortDir("asc");
+    }
+  }, [tab]);
 
   const teamLogoFor = useMemo(() => {
     return (id) =>
@@ -234,9 +256,10 @@ export default function TeamStats() {
     params.set("tab", tab);
     params.set("sort", sortKey);
     params.set("dir", sortDir);
+    params.set("conf", confFilter);
     writeSeasonFilter(seasonYear);
     navigate({ pathname: "/team-stats", search: `?${params.toString()}` }, { replace: true });
-  }, [dynastyId, seasonYear, tab, sortKey, sortDir, navigate, location.search]);
+  }, [dynastyId, seasonYear, tab, sortKey, sortDir, confFilter, navigate, location.search]);
 
   // Load team logos for this dynasty
   useEffect(() => {
@@ -274,16 +297,18 @@ export default function TeamStats() {
         setTeamSeasons([]);
         setTeamStats([]);
         setGames([]);
+        setPlayerSeasonStats([]);
         setLoading(false);
         return;
       }
 
       setLoading(true);
 
-      const [ts, st, gm] = await Promise.all([
+      const [ts, st, gm, ps] = await Promise.all([
         db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
         db.teamStats.where({ dynastyId, seasonYear }).toArray(),
         db.games.where({ dynastyId, seasonYear }).toArray(),
+        db.playerSeasonStats.where({ dynastyId, seasonYear }).toArray(),
       ]);
 
       if (!alive) return;
@@ -291,6 +316,7 @@ export default function TeamStats() {
       setTeamSeasons(ts);
       setTeamStats(st);
       setGames(gm);
+      setPlayerSeasonStats(ps);
       setLoading(false);
     })();
 
@@ -300,6 +326,28 @@ export default function TeamStats() {
   }, [dynastyId, seasonYear]);
 
   const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
+  const isOffenseTab = tab === "Offense";
+  const isDefenseTab = tab === "Defense";
+  const isEfficiencyTab = tab === "Efficiency";
+
+  const confByTgid = useMemo(() => {
+    const map = new Map();
+    for (const t of teamSeasons) {
+      map.set(String(t.tgid), String(t.cgid ?? ""));
+    }
+    return map;
+  }, [teamSeasons]);
+
+  const confOptions = useMemo(() => {
+    const confIds = Array.from(
+      new Set(teamSeasons.map((t) => String(t.cgid ?? "")).filter(Boolean))
+    );
+    const names = confIds
+      .map((id) => getConferenceName(id))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    return names;
+  }, [teamSeasons]);
 
   const nameByTgid = useMemo(() => {
     const map = new Map();
@@ -347,6 +395,18 @@ export default function TeamStats() {
     return { ptsAllowedByTgid, ptsScoredByTgid, gamesPlayedByTgid };
   }, [games]);
 
+  const ffByTgid = useMemo(() => {
+    const map = new Map();
+    for (const row of playerSeasonStats) {
+      const tgid = row.tgid != null ? String(row.tgid) : "";
+      if (!tgid) continue;
+      const ff = Number(row.defFF ?? 0);
+      if (!Number.isFinite(ff) || ff === 0) continue;
+      map.set(tgid, (map.get(tgid) ?? 0) + ff);
+    }
+    return map;
+  }, [playerSeasonStats]);
+
   const mergedRows = useMemo(() => {
     const { ptsAllowedByTgid, ptsScoredByTgid, gamesPlayedByTgid } = ptsMaps;
 
@@ -362,6 +422,8 @@ export default function TeamStats() {
       const defPass = Number(s.tsdp ?? lc["tsdp"] ?? 0);
       const defRush = Number(s.tsdy ?? lc["tsdy"] ?? 0);
       const defTotYds = Number.isFinite(defPass) && Number.isFinite(defRush) ? defPass + defRush : null;
+      const offPass = Number(s.tsop ?? lc["tsop"] ?? 0);
+      const offRush = Number(s.tsor ?? lc["tsor"] ?? 0);
 
       const gp = gamesPlayedByTgid.get(tgid) ?? 0;
       const pa = ptsAllowedByTgid.get(tgid) ?? 0;
@@ -369,6 +431,13 @@ export default function TeamStats() {
 
       const defPtsPerGame = gp ? round1(pa / gp) : null;
       const offPtsPerGame = gp ? round1(ps / gp) : null;
+      const passYpg = gp ? round1(offPass / gp) : null;
+      const rushYpg = gp ? round1(offRush / gp) : null;
+      const totOffYpg = gp ? round1(Number(s.tsoy ?? lc["tsoy"] ?? 0) / gp) : null;
+      const defTotYpg = gp ? round1(defTotYds / gp) : null;
+      const defPassYpg = gp ? round1(defPass / gp) : null;
+      const defRushYpg = gp ? round1(defRush / gp) : null;
+      const penPerGame = gp ? round1(Number(s.tspe ?? lc["tspe"] ?? 0) / gp) : null;
 
       return {
         ...s,
@@ -376,18 +445,33 @@ export default function TeamStats() {
         teamName: nameByTgid.get(tgid) ?? tgid,
         logoUrl: teamLogoFor(tgid),
         teamRank: rankByTgid.get(tgid) ?? null,
+        confName: getConferenceName(confByTgid.get(tgid)),
         defTotYds,
         defPtsPerGame,
+        defTotYpg,
+        defPassYpg,
+        defRushYpg,
+        penPerGame,
         offPtsPerGame,
+        passYpg,
+        rushYpg,
+        totOffYpg,
+        offPtsTotal: ps,
+        tsff: ffByTgid.get(tgid) ?? null,
       };
     });
-  }, [teamStats, nameByTgid, rankByTgid, teamLogoFor, ptsMaps]);
+  }, [teamStats, nameByTgid, rankByTgid, teamLogoFor, ptsMaps, ffByTgid, confByTgid]);
+
+  const filteredRows = useMemo(() => {
+    if (confFilter === "All") return mergedRows;
+    return mergedRows.filter((r) => r.confName === confFilter);
+  }, [mergedRows, confFilter]);
 
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
     const key = sortKey;
 
-    const arr = [...mergedRows];
+    const arr = [...filteredRows];
 
     arr.sort((a, b) => {
       const av = key === "teamName" ? a.teamName : getVal(a, key);
@@ -409,7 +493,7 @@ export default function TeamStats() {
     });
 
     return arr;
-  }, [mergedRows, sortKey, sortDir]);
+  }, [filteredRows, sortKey, sortDir]);
 
   // deterministic toggle: click same header toggles asc/desc
   function clickSort(nextKey) {
@@ -432,61 +516,65 @@ export default function TeamStats() {
     <div>
       <div className="hrow">
         <h2>Team Stats - {tab}</h2>
+      </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            {TAB_ORDER.map((t) => (
-              <button
-                key={t}
-                className="toggleBtn"
-                onClick={() => {
-                  setTab(t);
+      <div className="playerStatsCategoryRow">
+        {TAB_ORDER.map((t) => (
+          <button
+            key={t}
+            className={`toggleBtn playerStatsCategoryBtn${tab === t ? " active" : ""}`}
+            onClick={() => {
+              setTab(t);
 
-                  // If current sortKey isn't on this tab, fall back to Team
-                  const allowedKeys = new Set([
-                    "teamName",
-                    ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
-                  ]);
-                  setSortKey((cur) => (allowedKeys.has(cur) ? cur : "teamName"));
-                }}
-                style={{
-                  fontWeight: "var(--app-control-font-weight)",
-                  opacity: 1,
-                  color: tab === t ? "var(--text)" : "var(--muted)",
-                  borderColor: tab === t ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                  background: tab === t ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                  boxShadow: tab === t ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-                }}
-              >
-                {t}
-              </button>
+              // If current sortKey isn't on this tab, fall back to Team
+              const allowedKeys = new Set([
+                "teamName",
+                ...STAT_DEFS.filter((d) => d.group === t).map((d) => d.key),
+              ]);
+              setSortKey((cur) => (allowedKeys.has(cur) ? cur : "teamName"));
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            value={seasonYear ?? ""}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setSeasonYear(next);
+              writeSeasonFilter(next);
+            }}
+            disabled={!hasAnyYears}
+            aria-label="Season"
+          >
+            {!hasAnyYears ? (
+              <option value="">No stats imported</option>
+            ) : (
+              availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))
+            )}
+          </select>
+
+          <select
+            value={confFilter}
+            onChange={(e) => setConfFilter(e.target.value)}
+            disabled={!confOptions.length}
+            aria-label="Conference"
+          >
+            <option value="All">All Conferences</option>
+            {confOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
-          </div>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            <span className="muted" style={{ fontSize: 12 }}>
-              Season
-            </span>
-            <select
-              value={seasonYear ?? ""}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setSeasonYear(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasAnyYears}
-            >
-              {!hasAnyYears ? (
-                <option value="">No stats imported</option>
-              ) : (
-                availableYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+          </select>
         </div>
       </div>
 
@@ -503,6 +591,32 @@ export default function TeamStats() {
           <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
             <table className="table teamStatsTable">
               <thead>
+                {isOffenseTab ? (
+                  <tr>
+                    <th></th>
+                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RUSHING</th>
+                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">POINTS</th>
+                  </tr>
+                ) : isDefenseTab ? (
+                  <tr>
+                    <th></th>
+                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
+                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">RUSHING</th>
+                    <th className="tableGroupHeader tableGroupDivider">POINTS</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">TURNOVERS</th>
+                  </tr>
+                ) : isEfficiencyTab ? (
+                  <tr>
+                    <th></th>
+                    <th colSpan={6} className="tableGroupHeader tableGroupDivider">CONVERSIONS</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE OFFENSE</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE DEFENSE</th>
+                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PENALTIES</th>
+                  </tr>
+                ) : null}
                 <tr>
                   <th
                     className="teamCol"
@@ -519,24 +633,50 @@ export default function TeamStats() {
                     Team{sortIndicator("teamName")}
                   </th>
 
-                  {colsForTab.map((c) => (
-                    <th
-                      key={c.key}
-                      className="statCol"
-                      onClick={() => clickSort(c.key)}
-                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                      title={c.fullLabel}
-                    >
-                      {c.label}
-                      {sortIndicator(c.key)}
-                    </th>
-                  ))}
+                  {colsForTab.map((c, idx) => {
+                    const isTotalStart = idx === 0;
+                    const isPassingStart = isOffenseTab ? idx === 2 : idx === 2;
+                    const isRushingStart = isOffenseTab ? idx === 5 : idx === 5;
+                    const isPointsStart = isOffenseTab ? idx === 8 : idx === 7;
+                    const isTurnoversStart = isDefenseTab ? idx === 8 : false;
+                    const isConversionsStart = isEfficiencyTab ? idx === 0 : false;
+                    const isRedZoneOffStart = isEfficiencyTab ? idx === 6 : false;
+                    const isRedZoneDefStart = isEfficiencyTab ? idx === 9 : false;
+                    const isPenaltiesStart = isEfficiencyTab ? idx === 12 : false;
+                    const isGroupStart =
+                      isOffenseTab
+                        ? isTotalStart || isPassingStart || isRushingStart || isPointsStart
+                        : isDefenseTab
+                          ? isTotalStart ||
+                            isPassingStart ||
+                            isRushingStart ||
+                            isPointsStart ||
+                            isTurnoversStart
+                          : isEfficiencyTab
+                            ? isConversionsStart ||
+                              isRedZoneOffStart ||
+                              isRedZoneDefStart ||
+                              isPenaltiesStart
+                          : false;
+                    return (
+                      <th
+                        key={c.key}
+                        className={`${isGroupStart ? "tableGroupDivider " : ""}statCol`}
+                        onClick={() => clickSort(c.key)}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title={c.fullLabel}
+                      >
+                        {c.label}
+                        {sortIndicator(c.key)}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
                 {sortedRows.map((r) => (
                   <tr key={r.tgid}>
-                    <td className="teamCol" data-label="Team" style={{ paddingRight: 56 }}>
+                    <td className="teamCol" data-label="Team">
                       <Link
                         to={`/team/${r.tgid}`}
                         style={{
@@ -550,11 +690,41 @@ export default function TeamStats() {
                       </Link>
                     </td>
 
-                    {colsForTab.map((c) => (
-                      <td key={c.key} className="statCol" data-label={c.fullLabel || c.label}>
-                        {getVal(r, c.key) ?? ""}
-                      </td>
-                    ))}
+                    {colsForTab.map((c, idx) => {
+                      const isTotalStart = idx === 0;
+                      const isPassingStart = isOffenseTab ? idx === 2 : idx === 2;
+                      const isRushingStart = isOffenseTab ? idx === 5 : idx === 5;
+                      const isPointsStart = isOffenseTab ? idx === 8 : idx === 7;
+                      const isTurnoversStart = isDefenseTab ? idx === 8 : false;
+                      const isConversionsStart = isEfficiencyTab ? idx === 0 : false;
+                      const isRedZoneOffStart = isEfficiencyTab ? idx === 6 : false;
+                      const isRedZoneDefStart = isEfficiencyTab ? idx === 9 : false;
+                      const isPenaltiesStart = isEfficiencyTab ? idx === 12 : false;
+                      const isGroupStart =
+                        isOffenseTab
+                          ? isTotalStart || isPassingStart || isRushingStart || isPointsStart
+                          : isDefenseTab
+                            ? isTotalStart ||
+                              isPassingStart ||
+                              isRushingStart ||
+                              isPointsStart ||
+                              isTurnoversStart
+                            : isEfficiencyTab
+                              ? isConversionsStart ||
+                                isRedZoneOffStart ||
+                                isRedZoneDefStart ||
+                                isPenaltiesStart
+                              : false;
+                      return (
+                        <td
+                          key={c.key}
+                          className={`${isGroupStart ? "tableGroupDivider " : ""}statCol`}
+                          data-label={c.fullLabel || c.label}
+                        >
+                          {getVal(r, c.key) ?? ""}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

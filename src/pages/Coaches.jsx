@@ -333,42 +333,36 @@ export default function Coaches() {
     <div>
       <div className="hrow">
         <h2>Coaches</h2>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Conference</span>
-            <select
-              value={confFilter}
-              onChange={(e) => setConfFilter(e.target.value)}
-              disabled={!confOptions.length}
-            >
-              <option value="All">All</option>
-              {confOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
+      </div>
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            value={confFilter}
+            onChange={(e) => setConfFilter(e.target.value)}
+            disabled={!confOptions.length}
+            aria-label="Conference"
+          >
+            <option value="All">All</option>
+            {confOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Status</span>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Status">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Approval</span>
-            <select value={approvalFilter} onChange={(e) => setApprovalFilter(e.target.value)}>
-              <option value="All">All</option>
-              {approvalOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
+          <select value={approvalFilter} onChange={(e) => setApprovalFilter(e.target.value)} aria-label="Approval">
+            <option value="All">All</option>
+            {approvalOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -392,14 +386,14 @@ export default function Coaches() {
                 style={{ cursor: "pointer", userSelect: "none" }}
                 title="Sort"
               >
-                Coach{sortIndicator("coachName")}
+                COACH{sortIndicator("coachName")}
               </th>
               <th
                 onClick={() => clickSort("teamName")}
                 style={{ cursor: "pointer", userSelect: "none" }}
                 title="Sort"
               >
-                Team{sortIndicator("teamName")}
+                TEAM{sortIndicator("teamName")}
               </th>
               <th
                 onClick={() => clickSort("record")}
@@ -407,7 +401,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Record{sortIndicator("record")}
+                RECORD{sortIndicator("record")}
               </th>
               <th
                 onClick={() => clickSort("winPct")}
@@ -415,7 +409,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Win%{sortIndicator("winPct")}
+                WIN%{sortIndicator("winPct")}
               </th>
               <th
                 onClick={() => clickSort("bowlRecord")}
@@ -423,7 +417,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Bowl Record{sortIndicator("bowlRecord")}
+                BOWL RECORD{sortIndicator("bowlRecord")}
               </th>
               <th
                 onClick={() => clickSort("bowlWinPct")}
@@ -431,7 +425,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Bowl Win%{sortIndicator("bowlWinPct")}
+                BOWL WIN%{sortIndicator("bowlWinPct")}
               </th>
               <th
                 onClick={() => clickSort("prestige")}
@@ -439,7 +433,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Prestige{sortIndicator("prestige")}
+                PRESTIGE{sortIndicator("prestige")}
               </th>
               <th
                 onClick={() => clickSort("approval")}
@@ -447,7 +441,7 @@ export default function Coaches() {
                 title="Sort"
                 className="statCol"
               >
-                Approval{sortIndicator("approval")}
+                APPROVAL{sortIndicator("approval")}
               </th>
             </tr>
           </thead>

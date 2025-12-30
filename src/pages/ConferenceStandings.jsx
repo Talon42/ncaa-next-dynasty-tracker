@@ -488,42 +488,43 @@ useEffect(() => {
             <ConfHeader name={headerTitle} logoUrl={headerLogo} size={44} />
           )}
         </h2>
+      </div>
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            value={cgid}
+            onChange={(e) => setCgid(e.target.value)}
+            disabled={!teamsById.size}
+            aria-label="Conference"
+          >
+            <option value="All">All</option>
+            {availableConfs.map((id) => (
+              <option key={id} value={id}>
+                {getConferenceName(id)}
+              </option>
+            ))}
+          </select>
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Conference</span>
-            <select value={cgid} onChange={(e) => setCgid(e.target.value)} disabled={!teamsById.size}>
-              <option value="All">All</option>
-              {availableConfs.map((id) => (
-                <option key={id} value={id}>
-                  {getConferenceName(id)}
+          <select
+            value={season}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSeason(next);
+              writeSeasonFilter(next);
+            }}
+            disabled={!hasSeasons}
+            aria-label="Season"
+          >
+            {!hasSeasons ? (
+              <option value="">No seasons uploaded</option>
+            ) : (
+              seasons.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
                 </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
-            <span>Season</span>
-            <select
-              value={season}
-              onChange={(e) => {
-                const next = e.target.value;
-                setSeason(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasSeasons}
-            >
-              {!hasSeasons ? (
-                <option value="">No seasons uploaded</option>
-              ) : (
-                seasons.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+              ))
+            )}
+          </select>
         </div>
       </div>
 

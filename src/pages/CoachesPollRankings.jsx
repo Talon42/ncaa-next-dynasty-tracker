@@ -200,29 +200,26 @@ export default function CoachesPollRankings() {
     <div className="pollRankingsPage">
       <div className="hrow" style={{ alignItems: "baseline" }}>
         <h2>Coach&apos;s Poll Rankings</h2>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Season</span>
-            <select
-              value={seasonYear ?? ""}
-              onChange={(e) => setSeasonYear(Number(e.target.value))}
-              disabled={!availableSeasons.length}
-            >
-              {availableSeasons.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </label>
+      </div>
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            value={seasonYear ?? ""}
+            onChange={(e) => setSeasonYear(Number(e.target.value))}
+            disabled={!availableSeasons.length}
+            aria-label="Season"
+          >
+            {availableSeasons.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
 
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Rank</span>
-            <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)}>
-              <option value="All">All</option>
-              <option value="Top 25">Top 25</option>
-            </select>
-          </label>
+          <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)} aria-label="Rank">
+            <option value="All">All</option>
+            <option value="Top 25">Top 25</option>
+          </select>
         </div>
       </div>
 

@@ -243,12 +243,12 @@ export default function Coach() {
       const baseRow = await db.coachCareerBases.get([dynastyId, coachId]);
       const fallbackBaseSeasonYear = await (async () => {
         const anyBase = await db.coachCareerBases.where({ dynastyId }).first();
-        const yrFromBase = Number(anyBase?.baseSeasonYear);
+        const yrFromBase = Number(anyBase*baseSeasonYear);
         if (Number.isFinite(yrFromBase)) return yrFromBase;
 
         const all = await db.coaches.where({ dynastyId }).toArray();
         const years = all.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n));
-        return years.length ? Math.min(...years) : Number(sorted[sorted.length - 1]?.seasonYear);
+        return years.length ? Math.min(...years) : Number(sorted[sorted.length - 1]*seasonYear);
       })();
 
       const dynastyLatestYear = (() => {
@@ -414,9 +414,9 @@ export default function Coach() {
       const career = computeCoachCareerRecord({
         coachSeasons: sorted.map((r) => ({ seasonYear: r.seasonYear, tgid: String(r.tgid ?? "") })),
         teamSeasonWinLossByKey,
-        baseSeasonYear: baseRow?.baseSeasonYear ?? fallbackBaseSeasonYear,
-        baseWins: baseRow?.baseWins ?? 0,
-        baseLosses: baseRow?.baseLosses ?? 0,
+        baseSeasonYear: baseRow*baseSeasonYear ?? fallbackBaseSeasonYear,
+        baseWins: baseRow*baseWins ?? 0,
+        baseLosses: baseRow*baseLosses ?? 0,
         asOfSeasonYear: latest.seasonYear,
       });
 
@@ -544,7 +544,7 @@ export default function Coach() {
           ? `(${confRec.w}-${confRec.l}${confRec.t ? `-${confRec.t}` : ""})`
           : "-";
         const postseason =
-          postseasonByYear.get(Number(r.seasonYear))?.slice().sort((a, b) => a.week - b.week) || [];
+          postseasonByYear.get(Number(r.seasonYear))*slice().sort((a, b) => a.week - b.week) || [];
 
         return {
           seasonYear: r.seasonYear,
@@ -1129,12 +1129,12 @@ export default function Coach() {
       <table className="table">
         <thead>
           <tr>
-            <th style={{ width: 100 }}>Year</th>
-            <th>Team</th>
-            <th style={{ width: 120 }} className="statCol">Record</th>
-            <th style={{ width: 120 }} className="statCol">Conf Record</th>
-            <th style={{ width: 90 }} className="statCol">Top 25</th>
-            <th>Postseason</th>
+            <th style={{ width: 100 }}>YEAR</th>
+            <th>TEAM</th>
+            <th style={{ width: 120 }} className="statCol">RECORD</th>
+            <th style={{ width: 120 }} className="statCol">CONF RECORD</th>
+            <th style={{ width: 90 }} className="statCol">TOP 25</th>
+            <th>POSTSEASON</th>
           </tr>
         </thead>
         <tbody>
