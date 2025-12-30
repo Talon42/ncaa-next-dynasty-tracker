@@ -331,6 +331,7 @@ export default function Postseason() {
       sortBy = "season",
       showSeasonColumn = false,
       showGameColumn = true,
+      showConfRecord = false,
     } = {}
   ) {
     const sortLabel = (name) => normalizeBowlLabel(name);
@@ -351,21 +352,24 @@ export default function Postseason() {
       });
 
     const seasonWidth = showSeasonColumn ? 8 : 0;
-    const gameWidth = showGameColumn ? (showWinningCoach ? 18 : 20) : 0;
-    const resultWidth = showWinningCoach ? 8 : 10;
-    const recordWidth = showWinningCoach ? 10 : 12;
+    const gameWidth = showGameColumn ? (showWinningCoach ? 18 : (showConfRecord ? 16 : 20)) : 0;
+    const resultWidth = showWinningCoach ? 8 : (showConfRecord ? 8 : 10);
+    const recordWidth = showWinningCoach ? 10 : (showConfRecord ? 9 : 12);
+    const confRecordWidth = showConfRecord ? 9 : 0;
     const winningCoachWidth = showWinningCoach ? 20 : 0;
     const baseWidth =
       seasonWidth +
       gameWidth +
       resultWidth +
       recordWidth * 2 +
+      confRecordWidth * 2 +
       (showWinningCoach ? winningCoachWidth : 0);
     const teamWidth = (100 - baseWidth) / 2;
     const colCount =
       5 +
       (showGameColumn ? 1 : 0) +
       (showSeasonColumn ? 1 : 0) +
+      (showConfRecord ? 2 : 0) +
       (showWinningCoach ? 1 : 0);
     const seasonHeaderColCount = colCount;
 
@@ -395,9 +399,11 @@ export default function Postseason() {
           {showGameColumn ? <col style={{ width: `${gameWidth}%` }} /> : null}
           <col style={{ width: `${teamWidth}%` }} />
           <col style={{ width: `${recordWidth}%` }} />
+          {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
           <col style={{ width: `${resultWidth}%` }} />
           <col style={{ width: `${teamWidth}%` }} />
           <col style={{ width: `${recordWidth}%` }} />
+          {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
           {showWinningCoach ? <col style={{ width: `${winningCoachWidth}%` }} /> : null}
         </colgroup>
         <thead />
@@ -415,9 +421,11 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     {showWinningCoach ? <th>Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(season) || []).map((r, idx) => (
@@ -456,6 +464,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
+                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -465,6 +474,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
+                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
                         {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
@@ -483,9 +493,11 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     {showWinningCoach ? <th>Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(String(singleSeasonLabel ?? "")) || []).map((r, idx) => (
@@ -516,7 +528,7 @@ export default function Postseason() {
                             ) : (
                               "-"
                             )}
-                          </td>
+                        </td>
                         ) : null}
                         <td>
                           <Link to={`/team/${r.leftTgid || r.awayTgid}`} className="matchupTeam" title="View team page">
@@ -524,6 +536,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
+                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -533,6 +546,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
+                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
                         {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
@@ -808,6 +822,12 @@ useEffect(() => {
           const rightScore = leftIsHome ? g.awayScore : g.homeScore;
           const leftRecord = leftIsHome ? homeRecordText : awayRecordText;
           const rightRecord = leftIsHome ? awayRecordText : homeRecordText;
+          const leftConfRecord = leftIsHome
+            ? formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct })
+            : formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct });
+          const rightConfRecord = leftIsHome
+            ? formatRecord({ w: awayRec.cw, l: awayRec.cl, t: awayRec.ct })
+            : formatRecord({ w: homeRec.cw, l: homeRec.cl, t: homeRec.ct });
 
           return {
             seasonYear: g.seasonYear,
@@ -839,6 +859,8 @@ useEffect(() => {
             rightScore,
             result: hasScore ? `${leftScore} - ${rightScore}` : "—",
             leftCoachName: coachNameFor(g.seasonYear, leftTgid),
+            leftConfRecord,
+            rightConfRecord,
             bowlName,
             bowlLogoUrl,
           };
@@ -1286,6 +1308,7 @@ useEffect(() => {
                   </div>
                   {renderBowlFilteredTable(filtered, {
                     showWinningCoach: false,
+                    showConfRecord: true,
                     showSeasonColumn: !isAllConfs,
                     showGameColumn: isAllConfs,
                     groupBySeason: isAllConfs && seasonYear === "All",
@@ -1295,6 +1318,7 @@ useEffect(() => {
               ) : effectiveView === "table" ? (
                 renderBowlFilteredTable(filtered, {
                   showWinningCoach: false,
+                  showConfRecord: true,
                   showSeasonColumn: !isAllConfs,
                   showGameColumn: isAllConfs,
                   groupBySeason: isAllConfs && seasonYear === "All",

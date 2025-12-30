@@ -946,6 +946,21 @@ button:disabled {
 
 .postseasonTable .teamCell span {
   user-select: text;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.postseasonTable td {
+  overflow: hidden;
+}
+
+.postseasonTable .matchupTeam,
+.postseasonTable .teamCell {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .postseasonTable {
