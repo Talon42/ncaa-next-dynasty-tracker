@@ -548,32 +548,30 @@ useEffect(() => {
 
       {/* Season filter row */}
       <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginLeft: "auto" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Season</span>
-            <select
-              value={seasonYear}
-              onChange={(e) => {
-                const next = e.target.value;
-                setSeasonYear(next);
-                writeSeasonFilter(next);
-              }}
-              disabled={!hasSeasons}
-            >
-              {!hasSeasons ? (
-                <option value="">No seasons uploaded</option>
-              ) : (
-                <>
-                  <option value="All">All</option>
-                  {seasonOptions.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </label>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <select
+            value={seasonYear}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSeasonYear(next);
+              writeSeasonFilter(next);
+            }}
+            disabled={!hasSeasons}
+            aria-label="Season"
+          >
+            {!hasSeasons ? (
+              <option value="">No seasons uploaded</option>
+            ) : (
+              <>
+                <option value="All">All</option>
+                {seasonOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
         </div>
       </div>
 
