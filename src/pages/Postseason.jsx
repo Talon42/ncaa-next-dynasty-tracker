@@ -95,8 +95,8 @@ export default function Postseason() {
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState(initialSeasonYear);
   const [tab, setTab] = useState(initialTab);
-  const [bowlFilter, setBowlFilter] = useState("All");
-  const [confFilter, setConfFilter] = useState("All");
+  const [bowlFilter, setBowlFilter] = useState("");
+  const [confFilter, setConfFilter] = useState("");
   const [view, setView] = useState(initialView);
   const [viewReady, setViewReady] = useState(false);
   const [rows, setRows] = useState([]);
@@ -551,6 +551,17 @@ export default function Postseason() {
     })();
   }, []);
 
+  const confOptions = useMemo(() => {
+    if (tab !== "confChamp") return [];
+    return Array.from(
+      new Set(
+        rows
+          .map((r) => r.homeConfName || r.awayConfName)
+          .filter((name) => name && String(name).trim())
+      )
+    ).sort((a, b) => String(a).localeCompare(String(b)));
+  }, [rows, tab]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = String(params.get("tab") || "").trim();
@@ -664,12 +675,12 @@ export default function Postseason() {
   }, [seasonYear]);
 
   useEffect(() => {
-    setBowlFilter("All");
+    setBowlFilter("");
   }, [tab]);
 
-  useEffect(() => {
-    setConfFilter("All");
-  }, [tab]);
+useEffect(() => {
+  setConfFilter("");
+}, [tab]);
 
   useEffect(() => {
     if (!dynastyId || seasonYear === "") {
@@ -864,6 +875,45 @@ export default function Postseason() {
     if (tab === "bracket") return availableSeasons.map(String);
     return ["All", ...availableSeasons.map(String)];
   }, [availableSeasons, tab]);
+  const isConfChamp = (name) =>
+    /championship$/i.test(String(name ?? "")) && !/national championship$/i.test(String(name ?? ""));
+  const normalizeBowlLabel = (name) => String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim();
+  const roundOrder = ["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"];
+  const roundRank = new Map(roundOrder.map((r, i) => [r, i]));
+  const baseFilteredRows = useMemo(() => {
+    const byName = (a, b) => String(a.bowlName).localeCompare(String(b.bowlName));
+    if (tab === "confChamp") {
+      return rows.filter((r) => isConfChamp(r.bowlName)).slice().sort(byName);
+    }
+    const nonConf = rows.filter((r) => !isConfChamp(r.bowlName));
+    const playoff = nonConf.filter((r) => playoffRoundForGame(r));
+    const nonPlayoff = nonConf.filter((r) => !playoffRoundForGame(r)).slice().sort(byName);
+    const playoffSorted = playoff
+      .slice()
+      .sort((a, b) => {
+        const ra = roundRank.get(playoffRoundForGame(a)) ?? 999;
+        const rb = roundRank.get(playoffRoundForGame(b)) ?? 999;
+        if (ra !== rb) return ra - rb;
+        return String(a.bowlName).localeCompare(String(b.bowlName));
+      });
+    return [...nonPlayoff, ...playoffSorted];
+  }, [rows, tab, roundRank]);
+  const bowlOptions = useMemo(() => {
+    if (tab !== "bowls") return [];
+    const options = Array.from(
+      new Set(
+        baseFilteredRows
+          .map((r) => r.bowlName)
+          .filter((name) => name && !/cfp\s*-\s*round\s*1/i.test(String(name)))
+      )
+    ).sort((a, b) => normalizeBowlLabel(a).localeCompare(normalizeBowlLabel(b)));
+    const natIndex = options.findIndex((name) => /national championship/i.test(String(name)));
+    if (natIndex > 0) {
+      const [nat] = options.splice(natIndex, 1);
+      options.unshift(nat);
+    }
+    return options;
+  }, [baseFilteredRows, tab]);
 
   if (!dynastyId) {
     return (
@@ -878,79 +928,155 @@ export default function Postseason() {
     <div>
       <div className="hrow">
         <h2>Postseason</h2>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div className="postseasonTabs">
-            <button
-              className="toggleBtn"
-              onClick={() => setTabAndUrl("confChamp")}
-              style={{
-                fontWeight: "var(--app-control-font-weight)",
-                opacity: 1,
-                color: tab === "confChamp" ? "var(--text)" : "var(--muted)",
-                borderColor: tab === "confChamp" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                background: tab === "confChamp" ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                boxShadow: tab === "confChamp" ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-              }}
-            >
-              Conference Championships
-            </button>
-            <button
-              className="toggleBtn"
-              onClick={() => setTabAndUrl("bowls")}
-              style={{
-                fontWeight: "var(--app-control-font-weight)",
-                opacity: 1,
-                color: tab === "bowls" ? "var(--text)" : "var(--muted)",
-                borderColor: tab === "bowls" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                background: tab === "bowls" ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                boxShadow: tab === "bowls" ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-              }}
-            >
-              Bowl Results
-            </button>
-            <button
-              className="toggleBtn"
-              onClick={() => setTabAndUrl("bracket")}
-              style={{
-                fontWeight: "var(--app-control-font-weight)",
-                opacity: 1,
-                color: tab === "bracket" ? "var(--text)" : "var(--muted)",
-                borderColor: tab === "bracket" ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                background: tab === "bracket" ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                boxShadow: tab === "bracket" ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-              }}
-            >
-              CFP Bracket
-            </button>
-          </div>
-
-          <label style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: "auto" }}>
-            <span>Season</span>
+      </div>
+      <div className="playerStatsCategoryRow">
+        <button
+          className={`toggleBtn playerStatsCategoryBtn${tab === "confChamp" ? " active" : ""}`}
+          onClick={() => setTabAndUrl("confChamp")}
+        >
+          Conference Championships
+        </button>
+        <button
+          className={`toggleBtn playerStatsCategoryBtn${tab === "bowls" ? " active" : ""}`}
+          onClick={() => setTabAndUrl("bowls")}
+        >
+          Bowl Results
+        </button>
+        <button
+          className={`toggleBtn playerStatsCategoryBtn${tab === "bracket" ? " active" : ""}`}
+          onClick={() => setTabAndUrl("bracket")}
+        >
+          CFP Bracket
+        </button>
+      </div>
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            value={seasonYear}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSeasonYear(next);
+              setBowlFilter("");
+              setConfFilter("");
+              if (next !== "All") {
+                writeSeasonFilter(next);
+              }
+            }}
+            disabled={!hasSeasons}
+            aria-label="Season"
+          >
+            {!hasSeasons ? (
+              <option value="">No seasons uploaded</option>
+            ) : (
+              seasonOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))
+            )}
+          </select>
+          {tab === "bowls" ? (
             <select
-              value={seasonYear}
+              value={bowlFilter}
               onChange={(e) => {
                 const next = e.target.value;
-                setSeasonYear(next);
-                setBowlFilter("All");
-                setConfFilter("All");
-                if (next !== "All") {
-                  writeSeasonFilter(next);
+                if (next !== "All" && seasonYear !== "All") {
+                  setSeasonYear("All");
                 }
+                if (next !== "All") {
+                  setView("table");
+                }
+                setBowlFilter(next);
               }}
-              disabled={!hasSeasons}
+              disabled={!bowlOptions.length}
+              aria-label="Bowl"
             >
-              {!hasSeasons ? (
-                <option value="">No seasons uploaded</option>
-              ) : (
-                seasonOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))
-              )}
+              <option value="" disabled style={{ display: "none" }}>
+                Bowl
+              </option>
+              <option value="All">All</option>
+              {bowlOptions.map((name) => (
+                <option key={name} value={name}>
+                  {normalizeBowlLabel(name)}
+                </option>
+              ))}
             </select>
-          </label>
+          ) : null}
+          {tab === "bowls" && (!bowlFilter || bowlFilter === "All") ? (
+            <>
+              <span className="playerStatsControlDivider" aria-hidden="true" />
+              <div className="playerStatsViewToggle">
+                <button
+                  className="toggleBtn"
+                  style={viewButtonStyle(view === "cards")}
+                  onClick={() => setView("cards")}
+                >
+                  Cards
+                </button>
+                <button
+                  className="toggleBtn"
+                  style={viewButtonStyle(view === "table")}
+                  onClick={() => setView("table")}
+                >
+                  Table
+                </button>
+              </div>
+            </>
+          ) : null}
+          {tab === "confChamp" ? (
+            <>
+              <select
+                value={confFilter}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (next !== "All" && seasonYear !== "All") {
+                    setSeasonYear("All");
+                  }
+                  if (next === "All") {
+                    const latest = availableSeasons[0];
+                    if (latest != null) setSeasonYear(String(latest));
+                  }
+                  if (next !== "All") {
+                    setView("table");
+                  }
+                  setConfFilter(next);
+                }}
+                disabled={!confOptions.length}
+                aria-label="Conference"
+              >
+                <option value="" disabled style={{ display: "none" }}>
+                  Conference
+                </option>
+                <option value="All">All</option>
+                {confOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              {!confFilter || confFilter === "All" ? (
+                <>
+                  <span className="playerStatsControlDivider" aria-hidden="true" />
+                  <div className="playerStatsViewToggle">
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "cards")}
+                      onClick={() => setView("cards")}
+                    >
+                      Cards
+                    </button>
+                    <button
+                      className="toggleBtn"
+                      style={viewButtonStyle(view === "table")}
+                      onClick={() => setView("table")}
+                    >
+                      Table
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -1076,54 +1202,15 @@ export default function Postseason() {
         </>
         )
       ) : (() => {
-        const isConfChamp = (name) =>
-          /championship$/i.test(String(name ?? "")) && !/national championship$/i.test(String(name ?? ""));
-        const byName = (a, b) => String(a.bowlName).localeCompare(String(b.bowlName));
-        const roundOrder = ["CFP - Round 1", "CFP - Quarterfinals", "CFP - Semifinals", "National Championship"];
-        const roundRank = new Map(roundOrder.map((r, i) => [r, i]));
-
-        let filtered = [];
-        if (tab === "confChamp") {
-          filtered = rows.filter((r) => isConfChamp(r.bowlName)).slice().sort(byName);
-        } else {
-          const nonConf = rows.filter((r) => !isConfChamp(r.bowlName));
-          const playoff = nonConf.filter((r) => playoffRoundForGame(r));
-          const nonPlayoff = nonConf.filter((r) => !playoffRoundForGame(r)).slice().sort(byName);
-          const playoffSorted = playoff
-            .slice()
-            .sort((a, b) => {
-              const ra = roundRank.get(playoffRoundForGame(a)) ?? 999;
-              const rb = roundRank.get(playoffRoundForGame(b)) ?? 999;
-              if (ra !== rb) return ra - rb;
-              return String(a.bowlName).localeCompare(String(b.bowlName));
-            });
-          filtered = [...nonPlayoff, ...playoffSorted];
-        }
+        let filtered = baseFilteredRows.slice();
 
         const forcedTable =
-          (tab === "confChamp" && confFilter !== "All") ||
-          (tab === "bowls" && bowlFilter !== "All");
+          (tab === "confChamp" && confFilter && confFilter !== "All") ||
+          (tab === "bowls" && bowlFilter && bowlFilter !== "All");
         const effectiveView = forcedTable ? "table" : view;
 
         if (tab === "bowls") {
-          const normalizeBowlLabel = (name) =>
-            String(name ?? "").replace(/^cfp\s*-\s*/i, "").trim();
-          const bowlOptions = Array.from(
-            new Set(
-              filtered
-                .map((r) => r.bowlName)
-                .filter((name) => name && !/cfp\s*-\s*round\s*1/i.test(String(name)))
-            )
-          ).sort((a, b) =>
-            normalizeBowlLabel(a).localeCompare(normalizeBowlLabel(b))
-          );
-          const natIndex = bowlOptions.findIndex((name) => /national championship/i.test(String(name)));
-          if (natIndex > 0) {
-            const [nat] = bowlOptions.splice(natIndex, 1);
-            bowlOptions.unshift(nat);
-          }
-
-          if (bowlFilter !== "All") {
+          if (bowlFilter && bowlFilter !== "All") {
             filtered = filtered.filter((r) => r.bowlName === bowlFilter);
           }
 
@@ -1131,60 +1218,11 @@ export default function Postseason() {
           const bowlHeaderName = normalizeBowlLabel(bowlFilter) || bowlFilter;
           const showWinningCoach = /national championship/i.test(bowlFilter);
 
-          const showViewToggle = !forcedTable;
-
           return (
             <>
-              <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span>Bowl</span>
-                  <select
-                    value={bowlFilter}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      if (next !== "All" && seasonYear !== "All") {
-                        setSeasonYear("All");
-                      }
-                      if (next !== "All") {
-                        setView("table");
-                      }
-                      setBowlFilter(next);
-                    }}
-                    disabled={!bowlOptions.length}
-                  >
-                    <option value="All">All</option>
-                    {bowlOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {normalizeBowlLabel(name)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {showViewToggle ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        className="toggleBtn"
-                        style={viewButtonStyle(view === "cards")}
-                        onClick={() => setView("cards")}
-                      >
-                        Cards
-                      </button>
-                      <button
-                        className="toggleBtn"
-                        style={viewButtonStyle(view === "table")}
-                        onClick={() => setView("table")}
-                      >
-                        Table
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for that bowl.</p>
-              ) : bowlFilter !== "All" ? (
+              ) : bowlFilter && bowlFilter !== "All" ? (
                 <>
                   <div className="bowlFilterHeader">
                     {bowlHeaderLogo ? (
@@ -1209,15 +1247,7 @@ export default function Postseason() {
         }
 
         if (tab === "confChamp") {
-          const confOptions = Array.from(
-            new Set(
-              filtered
-                .map((r) => r.homeConfName || r.awayConfName)
-                .filter((name) => name && String(name).trim())
-            )
-          ).sort((a, b) => String(a).localeCompare(String(b)));
-
-          if (confFilter !== "All") {
+          if (confFilter && confFilter !== "All") {
             filtered = filtered.filter((r) => {
               const confName = r.homeConfName || r.awayConfName;
               return confName === confFilter;
@@ -1225,69 +1255,16 @@ export default function Postseason() {
           }
 
           const confHeaderLogo =
-            confFilter === "All" ? "" : (filtered[0]?.bowlLogoUrl || "");
+            confFilter === "All" || !confFilter ? "" : (filtered[0]?.bowlLogoUrl || "");
           const confHeaderName =
-            confFilter === "All"
+            confFilter === "All" || !confFilter
               ? ""
               : String(filtered[0]?.bowlName ?? confFilter)
                   .replace(/^cfp\s*-\s*/i, "")
                   .trim();
 
-          const showViewToggle = !forcedTable;
-
           return (
             <>
-              <div className="hrow" style={{ alignItems: "center", marginBottom: 12 }}>
-                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span>Conference</span>
-                  <select
-                    value={confFilter}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      if (next !== "All" && seasonYear !== "All") {
-                        setSeasonYear("All");
-                      }
-                      if (next === "All") {
-                        const latest = availableSeasons[0];
-                        if (latest != null) setSeasonYear(String(latest));
-                      }
-                      if (next !== "All") {
-                        setView("table");
-                      }
-                      setConfFilter(next);
-                    }}
-                    disabled={!confOptions.length}
-                  >
-                    <option value="All">All</option>
-                    {confOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {showViewToggle ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        className="toggleBtn"
-                        style={viewButtonStyle(view === "cards")}
-                        onClick={() => setView("cards")}
-                      >
-                        Cards
-                      </button>
-                      <button
-                        className="toggleBtn"
-                        style={viewButtonStyle(view === "table")}
-                        onClick={() => setView("table")}
-                      >
-                        Table
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
               {filtered.length === 0 ? (
                 <p className="kicker">No games found for this season.</p>
               ) : confFilter !== "All" ? (
