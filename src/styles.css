@@ -735,7 +735,7 @@ button:disabled {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
+  padding: 8px 12px;
   white-space: nowrap;
 }
 
@@ -750,7 +750,7 @@ button:disabled {
 }
 
 .table tbody td {
-  padding: 5px 12px;
+  padding: 8px 12px;
   font-size: var(--app-table-cell-font-size);
   font-weight: var(--app-table-cell-font-weight);
   border-bottom: 1px solid rgba(42,42,42,0.85);
