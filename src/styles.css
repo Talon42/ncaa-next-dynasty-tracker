@@ -762,6 +762,11 @@ button:disabled {
   text-align: right;
 }
 
+.table td.playerStatLeader {
+  color: rgba(216, 180, 90, 0.95);
+  text-shadow: 0 0 6px rgba(216, 180, 90, 0.25);
+}
+
 .table th.centerCol,
 .table td.centerCol {
   text-align: center;

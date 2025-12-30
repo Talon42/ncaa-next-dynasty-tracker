@@ -120,6 +120,7 @@ export default function Player() {
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
   const [hometownLookup, setHometownLookup] = useState(null);
   const [allAmericanRows, setAllAmericanRows] = useState([]);
+  const [leadersBySeason, setLeadersBySeason] = useState(new Map());
 
   useEffect(() => {
     (async () => {
@@ -466,6 +467,52 @@ export default function Player() {
 
     return filtered;
   }, [isKicker, isPunter, specialTeamsStatsByKey, tab]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      if (!dynastyId || !playerRows.length || !activeDefs.length) {
+        if (alive) setLeadersBySeason(new Map());
+        return;
+      }
+
+      const seasons = Array.from(
+        new Set(
+          playerRows
+            .map((row) => Number(row.seasonYear))
+            .filter((year) => Number.isFinite(year))
+        )
+      );
+      if (!seasons.length) {
+        if (alive) setLeadersBySeason(new Map());
+        return;
+      }
+
+      const next = new Map();
+      await Promise.all(
+        seasons.map(async (year) => {
+          const rows = await db.playerSeasonStats.where({ dynastyId, seasonYear: year }).toArray();
+          const maxByKey = new Map(activeDefs.map((def) => [def.key, null]));
+          for (const row of rows) {
+            for (const def of activeDefs) {
+              const value = valueForStat(row, def.key, tab);
+              if (!Number.isFinite(value)) continue;
+              const current = maxByKey.get(def.key);
+              maxByKey.set(def.key, current == null ? value : Math.max(current, value));
+            }
+          }
+          next.set(String(year), maxByKey);
+        })
+      );
+
+      if (alive) setLeadersBySeason(next);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [activeDefs, dynastyId, playerRows, tab]);
   const seasonRowsForTab = useMemo(() => {
     if (!activeDefs.length) return [];
     const groups = Array.from(defsByGroup.keys());
@@ -763,7 +810,22 @@ export default function Player() {
                       <>
                         <td className="centerCol">{Number.isFinite(gp) && gp > 0 ? gp : ""}</td>
                         {activeDefs.map((c) => (
-                          <td key={c.key} className="statCol">
+                          <td
+                            key={c.key}
+                            className={`statCol${
+                              (() => {
+                                const value = valueForStat(row, c.key, tab);
+                                const leaders = leadersBySeason.get(String(row.seasonYear));
+                                const leaderValue = leaders?.get(c.key);
+                                const isLeader =
+                                  Number.isFinite(value) &&
+                                  Number.isFinite(leaderValue) &&
+                                  leaderValue > 0 &&
+                                  value === leaderValue;
+                                return isLeader ? " playerStatLeader" : "";
+                              })()
+                            }`}
+                          >
                             {formatStat(valueForStat(row, c.key, tab), c.key)}
                           </td>
                         ))}
