@@ -243,12 +243,14 @@ export default function Coach() {
       const baseRow = await db.coachCareerBases.get([dynastyId, coachId]);
       const fallbackBaseSeasonYear = await (async () => {
         const anyBase = await db.coachCareerBases.where({ dynastyId }).first();
-        const yrFromBase = Number(anyBase*baseSeasonYear);
+        const yrFromBase = Number(anyBase?.baseSeasonYear);
         if (Number.isFinite(yrFromBase)) return yrFromBase;
 
         const all = await db.coaches.where({ dynastyId }).toArray();
         const years = all.map((r) => Number(r.seasonYear)).filter((n) => Number.isFinite(n));
-        return years.length ? Math.min(...years) : Number(sorted[sorted.length - 1]*seasonYear);
+        return years.length
+          ? Math.min(...years)
+          : Number(sorted[sorted.length - 1]?.seasonYear ?? seasonYear);
       })();
 
       const dynastyLatestYear = (() => {
@@ -414,9 +416,9 @@ export default function Coach() {
       const career = computeCoachCareerRecord({
         coachSeasons: sorted.map((r) => ({ seasonYear: r.seasonYear, tgid: String(r.tgid ?? "") })),
         teamSeasonWinLossByKey,
-        baseSeasonYear: baseRow*baseSeasonYear ?? fallbackBaseSeasonYear,
-        baseWins: baseRow*baseWins ?? 0,
-        baseLosses: baseRow*baseLosses ?? 0,
+        baseSeasonYear: baseRow?.baseSeasonYear ?? fallbackBaseSeasonYear,
+        baseWins: baseRow?.baseWins ?? 0,
+        baseLosses: baseRow?.baseLosses ?? 0,
         asOfSeasonYear: latest.seasonYear,
       });
 
@@ -541,17 +543,17 @@ export default function Coach() {
         const wl = tgid && tgid !== "511" ? teamSeasonWinLossByKey.get(seasonKey) || { w: 0, l: 0 } : { w: 0, l: 0 };
         const confRec = confRecordByKey.get(seasonKey) || null;
         const confRecordText = confRec
-          ? `(${confRec.w}-${confRec.l}${confRec.t ? `-${confRec.t}` : ""})`
+          ? `${confRec.w}-${confRec.l}${confRec.t ? `-${confRec.t}` : ""}`
           : "-";
         const postseason =
-          postseasonByYear.get(Number(r.seasonYear))*slice().sort((a, b) => a.week - b.week) || [];
+          postseasonByYear.get(Number(r.seasonYear))?.slice().sort((a, b) => a.week - b.week) || [];
 
         return {
           seasonYear: r.seasonYear,
           tgid,
           teamName,
           teamLogo: logoFor(tgid),
-          record: `(${wl.w}-${wl.l})`,
+          record: `${wl.w}-${wl.l}`,
           confRecord: confRecordText,
           top25Rank: (() => {
             const raw = teamRankBySeasonTgid.get(seasonKey);
@@ -694,7 +696,7 @@ export default function Coach() {
             <div className="kicker infoCardTitle">
               Career Summary
             </div>
-            <div className="kicker" style={{ textAlign: "right" }}>
+            <div className="kicker infoCardTitle" style={{ textAlign: "right" }}>
               Coach Age: {coachStats.coachAge ?? "-"}
             </div>
           </div>
@@ -859,7 +861,15 @@ export default function Coach() {
 
                     const first = list[0];
                     const isNationalChampionship = list.some((t) => t.isNationalChampionship);
-                    const title = `${first.bowlName || "Postseason Win"} (x${list.length})`;
+                    const seasonLabels = Array.from(
+                      new Set(
+                        list
+                          .map((t) => Number(t.seasonYear))
+                          .filter((y) => Number.isFinite(y))
+                      )
+                    ).sort((a, b) => a - b);
+                    const seasonText = seasonLabels.length ? ` - ${seasonLabels.join(", ")}` : "";
+                    const title = `${first.bowlName || "Postseason Win"} (x${list.length})${seasonText}`;
                     const offset = 12;
 
                     nodes.push(

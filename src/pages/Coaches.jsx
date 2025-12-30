@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { getConferenceName } from "../conferences";
 import { buildTeamSeasonWinLossMap, computeCoachCareerRecord } from "../coachRecords";
+import { buildRunningRecords, formatRecord } from "../runningRecords";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -82,17 +83,28 @@ export default function Coaches() {
     }
 
     (async () => {
-      const [coaches, allCoachRows, games, baseRows, teamSeasons, teamLogoRows, overrideRows] = await Promise.all([
+      const [coaches, allCoachRows, games, baseRows, teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
         db.coaches.where({ dynastyId, seasonYear }).toArray(),
         db.coaches.where({ dynastyId }).toArray(),
         db.games.where({ dynastyId }).toArray(),
         db.coachCareerBases.where({ dynastyId }).toArray(),
-        db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
+        db.teamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);
 
       const teamSeasonWinLossByKey = buildTeamSeasonWinLossMap(games);
+      const seasonGamesByYear = new Map();
+      for (const g of games) {
+        const yr = Number(g.seasonYear);
+        if (!Number.isFinite(yr)) continue;
+        const list = seasonGamesByYear.get(yr) || [];
+        list.push(g);
+        seasonGamesByYear.set(yr, list);
+      }
+      const seasonTeamSeasons = teamSeasonsAll.filter(
+        (t) => Number(t.seasonYear) === Number(seasonYear)
+      );
 
       const coachSeasonsByCcid = new Map();
       for (const r of allCoachRows) {
@@ -115,13 +127,36 @@ export default function Coaches() {
         overrideByTgid.get(String(id)) || baseLogoByTgid.get(String(id)) || FALLBACK_LOGO;
 
       const teamNameByTgid = new Map(
-        teamSeasons.map((t) => {
+        seasonTeamSeasons.map((t) => {
           const name = `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
           return [String(t.tgid), name || `TGID ${t.tgid}`];
         })
       );
 
-      const cgidByTgid = new Map(teamSeasons.map((t) => [String(t.tgid), t.cgid]));
+      const cgidByTgid = new Map(seasonTeamSeasons.map((t) => [String(t.tgid), t.cgid]));
+      const teamSeasonsByYear = new Map();
+      for (const t of teamSeasonsAll) {
+        const yr = Number(t.seasonYear);
+        if (!Number.isFinite(yr)) continue;
+        const list = teamSeasonsByYear.get(yr) || [];
+        list.push(t);
+        teamSeasonsByYear.set(yr, list);
+      }
+      const confRecordBySeasonTgid = new Map();
+      for (const [year, list] of teamSeasonsByYear.entries()) {
+        const seasonGames = seasonGamesByYear.get(year) || [];
+        const seasonWeeks = seasonGames.map((g) => Number(g.week)).filter(Number.isFinite);
+        const lastWeek = seasonWeeks.length ? Math.max(...seasonWeeks) : null;
+        if (lastWeek == null) continue;
+        const confByTgid = new Map(list.map((t) => [String(t.tgid), String(t.cgid ?? "")]));
+        const runningRecords = buildRunningRecords({ games: seasonGames, confByTgid });
+        for (const t of list) {
+          const tgid = String(t.tgid);
+          const rec = runningRecords.getRecordAtWeek(tgid, lastWeek);
+          if (!rec) continue;
+          confRecordBySeasonTgid.set(`${year}|${tgid}`, { cw: rec.cw, cl: rec.cl, ct: rec.ct });
+        }
+      }
 
       const mapped = coaches.map((c) => {
         const firstName = String(c.firstName ?? "").trim();
@@ -154,6 +189,23 @@ export default function Coaches() {
         const bowlTotal = hasBowlWins && hasBowlLosses ? bowlWins + bowlLosses : null;
         const bowlWinPct =
           bowlTotal != null && bowlTotal > 0 ? bowlWins / bowlTotal : null;
+        const confTotals = { w: 0, l: 0, t: 0, has: false };
+        const coachSeasons = coachSeasonsByCcid.get(ccid) || [];
+        for (const season of coachSeasons) {
+          const seasonTgid = String(season.tgid ?? "");
+          if (!seasonTgid || seasonTgid === "511") continue;
+          const key = `${season.seasonYear}|${seasonTgid}`;
+          const rec = confRecordBySeasonTgid.get(key);
+          if (!rec) continue;
+          confTotals.w += rec.cw;
+          confTotals.l += rec.cl;
+          confTotals.t += rec.ct;
+          confTotals.has = true;
+        }
+        const confRecordText = confTotals.has ? formatRecord(confTotals) : "-";
+        const confTotalGames = confTotals.has ? confTotals.w + confTotals.l + confTotals.t : null;
+        const confWinPct =
+          confTotalGames != null && confTotalGames > 0 ? confTotals.w / confTotalGames : null;
         return {
           ccid,
           firstName,
@@ -170,6 +222,11 @@ export default function Coaches() {
           careerWins: hasWins ? wins : null,
           careerLosses: hasLosses ? losses : null,
           winPct,
+          confRecord: isNotHired ? "-" : confRecordText,
+          confWins: isNotHired ? null : (confTotals.has ? confTotals.w : null),
+          confLosses: isNotHired ? null : (confTotals.has ? confTotals.l : null),
+          confTies: isNotHired ? null : (confTotals.has ? confTotals.t : null),
+          confWinPct,
           bowlWins: hasBowlWins ? bowlWins : null,
           bowlLosses: hasBowlLosses ? bowlLosses : null,
           bowlWinPct,
@@ -237,6 +294,10 @@ export default function Coaches() {
               ? a.careerWins
             : key === "winPct"
               ? a.winPct
+            : key === "confRecord"
+              ? a.confWins
+            : key === "confWinPct"
+              ? a.confWinPct
             : key === "bowlRecord"
               ? a.bowlWins
               : key === "bowlWinPct"
@@ -255,6 +316,10 @@ export default function Coaches() {
               ? b.careerWins
             : key === "winPct"
               ? b.winPct
+            : key === "confRecord"
+              ? b.confWins
+            : key === "confWinPct"
+              ? b.confWinPct
             : key === "bowlRecord"
               ? b.bowlWins
               : key === "bowlWinPct"
@@ -307,7 +372,7 @@ export default function Coaches() {
 
   function recordLabel(wins, losses) {
     if (!Number.isFinite(wins) || !Number.isFinite(losses)) return "-";
-    return `(${wins}-${losses})`;
+    return `${wins}-${losses}`;
   }
 
   function winPctLabel(value) {
@@ -318,7 +383,7 @@ export default function Coaches() {
 
   function bowlRecordLabel(wins, losses) {
     if (!Number.isFinite(wins) || !Number.isFinite(losses)) return "-";
-    return `(${wins}-${losses})`;
+    return `${wins}-${losses}`;
   }
 
   if (!dynastyId) {
@@ -418,6 +483,22 @@ export default function Coaches() {
                 WIN%{sortIndicator("winPct")}
               </th>
               <th
+                onClick={() => clickSort("confRecord")}
+                style={{ width: 160, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+                className="statCol"
+              >
+                CONF RECORD{sortIndicator("confRecord")}
+              </th>
+              <th
+                onClick={() => clickSort("confWinPct")}
+                style={{ width: 120, cursor: "pointer", userSelect: "none" }}
+                title="Sort"
+                className="statCol"
+              >
+                WIN%{sortIndicator("confWinPct")}
+              </th>
+              <th
                 onClick={() => clickSort("bowlRecord")}
                 style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                 title="Sort"
@@ -473,6 +554,12 @@ export default function Coaches() {
                 </td>
                 <td data-label="Win%" className="statCol">
                   {winPctLabel(r.winPct)}
+                </td>
+                <td data-label="Conf Record" className="statCol">
+                  {r.confRecord}
+                </td>
+                <td data-label="Conf Win%" className="statCol">
+                  {winPctLabel(r.confWinPct)}
                 </td>
                 <td data-label="Bowl Record" className="statCol">
                   {bowlRecordLabel(r.bowlWins, r.bowlLosses)}
