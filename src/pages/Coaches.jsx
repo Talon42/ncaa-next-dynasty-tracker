@@ -39,8 +39,8 @@ export default function Coaches() {
   const [rows, setRows] = useState([]);
   const [sortKey, setSortKey] = useState("teamName");
   const [sortDir, setSortDir] = useState("asc");
-  const [confFilter, setConfFilter] = useState("All");
-  const [approvalFilter, setApprovalFilter] = useState("All");
+  const [confFilter, setConfFilter] = useState("");
+  const [approvalFilter, setApprovalFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("Active");
 
   useEffect(() => {
@@ -204,8 +204,8 @@ export default function Coaches() {
     return rows.filter((r) => {
       if (statusFilter === "Active" && r.isNotHired) return false;
       if (statusFilter === "Inactive" && !r.isNotHired) return false;
-      if (confFilter !== "All" && r.confName !== confFilter) return false;
-      if (approvalFilter !== "All" && approvalLabel(r.approval).text !== approvalFilter) {
+      if (confFilter && confFilter !== "All" && r.confName !== confFilter) return false;
+      if (approvalFilter && approvalFilter !== "All" && approvalLabel(r.approval).text !== approvalFilter) {
         return false;
       }
       return true;
@@ -342,6 +342,9 @@ export default function Coaches() {
             disabled={!confOptions.length}
             aria-label="Conference"
           >
+            <option value="" disabled hidden>
+              Conference
+            </option>
             <option value="All">All</option>
             {confOptions.map((c) => (
               <option key={c} value={c}>
@@ -356,6 +359,9 @@ export default function Coaches() {
           </select>
 
           <select value={approvalFilter} onChange={(e) => setApprovalFilter(e.target.value)} aria-label="Approval">
+            <option value="" disabled hidden>
+              Approval
+            </option>
             <option value="All">All</option>
             {approvalOptions.map((c) => (
               <option key={c} value={c}>
