@@ -626,8 +626,6 @@ export default function Coach() {
           marginTop: 6,
           marginBottom: 6,
           textAlign: "center",
-          fontSize: "var(--app-font-size)",
-          fontWeight: "var(--app-font-weight)",
         }}
       >
         {header.name || `Coach ${coachId}`}
