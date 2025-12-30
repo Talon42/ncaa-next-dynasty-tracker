@@ -15,7 +15,9 @@ import {
 } from "../playerStatsUtils";
 
 const LONG_KEYS = new Set(["fgLong", "puntLong", "krLong", "prLong"]);
-const TAB_GROUPS = ["Passing", "Rushing", "Receiving", "Defense", "Special Teams"];
+const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
+const TAB_GROUPS = [...OFFENSE_TABS, "Defense", "Special Teams"];
+const CATEGORY_TABS = ["Offense", "Defense", "Special Teams"];
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
@@ -41,6 +43,18 @@ function defaultTabForPosition(value) {
   if (pos === "WR" || pos === "TE") return "Receiving";
   if (pos === "K" || pos === "P") return "Special Teams";
   return "Defense";
+}
+
+function categoryForTab(value) {
+  if (OFFENSE_TABS.includes(value)) return "Offense";
+  if (value === "Defense") return "Defense";
+  return "Special Teams";
+}
+
+function defaultTabForCategory(category, currentTab) {
+  if (category === "Defense") return "Defense";
+  if (category === "Special Teams") return "Special Teams";
+  return OFFENSE_TABS.includes(currentTab) ? currentTab : "Passing";
 }
 
 function valueForStat(row, key, group) {
@@ -294,11 +308,9 @@ export default function Player() {
 
   const isKicker = useMemo(() => positionLabel(latestRow?.position) === "K", [latestRow]);
   const isPunter = useMemo(() => positionLabel(latestRow?.position) === "P", [latestRow]);
-  const showSpecialTeams = isKicker || isPunter;
-  const availableTabs = useMemo(
-    () => (showSpecialTeams ? TAB_GROUPS : TAB_GROUPS.filter((g) => g !== "Special Teams")),
-    [showSpecialTeams],
-  );
+  const availableTabs = useMemo(() => TAB_GROUPS, []);
+  const availableCategories = useMemo(() => CATEGORY_TABS, []);
+  const category = useMemo(() => categoryForTab(tab), [tab]);
 
   useEffect(() => {
     if (!latestRow) return;
@@ -414,8 +426,6 @@ export default function Player() {
     all.sort((a, b) => (a.seasonYear || 0) - (b.seasonYear || 0));
     return all;
   }, [allAmericanBadges, captainBadges]);
-
-  const showGroup = () => true;
 
   const specialTeamsStatsByKey = useMemo(() => {
     const keys = [
@@ -707,32 +717,42 @@ export default function Player() {
         </div>
       </div>
 
-      {availableTabs.length ? (
-        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {availableTabs.map((group) => {
-            if (!showGroup(group)) return null;
-            return (
+      {availableCategories.length ? (
+        <div className="playerStatsCategoryRow">
+          {availableCategories.map((group) => (
+            <button
+              key={group}
+              type="button"
+              className={`playerStatsCategoryBtn${category === group ? " active" : ""}`}
+              onClick={() => {
+                const nextTab = defaultTabForCategory(group, tab);
+                setTab(nextTab);
+                setTabInitialized(true);
+              }}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {category === "Offense" ? (
+        <div className="playerStatsControlRow">
+          <div className="playerStatsSubTabs">
+            {OFFENSE_TABS.map((group) => (
               <button
                 key={group}
                 type="button"
-                className="toggleBtn"
+                className={`toggleBtn playerStatsSubTabBtn${tab === group ? " active" : ""}`}
                 onClick={() => {
                   setTab(group);
                   setTabInitialized(true);
                 }}
-                style={{
-                  fontWeight: "var(--app-control-font-weight)",
-                  opacity: 1,
-                  color: tab === group ? "var(--text)" : "var(--muted)",
-                  borderColor: tab === group ? "rgba(211, 0, 0, 0.55)" : "var(--border)",
-                  background: tab === group ? "rgba(211, 0, 0, 0.14)" : "rgba(255, 255, 255, 0.03)",
-                  boxShadow: tab === group ? "0 0 0 2px rgba(211, 0, 0, 0.14) inset" : "none",
-                }}
               >
                 {group}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
       ) : null}
 
