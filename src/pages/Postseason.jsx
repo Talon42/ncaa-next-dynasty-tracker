@@ -724,7 +724,7 @@ useEffect(() => {
         db.logoOverrides.where({ dynastyId }).toArray(),
         isAllSeasons
           ? db.bowlGames.where({ dynastyId }).toArray()
-          : db.bowlGames.where({ dynastyId, seasonYear: year }).toArray(),
+          : db.bowlGames.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
         isAllSeasons
           ? db.coaches.where({ dynastyId }).toArray()
           : db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),

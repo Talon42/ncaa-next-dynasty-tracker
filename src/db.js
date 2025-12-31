@@ -242,15 +242,6 @@ db.version(12).stores({
   coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
   coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
 
-  // Player info (PLAY.csv) per season + PGID
-  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
-
-  // Raw player stats rows (per game via SGMP)
-  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-
   // Derived per-season player stats index
   playerSeasonStats:
     "[dynastyId+seasonYear+pgid],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
@@ -279,11 +270,6 @@ db.version(13).stores({
     "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
   coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
   coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
-  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
-  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
   playerSeasonStats:
     "[dynastyId+seasonYear+pgid],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
   playerIdentities:
@@ -311,11 +297,6 @@ db.version(14).stores({
     "[dynastyId+seasonYear+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
   coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
   coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
-  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
-  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
   playerSeasonStats:
     "[dynastyId+seasonYear+pgid],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
   playerIdentities:
@@ -346,11 +327,6 @@ db.version(15).stores({
     "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
   coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
   coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
-  playerInfo: "[dynastyId+seasonYear+pgid], dynastyId, seasonYear, pgid, tgid",
-  psofRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  psdeRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskiRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
-  pskpRows: "[dynastyId+seasonYear+pgid+sgmp], dynastyId, seasonYear, pgid, sgmp",
   playerSeasonStats:
     "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
   playerIdentities:
@@ -391,6 +367,36 @@ db.version(16).stores({
     "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid",
   playerAwards:
     "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid, awardKey",
+});
+
+// v17 (season-scope indexes for remaining tables)
+db.version(17).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons:
+    "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+seasonYear],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear], dynastyId, seasonYear, tgid",
+  bowlGames: "[dynastyId+seasonYear+sewn+sgnm],[dynastyId+seasonYear], dynastyId, seasonYear, sewn, sgnm",
+  coaches:
+    "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+  coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+  coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+  playerSeasonStats:
+    "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+  playerIdentities:
+    "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+  playerIdentitySeasonMap:
+    "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear], dynastyId, seasonYear, pgid, playerUid",
+  playerAllAmericans:
+    "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid",
+  playerAwards:
+    "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, awardKey",
 });
 
 const ACTIVE_KEY = "activeDynastyId";

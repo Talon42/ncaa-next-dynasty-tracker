@@ -1144,14 +1144,14 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.teamStats.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
-      await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
+      await db.bowlGames.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.playerSeasonStats
         .where("[dynastyId+seasonYear]")
         .equals([dynastyId, year])
         .delete();
-      await db.playerAllAmericans.where({ dynastyId, seasonYear: year }).delete();
-      await db.playerAwards.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerAllAmericans.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
+      await db.playerAwards.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.playerIdentitySeasonMap
         .where("[dynastyId+seasonYear]")
         .equals([dynastyId, year])

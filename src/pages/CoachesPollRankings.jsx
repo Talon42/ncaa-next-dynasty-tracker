@@ -75,7 +75,7 @@ export default function CoachesPollRankings() {
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
         db.games.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
-        db.bowlGames.where({ dynastyId, seasonYear }).toArray(),
+        db.bowlGames.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
       ]);
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
