@@ -35,6 +35,10 @@
   - Whether to create a new branch or use an existing one (and why)
   - Exact `git checkout`, `git add`, and `git commit` commands
   - A clear, descriptive commit message
+- When applicable, also help with releases/versioning in chat:
+  - Whether to bump a version number (and where, e.g. `package.json`)
+  - Exact `git tag` commands for a release (annotated tags preferred)
+  - Brief release notes summary (what changed, who it’s for)
 - Do NOT suggest or perform `git push`; pushing is handled manually
 
 ## Verification
