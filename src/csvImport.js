@@ -426,6 +426,7 @@ function createPlayerStatsAccumulator({
     const playerSeasonStats = [];
     const seasonIdentityMapRows = [];
     const newIdentities = [];
+    const identityUpdates = new Map();
 
     for (const entry of statsByPgid.values()) {
       const info = playByPgid.get(entry.pgid) || {};
@@ -613,6 +614,20 @@ function createPlayerStatsAccumulator({
           faceShape: info.faceShape ?? null,
           faceId: info.faceId ?? null,
         });
+      } else {
+        const existing = identityByUid.get(playerUid) || null;
+        if (existing) {
+          const nextHeight = Number.isFinite(info.height) ? info.height : existing.height ?? null;
+          const nextWeight = Number.isFinite(info.weight) ? info.weight : existing.weight ?? null;
+          const changed = nextHeight !== (existing.height ?? null) || nextWeight !== (existing.weight ?? null);
+          if (changed) {
+            identityUpdates.set(playerUid, {
+              ...existing,
+              height: nextHeight,
+              weight: nextWeight,
+            });
+          }
+        }
       }
 
       seasonIdentityMapRows.push({
@@ -637,8 +652,6 @@ function createPlayerStatsAccumulator({
         position: info.position ?? null,
         classYear: info.classYear ?? null,
         redshirt: info.redshirt ?? null,
-        height: info.height ?? null,
-        weight: info.weight ?? null,
 
         passComp,
         passAtt,
@@ -699,7 +712,12 @@ function createPlayerStatsAccumulator({
       });
     }
 
-    return { playerSeasonStats, seasonIdentityMapRows, newIdentities };
+    return {
+      playerSeasonStats,
+      seasonIdentityMapRows,
+      newIdentities,
+      identityUpdates: Array.from(identityUpdates.values()),
+    };
   };
 
   return {
@@ -1032,7 +1050,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     onRow: (row) => statsAccumulator.addReturnRow(row),
   });
 
-  const { playerSeasonStats, seasonIdentityMapRows, newIdentities } = statsAccumulator.finalize();
+  const { playerSeasonStats, seasonIdentityMapRows, newIdentities, identityUpdates } =
+    statsAccumulator.finalize();
   const playerUidByPgid = new Map(
     seasonIdentityMapRows
       .map((r) => [String(r.pgid ?? "").trim(), String(r.playerUid ?? "").trim()])
@@ -1166,6 +1185,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
       if (allAmericanRows.length) await db.playerAllAmericans.bulkPut(allAmericanRows);
       if (awardRows.length) await db.playerAwards.bulkPut(awardRows);
+      if (identityUpdates.length) await db.playerIdentities.bulkPut(identityUpdates);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
 
