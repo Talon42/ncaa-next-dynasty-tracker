@@ -6,6 +6,7 @@ import { getConferenceName } from "../conferences";
 import { getSeasonFromParamOrSaved, pickSeasonFromList, writeSeasonFilter } from "../seasonFilter";
 import {
   ONE_DECIMAL_KEYS,
+  POSITION_LABELS,
   classLabel,
   derivedValue,
   formatStat,
@@ -32,6 +33,33 @@ const POSITION_FILTER_ORDER = [
   "K",
   "P",
 ];
+
+const POSITION_CODE_BY_LABEL = new Map(
+  POSITION_LABELS.map((label, idx) => [label, idx]).filter(([label]) => label)
+);
+
+const POSITION_FILTER_CODES = new Map([
+  ["Edge", ["LE", "RE"]],
+  ["LB", ["LOLB", "MLB", "ROLB"]],
+  ["DT", ["DT"]],
+  ["CB", ["CB"]],
+  ["SS", ["SS"]],
+  ["FS", ["FS"]],
+  ["QB", ["QB"]],
+  ["HB", ["HB"]],
+  ["FB", ["FB"]],
+  ["WR", ["WR"]],
+  ["TE", ["TE"]],
+  ["K", ["K"]],
+  ["P", ["P"]],
+]);
+
+function positionCodesForFilter(filter) {
+  const labels = POSITION_FILTER_CODES.get(filter) || [];
+  return labels
+    .map((label) => POSITION_CODE_BY_LABEL.get(label))
+    .filter((code) => Number.isFinite(code));
+}
 
 const TAB_ORDER = ["Passing", "Rushing", "Receiving", "Defense", "Scoring", "Kicking", "Punting", "Returns"];
 const OFFENSE_TABS = ["Passing", "Rushing", "Receiving"];
@@ -285,8 +313,30 @@ export default function PlayerStats() {
 
       setSeasonLoaded(false);
       setLoading(true);
+      const statsQuery = (() => {
+        if (teamFilter !== "All") {
+          return db.playerSeasonStats
+            .where("[dynastyId+seasonYear+tgid]")
+            .equals([dynastyId, seasonYear, teamFilter]);
+        }
+        if (posFilter !== "All") {
+          const codes = positionCodesForFilter(posFilter);
+          if (codes.length === 1) {
+            return db.playerSeasonStats
+              .where("[dynastyId+seasonYear+position]")
+              .equals([dynastyId, seasonYear, codes[0]]);
+          }
+          if (codes.length > 1) {
+            return db.playerSeasonStats
+              .where("[dynastyId+seasonYear+position]")
+              .anyOf(codes.map((code) => [dynastyId, seasonYear, code]));
+          }
+        }
+        return db.playerSeasonStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]);
+      })();
+
       const [statsRows, seasonTeams] = await Promise.all([
-        db.playerSeasonStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        statsQuery.toArray(),
         db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
       ]);
 
@@ -301,7 +351,7 @@ export default function PlayerStats() {
     return () => {
       alive = false;
     };
-  }, [dynastyId, seasonYear]);
+  }, [dynastyId, seasonYear, teamFilter, posFilter]);
 
   useEffect(() => {
     if (!dynastyId) {

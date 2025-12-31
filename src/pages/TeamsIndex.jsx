@@ -103,24 +103,22 @@ export default function TeamsIndex() {
     }
 
     (async () => {
-      const all = await db.teamSeasons.where({ dynastyId }).toArray();
-      const years = Array.from(new Set(all.map((t) => t.seasonYear))).sort((a, b) => b - a);
-      const latest = years[0] ?? null;
-      setSeasonYear((cur) => (cur == null ? latest : cur));
-
-      if (!latest) {
-        setConfBlocks([]);
-        return;
-      }
-
-      const [teamSeasons, teamLogoRows, overrideRows] = await Promise.all([
-        db.teamSeasons
-          .where("[dynastyId+seasonYear]")
-          .equals([dynastyId, latest])
-          .toArray(),
+      const [latestTeams, teamLogoRows, overrideRows] = await Promise.all([
+        db.latestTeamSeasons.where({ dynastyId }).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);
+
+      const years = Array.from(
+        new Set(latestTeams.map((t) => Number(t.seasonYear)).filter((n) => Number.isFinite(n)))
+      ).sort((a, b) => b - a);
+      const latest = years[0] ?? null;
+      setSeasonYear((cur) => (cur == null ? latest : cur));
+
+      if (!latestTeams.length || !latest) {
+        setConfBlocks([]);
+        return;
+      }
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));
       const overrideByTgid = new Map(overrideRows.map((r) => [String(r.tgid), r.url]));
@@ -129,7 +127,7 @@ export default function TeamsIndex() {
 
       const byConf = new Map();
 
-      for (const t of teamSeasons) {
+      for (const t of latestTeams) {
         const tgid = String(t.tgid);
         const name = `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim();
         const confName = getConferenceName(t.cgid);

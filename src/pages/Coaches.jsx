@@ -69,8 +69,11 @@ export default function Coaches() {
     }
 
     (async () => {
-      const all = await db.coaches.where({ dynastyId }).toArray();
-      const years = Array.from(new Set(all.map((c) => c.seasonYear))).sort((a, b) => b - a);
+      const latestRows = await db.latestCoaches.where({ dynastyId }).toArray();
+      const source = latestRows.length
+        ? latestRows
+        : await db.coaches.where({ dynastyId }).toArray();
+      const years = Array.from(new Set(source.map((c) => c.seasonYear))).sort((a, b) => b - a);
       const latest = years[0] ?? null;
       setSeasonYear((cur) => (cur == null ? latest : cur));
     })();
