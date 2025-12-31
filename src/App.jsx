@@ -167,14 +167,24 @@ export default function App() {
     setSearchLoading(true);
     const timer = setTimeout(() => {
       (async () => {
-        const [teamRows, coachRows, bowlRows, playerRows] = await Promise.all([
+        const [teamRows, coachRows, bowlRows, playerRows, identityRows] = await Promise.all([
           db.teamSeasons.where({ dynastyId: activeId }).toArray(),
           db.coaches.where({ dynastyId: activeId }).toArray(),
           db.bowlGames.where({ dynastyId: activeId }).toArray(),
           db.playerSeasonStats.where({ dynastyId: activeId }).toArray(),
+          db.playerIdentities.where({ dynastyId: activeId }).toArray(),
         ]);
 
         if (!alive) return;
+
+        const identityByUid = new Map(
+          identityRows
+            .map((r) => {
+              const uid = String(r.playerUid ?? "").trim();
+              return uid ? [uid, r] : null;
+            })
+            .filter(Boolean)
+        );
 
         const teamLatestByTgid = new Map();
         for (const t of teamRows) {
@@ -246,8 +256,9 @@ export default function App() {
         for (const p of playerLatestByUid.values()) {
           const playerUid = String(p.playerUid ?? "").trim();
           if (!playerUid) continue;
-          const first = String(p.firstName ?? "").trim();
-          const last = String(p.lastName ?? "").trim();
+          const identity = identityByUid.get(playerUid) || null;
+          const first = String(identity?.firstName ?? p.firstName ?? "").trim();
+          const last = String(identity?.lastName ?? p.lastName ?? "").trim();
           const name = `${first} ${last}`.trim();
           const pgid = String(p.pgid ?? "").trim();
           const score = scoreOf(name) ?? scoreOf(pgid);

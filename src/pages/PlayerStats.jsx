@@ -130,6 +130,7 @@ export default function PlayerStats() {
   const [teamSeasons, setTeamSeasons] = useState([]);
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
+  const [identityByUid, setIdentityByUid] = useState(new Map());
   const [abbrIndex, setAbbrIndex] = useState(null);
 
   const [confFilter, setConfFilter] = useState("All");
@@ -329,6 +330,33 @@ export default function PlayerStats() {
   }, [dynastyId]);
 
   useEffect(() => {
+    if (!dynastyId) {
+      setIdentityByUid(new Map());
+      return;
+    }
+
+    let alive = true;
+
+    (async () => {
+      const identityRows = await db.playerIdentities.where({ dynastyId }).toArray();
+      if (!alive) return;
+      const map = new Map(
+        identityRows
+          .map((r) => {
+            const uid = String(r.playerUid ?? "").trim();
+            return uid ? [uid, r] : null;
+          })
+          .filter(Boolean)
+      );
+      setIdentityByUid(map);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dynastyId]);
+
+  useEffect(() => {
     let alive = true;
 
     (async () => {
@@ -373,8 +401,9 @@ export default function PlayerStats() {
   const mergedRows = useMemo(() => {
     return rows.map((r) => {
       const tgid = r.tgid != null ? String(r.tgid) : "";
-      const first = String(r.firstName ?? "").trim();
-      const last = String(r.lastName ?? "").trim();
+      const identity = r.playerUid ? identityByUid.get(String(r.playerUid)) || null : null;
+      const first = String(identity?.firstName ?? r.firstName ?? "").trim();
+      const last = String(identity?.lastName ?? r.lastName ?? "").trim();
       const jersey = Number.isFinite(Number(r.jersey)) ? Number(r.jersey) : null;
       const nameBase = `${first} ${last}`.trim() || `PGID ${r.pgid}`;
       const name = nameBase;
@@ -395,7 +424,7 @@ export default function PlayerStats() {
         jerseyNumber: jersey,
       };
     });
-  }, [rows, teamNameByTgid, teamAbbrByTgid, confByTgid, logoByTgid, overrideByTgid]);
+  }, [rows, teamNameByTgid, teamAbbrByTgid, confByTgid, logoByTgid, overrideByTgid, identityByUid]);
 
   const confOptions = useMemo(() => {
     const uniq = new Set();

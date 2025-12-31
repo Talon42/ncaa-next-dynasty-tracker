@@ -633,8 +633,6 @@ function createPlayerStatsAccumulator({
         gpOff,
         gpDef,
         gpSpec: resolvedGpSpec,
-        firstName: info.firstName ?? "",
-        lastName: info.lastName ?? "",
         jersey: info.jersey ?? null,
         position: info.position ?? null,
         classYear: info.classYear ?? null,
@@ -1040,12 +1038,23 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       .map((r) => [String(r.pgid ?? "").trim(), String(r.playerUid ?? "").trim()])
       .filter(([pgid, uid]) => pgid && uid)
   );
+  const identityByUidCombined = new Map(identityByUid);
+  for (const identity of newIdentities) {
+    const uid = String(identity.playerUid ?? "").trim();
+    if (uid) identityByUidCombined.set(uid, identity);
+  }
   const nameByPgid = new Map(
-    playerSeasonStats
-      .map((r) => {
-        const pgid = String(r.pgid ?? "").trim();
+    Array.from(playerUidByPgid.entries())
+      .map(([pgid, uid]) => {
+        const identity = identityByUidCombined.get(uid) || null;
         if (!pgid) return null;
-        return [pgid, { firstName: r.firstName ?? "", lastName: r.lastName ?? "" }];
+        return [
+          pgid,
+          {
+            firstName: identity?.firstName ?? "",
+            lastName: identity?.lastName ?? "",
+          },
+        ];
       })
       .filter(Boolean)
   );
