@@ -196,7 +196,10 @@ export default function Coach() {
     }
 
     (async () => {
-      const coachRows = await db.coaches.where("ccid").equals(coachId).and((r) => r.dynastyId === dynastyId).toArray();
+      const coachRows = await db.coaches
+        .where("[dynastyId+ccid]")
+        .equals([dynastyId, coachId])
+        .toArray();
       const sorted = coachRows
         .slice()
         .sort((a, b) => Number(b.seasonYear) - Number(a.seasonYear));

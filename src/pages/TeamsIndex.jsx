@@ -114,7 +114,10 @@ export default function TeamsIndex() {
       }
 
       const [teamSeasons, teamLogoRows, overrideRows] = await Promise.all([
-        db.teamSeasons.where({ dynastyId, seasonYear: latest }).toArray(),
+        db.teamSeasons
+          .where("[dynastyId+seasonYear]")
+          .equals([dynastyId, latest])
+          .toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);

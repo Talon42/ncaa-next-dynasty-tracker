@@ -716,7 +716,10 @@ function createPlayerStatsAccumulator({
 
 
 export async function seasonExists({ dynastyId, seasonYear }) {
-  const count = await db.games.where({ dynastyId, seasonYear }).count();
+  const count = await db.games
+    .where("[dynastyId+seasonYear]")
+    .equals([dynastyId, seasonYear])
+    .count();
   return count > 0;
 }
 
@@ -958,8 +961,14 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
 
   const priorSeasonYear = year - 1;
   const [priorSeasonRows, priorSeasonStats] = await Promise.all([
-    db.playerIdentitySeasonMap.where({ dynastyId, seasonYear: priorSeasonYear }).toArray(),
-    db.playerSeasonStats.where({ dynastyId, seasonYear: priorSeasonYear }).toArray(),
+    db.playerIdentitySeasonMap
+      .where("[dynastyId+seasonYear]")
+      .equals([dynastyId, priorSeasonYear])
+      .toArray(),
+    db.playerSeasonStats
+      .where("[dynastyId+seasonYear]")
+      .equals([dynastyId, priorSeasonYear])
+      .toArray(),
   ]);
   const priorSeasonByPgid = new Map(
     priorSeasonRows
@@ -1128,20 +1137,26 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.dynasties,
     async () => {
       // Overwrite ONLY this season year
-      await db.teamSeasons.where({ dynastyId, seasonYear: year }).delete();
-      await db.games.where({ dynastyId, seasonYear: year }).delete();
-      await db.teamStats.where({ dynastyId, seasonYear: year }).delete();
+      await db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
+      await db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
+      await db.teamStats.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
-      await db.coaches.where({ dynastyId, seasonYear: year }).delete();
+      await db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.playerInfo.where({ dynastyId }).delete();
       await db.psofRows.where({ dynastyId, seasonYear: year }).delete();
       await db.psdeRows.where({ dynastyId, seasonYear: year }).delete();
       await db.pskiRows.where({ dynastyId, seasonYear: year }).delete();
       await db.pskpRows.where({ dynastyId, seasonYear: year }).delete();
-      await db.playerSeasonStats.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerSeasonStats
+        .where("[dynastyId+seasonYear]")
+        .equals([dynastyId, year])
+        .delete();
       await db.playerAllAmericans.where({ dynastyId, seasonYear: year }).delete();
       await db.playerAwards.where({ dynastyId, seasonYear: year }).delete();
-      await db.playerIdentitySeasonMap.where({ dynastyId, seasonYear: year }).delete();
+      await db.playerIdentitySeasonMap
+        .where("[dynastyId+seasonYear]")
+        .equals([dynastyId, year])
+        .delete();
 
       await db.teams.bulkPut(teams);
       await db.teamSeasons.bulkPut(teamSeasons);

@@ -199,7 +199,10 @@ useEffect(() => {
     (async () => {
       const yearNum = Number(season);
 
-      const rows = await db.teamSeasons.where({ dynastyId, seasonYear: yearNum }).toArray();
+      const rows = await db.teamSeasons
+        .where("[dynastyId+seasonYear]")
+        .equals([dynastyId, yearNum])
+        .toArray();
 
       const map = new Map();
       for (const r of rows) {
@@ -238,7 +241,10 @@ useEffect(() => {
 
     (async () => {
       const yearNum = Number(season);
-      const games = await db.games.where({ dynastyId, seasonYear: yearNum }).toArray();
+      const games = await db.games
+        .where("[dynastyId+seasonYear]")
+        .equals([dynastyId, yearNum])
+        .toArray();
       if (!alive) return;
       setGamesForSeason(games);
     })();

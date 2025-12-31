@@ -285,8 +285,8 @@ export default function PlayerStats() {
       setSeasonLoaded(false);
       setLoading(true);
       const [statsRows, seasonTeams] = await Promise.all([
-        db.playerSeasonStats.where({ dynastyId, seasonYear }).toArray(),
-        db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
+        db.playerSeasonStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
       ]);
 
       if (!alive) return;

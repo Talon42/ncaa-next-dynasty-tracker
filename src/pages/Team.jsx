@@ -290,7 +290,7 @@ useEffect(() => {
       const coachYear = seasonYear === "All" ? headerYear : Number(seasonYear);
       const coachRows =
         coachYear != null
-          ? await db.coaches.where({ dynastyId, seasonYear: coachYear }).toArray()
+          ? await db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, coachYear]).toArray()
           : [];
 
       const baseLogoByTgid = new Map(teamLogoRows.map((r) => [String(r.tgid), r.url]));

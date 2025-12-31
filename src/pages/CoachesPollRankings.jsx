@@ -71,10 +71,10 @@ export default function CoachesPollRankings() {
 
     (async () => {
       const [teamSeasons, teamLogoRows, overrideRows, games, bowlRows] = await Promise.all([
-        db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
+        db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
-        db.games.where({ dynastyId, seasonYear }).toArray(),
+        db.games.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
         db.bowlGames.where({ dynastyId, seasonYear }).toArray(),
       ]);
 

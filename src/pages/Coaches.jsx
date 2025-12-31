@@ -84,7 +84,7 @@ export default function Coaches() {
 
     (async () => {
       const [coaches, allCoachRows, games, baseRows, teamSeasonsAll, teamLogoRows, overrideRows] = await Promise.all([
-        db.coaches.where({ dynastyId, seasonYear }).toArray(),
+        db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
         db.coaches.where({ dynastyId }).toArray(),
         db.games.where({ dynastyId }).toArray(),
         db.coachCareerBases.where({ dynastyId }).toArray(),

@@ -278,7 +278,10 @@ export default function Home() {
 
     (async () => {
       const year = Number(seasonYear);
-      const games = await db.games.where({ dynastyId, seasonYear: year }).toArray();
+      const games = await db.games
+        .where("[dynastyId+seasonYear]")
+        .equals([dynastyId, year])
+        .toArray();
       const weeks = Array.from(new Set(games.map((g) => g.week))).sort((a, b) => a - b);
       setAvailableWeeks(weeks);
 
@@ -299,8 +302,8 @@ export default function Home() {
       const year = Number(seasonYear);
 
       const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows] = await Promise.all([
-        db.games.where({ dynastyId, seasonYear: year }).toArray(),
-        db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
+        db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
+        db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
       ]);

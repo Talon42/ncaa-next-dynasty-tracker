@@ -305,10 +305,10 @@ export default function TeamStats() {
       setLoading(true);
 
       const [ts, st, gm, ps] = await Promise.all([
-        db.teamSeasons.where({ dynastyId, seasonYear }).toArray(),
-        db.teamStats.where({ dynastyId, seasonYear }).toArray(),
-        db.games.where({ dynastyId, seasonYear }).toArray(),
-        db.playerSeasonStats.where({ dynastyId, seasonYear }).toArray(),
+        db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        db.teamStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        db.games.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        db.playerSeasonStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
       ]);
 
       if (!alive) return;

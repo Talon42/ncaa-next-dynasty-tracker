@@ -586,7 +586,10 @@ export default function Player() {
       const next = new Map();
       await Promise.all(
         seasons.map(async (year) => {
-          const rows = await db.playerSeasonStats.where({ dynastyId, seasonYear: year }).toArray();
+          const rows = await db.playerSeasonStats
+            .where("[dynastyId+seasonYear]")
+            .equals([dynastyId, year])
+            .toArray();
           const maxByKey = new Map(activeDefs.map((def) => [def.key, null]));
           for (const row of rows) {
             for (const def of activeDefs) {

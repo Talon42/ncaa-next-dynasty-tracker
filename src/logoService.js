@@ -329,7 +329,10 @@ export async function ensureBundledLogoBaseLoaded() {
 export async function upsertTeamLogosFromSeasonTeams({ dynastyId, seasonYear }) {
   await ensureBundledLogoBaseLoaded();
 
-  const teams = await db.teamSeasons.where({ dynastyId, seasonYear }).toArray();
+  const teams = await db.teamSeasons
+    .where("[dynastyId+seasonYear]")
+    .equals([dynastyId, seasonYear])
+    .toArray();
   if (!teams.length) return { updated: 0 };
 
   const base = await db.logoBaseByName.toArray();

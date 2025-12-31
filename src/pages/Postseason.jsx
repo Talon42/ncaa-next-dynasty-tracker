@@ -716,10 +716,10 @@ useEffect(() => {
       const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
         isAllSeasons
           ? db.games.where({ dynastyId }).toArray()
-          : db.games.where({ dynastyId, seasonYear: year }).toArray(),
+          : db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
         isAllSeasons
           ? db.teamSeasons.where({ dynastyId }).toArray()
-          : db.teamSeasons.where({ dynastyId, seasonYear: year }).toArray(),
+          : db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
         db.teamLogos.where({ dynastyId }).toArray(),
         db.logoOverrides.where({ dynastyId }).toArray(),
         isAllSeasons
@@ -727,7 +727,7 @@ useEffect(() => {
           : db.bowlGames.where({ dynastyId, seasonYear: year }).toArray(),
         isAllSeasons
           ? db.coaches.where({ dynastyId }).toArray()
-          : db.coaches.where({ dynastyId, seasonYear: year }).toArray(),
+          : db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
       ]);
 
       if (!alive) return;
