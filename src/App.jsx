@@ -130,11 +130,11 @@ export default function App() {
 
   useEffect(() => {
     if (dynasties.length === 0) {
-      setShowNewDynasty(true);
+      setShowNewDynasty(!showBackupModal);
       return;
     }
     setShowNewDynasty(false);
-  }, [dynasties.length]);
+  }, [dynasties.length, showBackupModal]);
 
   useEffect(() => {
     setOpenHeaderPanel(null);
@@ -948,6 +948,19 @@ export default function App() {
                 Create Dynasty
               </button>
             </div>
+
+            {!hasAnySeasons ? (
+              <div className="importActions" style={{ marginTop: 10 }}>
+                <button
+                  onClick={() => {
+                    resetImportState();
+                    setShowBackupModal(true);
+                  }}
+                >
+                  Load Backup
+                </button>
+              </div>
+            ) : null}
           </div>
         </Modal>
       )}

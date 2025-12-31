@@ -87,7 +87,9 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
   const [dynastyName, setDynastyName] = useState("");
   const [mode, setMode] = useState("single"); // single | bulk
   const [seasonYear, setSeasonYear] = useState(2025);
+  const [singleSource, setSingleSource] = useState("files"); // files | folder
   const [files, setFiles] = useState([]);
+  const [singleFolderFiles, setSingleFolderFiles] = useState([]);
   const [bulkFiles, setBulkFiles] = useState([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -146,9 +148,44 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     setFiles(Array.from(e.target.files || []));
   }
 
+  function onPickSingleFolder(e) {
+    setSingleFolderFiles(Array.from(e.target.files || []));
+  }
+
   function onPickBulkFolders(e) {
     setBulkFiles(Array.from(e.target.files || []));
   }
+
+  const singleFolderParsed = useMemo(() => {
+    const csvFiles = singleFolderFiles.filter((f) => String(f?.name ?? "").toLowerCase().endsWith(".csv"));
+    const yearNum = Number(seasonYear);
+    let yearMatchedFiles = [];
+
+    if (Number.isFinite(yearNum)) {
+      yearMatchedFiles = csvFiles.filter((f) => {
+        const rel = f?.webkitRelativePath || f?.relativePath || f?.name;
+        const year = findSeasonYearFromPath(rel);
+        return year === yearNum;
+      });
+    }
+
+    const filesToUse = yearMatchedFiles.length ? yearMatchedFiles : csvFiles;
+    const seen = new Set();
+    for (const f of filesToUse) {
+      const t = getTypeFromName(f.name);
+      if (t) seen.add(t);
+    }
+    const missingTypes = REQUIRED_TYPES.filter((t) => !seen.has(t));
+    const fileNames = filesToUse.map((f) => f.name).sort((a, b) => a.localeCompare(b));
+
+    return {
+      filesToUse,
+      fileNames,
+      missingTypes,
+      totalCsv: csvFiles.length,
+      matchedByYear: yearMatchedFiles.length,
+    };
+  }, [singleFolderFiles, seasonYear]);
 
   const bulkParsed = useMemo(() => {
     const invalid = [];
@@ -305,9 +342,19 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
       setStatus("Season year must be a valid number.");
       return;
     }
-    if (!files.length) {
+    const filesToUse = singleSource === "folder" ? singleFolderParsed.filesToUse : files;
+    if (!filesToUse.length) {
       setStatus(
-        "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv."
+        singleSource === "folder"
+          ? "Please select a folder that contains the season CSVs (TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, OSPA)."
+          : "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv."
+      );
+      return;
+    }
+
+    if (singleSource === "folder" && singleFolderParsed.missingTypes.length) {
+      setStatus(
+        `Missing required CSV(s): ${singleFolderParsed.missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
       );
       return;
     }
@@ -315,12 +362,12 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     const exists = await seasonExists({ dynastyId, seasonYear: yearNum });
     if (exists) {
       setPendingYear(yearNum);
-      setPendingFiles(files);
+      setPendingFiles(filesToUse);
       setShowOverwriteModal(true);
       return;
     }
 
-    await runImport(yearNum, files);
+    await runImport(yearNum, filesToUse);
   }
 
   function cancelOverwrite() {
@@ -414,38 +461,114 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         ) : null}
 
         {mode === "single" ? (
-          <label className="importField">
-            <span>CSV Files</span>
-            <input
-              id="importFiles"
-              type="file"
-              accept=".csv,text/csv"
-              multiple
-              onChange={onPickFiles}
-              disabled={busy}
-              style={{ display: "none" }}
-            />
-            <label htmlFor="importFiles" className="fileButton importFileButton">
-              {files.length ? `Choose Files (${files.length})` : "Choose Files"}
-            </label>
-
-            <div className="importFilesMeta">
-              {files.length ? (
-                <>
-                  <div className="kicker">Selected: {files.length} file{files.length === 1 ? "" : "s"}</div>
-                  <div className="importFilesList">
-                    {files.map((f) => (
-                      <div key={f.name} className="importFileName">
-                        {f.name}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="kicker">No files selected yet.</div>
-              )}
+          <>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                className={singleSource === "files" ? "primary" : ""}
+                onClick={() => {
+                  setSingleSource("files");
+                  setStatus("");
+                }}
+                disabled={busy}
+              >
+                Choose Files
+              </button>
+              <button
+                className={singleSource === "folder" ? "primary" : ""}
+                onClick={() => {
+                  setSingleSource("folder");
+                  setStatus("");
+                }}
+                disabled={busy}
+              >
+                Choose Folder
+              </button>
             </div>
-          </label>
+
+            {singleSource === "files" ? (
+              <label className="importField">
+                <span>CSV Files</span>
+                <input
+                  id="importFiles"
+                  type="file"
+                  accept=".csv,text/csv"
+                  multiple
+                  onChange={onPickFiles}
+                  disabled={busy}
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="importFiles" className="fileButton importFileButton">
+                  {files.length ? `Choose Files (${files.length})` : "Choose Files"}
+                </label>
+
+                <div className="importFilesMeta">
+                  {files.length ? (
+                    <>
+                      <div className="kicker">Selected: {files.length} file{files.length === 1 ? "" : "s"}</div>
+                      <div className="importFilesList">
+                        {files.map((f) => (
+                          <div key={f.name} className="importFileName">
+                            {f.name}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="kicker">No files selected yet.</div>
+                  )}
+                </div>
+              </label>
+            ) : (
+              <label className="importField">
+                <span>Season Folder</span>
+                <div className="kicker" style={{ marginTop: -6 }}>
+                  Select a folder containing the season CSVs. If the path includes a year folder (e.g., 2030), only that year&apos;s CSVs are used.
+                </div>
+                <input
+                  id="importSingleFolder"
+                  type="file"
+                  accept=".csv,text/csv"
+                  // @ts-ignore - non-standard attributes supported by Chromium-based browsers
+                  webkitdirectory=""
+                  // @ts-ignore
+                  directory=""
+                  // @ts-ignore
+                  mozdirectory=""
+                  onChange={onPickSingleFolder}
+                  disabled={busy}
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="importSingleFolder" className="fileButton importFileButton">
+                  {singleFolderFiles.length ? `Choose Folder (${singleFolderParsed.filesToUse.length} file${singleFolderParsed.filesToUse.length === 1 ? "" : "s"})` : "Choose Folder"}
+                </label>
+
+                <div className="importFilesMeta">
+                  {singleFolderParsed.filesToUse.length ? (
+                    <>
+                      <div className="kicker">
+                        Using {singleFolderParsed.filesToUse.length} file{singleFolderParsed.filesToUse.length === 1 ? "" : "s"}
+                        {singleFolderParsed.matchedByYear ? ` from ${seasonYear}` : ""}.
+                      </div>
+                      <div className="importFilesList">
+                        {singleFolderParsed.fileNames.map((name) => (
+                          <div key={name} className="importFileName">
+                            {name}
+                          </div>
+                        ))}
+                      </div>
+                      {singleFolderParsed.missingTypes.length ? (
+                        <div className="kicker" style={{ marginTop: 8, color: "#ff9b9b" }}>
+                          Missing: {singleFolderParsed.missingTypes.join(", ")}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="kicker">No folder selected yet.</div>
+                  )}
+                </div>
+              </label>
+            )}
+          </>
         ) : (
           <label className="importField">
             <span>Seasons Folder</span>

@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog, Menu } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "./server.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const LOCAL_PORT = 5174;
 
 function getPortableRoot() {
   if (!app.isPackaged) {
@@ -27,13 +28,14 @@ let server;
 
 async function createMainWindow() {
   const distRoot = path.resolve(__dirname, "..", "dist-electron");
-  const result = await createServer({ root: distRoot, port: 0 });
+  const result = await createServer({ root: distRoot, port: LOCAL_PORT });
   server = result.server;
 
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -45,6 +47,8 @@ async function createMainWindow() {
     win.show();
   });
 
+  win.maximize();
+
   await win.loadURL(result.url);
 }
 
@@ -52,7 +56,17 @@ const portableRoot = getPortableRoot();
 configurePortablePaths(portableRoot);
 
 app.whenReady().then(async () => {
-  await createMainWindow();
+  Menu.setApplicationMenu(null);
+  try {
+    await createMainWindow();
+  } catch (error) {
+    dialog.showErrorBox(
+      "Dynasty Tracker failed to start",
+      `Could not start the local server on port ${LOCAL_PORT}.\n\n${error?.message ?? error}`
+    );
+    app.quit();
+    return;
+  }
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {

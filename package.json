@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:electron": "vite build --mode electron",
-    "electron:start": "electron ."
+    "electron:start": "electron .",
+    "package:electron": "electron-builder --win zip --publish never"
   },
   "dependencies": {
     "dexie": "^4.2.1",
@@ -21,6 +22,27 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
     "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
     "vite": "^7.3.0"
+  },
+  "build": {
+    "appId": "com.dynastytracker.desktop",
+    "productName": "Dynasty Tracker",
+    "icon": "public/app_logo.png",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**",
+      "electron/**",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "public/app_logo.png",
+      "target": [
+        "zip"
+      ]
+    }
   }
 }
