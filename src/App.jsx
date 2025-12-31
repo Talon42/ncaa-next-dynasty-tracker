@@ -16,6 +16,7 @@ import Coaches from "./pages/Coaches";
 import Coach from "./pages/Coach";
 import CoachesPollRankings from "./pages/CoachesPollRankings";
 import { writePreviousRoute } from "./previousRoute";
+import { positionLabel } from "./playerStatsUtils";
 
 import {
   createDynasty,
@@ -168,10 +169,10 @@ export default function App() {
     const timer = setTimeout(() => {
       (async () => {
         const [teamRows, coachRows, bowlRows, playerRows, identityRows] = await Promise.all([
-          db.teamSeasons.where({ dynastyId: activeId }).toArray(),
-          db.coaches.where({ dynastyId: activeId }).toArray(),
+          db.latestTeamSeasons.where({ dynastyId: activeId }).toArray(),
+          db.latestCoaches.where({ dynastyId: activeId }).toArray(),
           db.bowlGames.where({ dynastyId: activeId }).toArray(),
-          db.playerSeasonStats.where({ dynastyId: activeId }).toArray(),
+          db.latestPlayerSeasons.where({ dynastyId: activeId }).toArray(),
           db.playerIdentities.where({ dynastyId: activeId }).toArray(),
         ]);
 
@@ -189,32 +190,20 @@ export default function App() {
         const teamLatestByTgid = new Map();
         for (const t of teamRows) {
           const tgid = String(t.tgid ?? "");
-          const yr = Number(t.seasonYear);
-          const existing = teamLatestByTgid.get(tgid);
-          if (!existing || yr > existing.seasonYear) {
-            teamLatestByTgid.set(tgid, { ...t, seasonYear: yr });
-          }
+          if (tgid) teamLatestByTgid.set(tgid, t);
         }
 
         const coachLatestByCcid = new Map();
         for (const c of coachRows) {
           const ccid = String(c.ccid ?? "");
-          const yr = Number(c.seasonYear);
-          const existing = coachLatestByCcid.get(ccid);
-          if (!existing || yr > existing.seasonYear) {
-            coachLatestByCcid.set(ccid, { ...c, seasonYear: yr });
-          }
+          if (ccid) coachLatestByCcid.set(ccid, c);
         }
 
         const playerLatestByUid = new Map();
         for (const p of playerRows) {
           const uid = String(p.playerUid ?? "").trim() || `pgid:${String(p.pgid ?? "").trim()}`;
           if (!uid) continue;
-          const yr = Number(p.seasonYear);
-          const existing = playerLatestByUid.get(uid);
-          if (!existing || yr > existing.seasonYear) {
-            playerLatestByUid.set(uid, { ...p, seasonYear: yr });
-          }
+          playerLatestByUid.set(uid, { ...p });
         }
 
         const results = [];
@@ -260,8 +249,7 @@ export default function App() {
           const first = String(identity?.firstName ?? p.firstName ?? "").trim();
           const last = String(identity?.lastName ?? p.lastName ?? "").trim();
           const name = `${first} ${last}`.trim();
-          const pgid = String(p.pgid ?? "").trim();
-          const score = scoreOf(name) ?? scoreOf(pgid);
+          const score = scoreOf(name);
           if (score == null) continue;
           const tgid = String(p.tgid ?? "").trim();
           const teamRow = tgid ? teamLatestByTgid.get(tgid) || null : null;
@@ -269,12 +257,10 @@ export default function App() {
             ? `${String(teamRow.tdna ?? "").trim()} ${String(teamRow.tmna ?? "").trim()}`.trim()
             : tgid
               ? `TGID ${tgid}`
-              : "";
-          const labelBase = name || (pgid ? `PGID ${pgid}` : "Unknown Player");
-          const metaParts = [];
-          if (pgid) metaParts.push(`PGID ${pgid}`);
-          if (teamName) metaParts.push(teamName);
-          const label = metaParts.length ? `${labelBase} (${metaParts.join(", ")})` : labelBase;
+              : "Unknown Team";
+          const posLabel = positionLabel(p.position) || "Unknown Pos";
+          const labelName = name || "Unknown Player";
+          const label = `${labelName}, ${posLabel}, ${teamName}`;
           addResult({
             type: "Player",
             label,

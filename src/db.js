@@ -399,6 +399,199 @@ db.version(17).stores({
     "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, awardKey",
 });
 
+// v18 (latest snapshot tables for search performance)
+db.version(18)
+  .stores({
+    dynasties: "id, name, startYear, currentYear",
+    teams: "[dynastyId+tgid], dynastyId, tgid",
+    teamSeasons:
+      "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+    games:
+      "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+seasonYear],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+    settings: "key",
+    logoBaseByName: "nameKey",
+    teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+    logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+    teamStats: "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear], dynastyId, seasonYear, tgid",
+    bowlGames: "[dynastyId+seasonYear+sewn+sgnm],[dynastyId+seasonYear], dynastyId, seasonYear, sewn, sgnm",
+    coaches:
+      "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+    coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+    coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+    playerSeasonStats:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+    playerIdentities:
+      "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+    playerIdentitySeasonMap:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear], dynastyId, seasonYear, pgid, playerUid",
+    playerAllAmericans:
+      "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid",
+    playerAwards:
+      "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, awardKey",
+
+    // Latest snapshots (one row per entity)
+    latestTeamSeasons: "[dynastyId+tgid], dynastyId, tgid, seasonYear",
+    latestCoaches: "[dynastyId+ccid], dynastyId, ccid, seasonYear",
+    latestPlayerSeasons: "[dynastyId+playerUid], dynastyId, playerUid, seasonYear, tgid, pgid",
+  })
+  .upgrade(async (tx) => {
+    const [teamRows, coachRows, playerRows] = await Promise.all([
+      tx.table("teamSeasons").toArray(),
+      tx.table("coaches").toArray(),
+      tx.table("playerSeasonStats").toArray(),
+    ]);
+
+    const latestTeams = new Map();
+    for (const row of teamRows) {
+      const dynastyId = row.dynastyId;
+      const tgid = String(row.tgid ?? "");
+      if (!dynastyId || !tgid) continue;
+      const key = `${dynastyId}|${tgid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestTeams.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestTeams.set(key, row);
+      }
+    }
+
+    const latestCoaches = new Map();
+    for (const row of coachRows) {
+      const dynastyId = row.dynastyId;
+      const ccid = String(row.ccid ?? "");
+      if (!dynastyId || !ccid) continue;
+      const key = `${dynastyId}|${ccid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestCoaches.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestCoaches.set(key, row);
+      }
+    }
+
+    const latestPlayers = new Map();
+    for (const row of playerRows) {
+      const dynastyId = row.dynastyId;
+      const playerUid = String(row.playerUid ?? "");
+      if (!dynastyId || !playerUid) continue;
+      const key = `${dynastyId}|${playerUid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestPlayers.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestPlayers.set(key, {
+          dynastyId,
+          playerUid,
+          seasonYear: row.seasonYear ?? null,
+          tgid: row.tgid ?? null,
+          pgid: row.pgid ?? null,
+        });
+      }
+    }
+
+    const teamList = Array.from(latestTeams.values());
+    const coachList = Array.from(latestCoaches.values());
+    const playerList = Array.from(latestPlayers.values());
+
+    if (teamList.length) await tx.table("latestTeamSeasons").bulkPut(teamList);
+    if (coachList.length) await tx.table("latestCoaches").bulkPut(coachList);
+    if (playerList.length) await tx.table("latestPlayerSeasons").bulkPut(playerList);
+  });
+
+// v19 (latest player snapshot includes position)
+db.version(19)
+  .stores({
+    dynasties: "id, name, startYear, currentYear",
+    teams: "[dynastyId+tgid], dynastyId, tgid",
+    teamSeasons:
+      "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+    games:
+      "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+seasonYear],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+    settings: "key",
+    logoBaseByName: "nameKey",
+    teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+    logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+    teamStats: "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear], dynastyId, seasonYear, tgid",
+    bowlGames: "[dynastyId+seasonYear+sewn+sgnm],[dynastyId+seasonYear], dynastyId, seasonYear, sewn, sgnm",
+    coaches:
+      "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+    coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+    coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+    playerSeasonStats:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+    playerIdentities:
+      "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+    playerIdentitySeasonMap:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear], dynastyId, seasonYear, pgid, playerUid",
+    playerAllAmericans:
+      "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid",
+    playerAwards:
+      "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, awardKey",
+
+    latestTeamSeasons: "[dynastyId+tgid], dynastyId, tgid, seasonYear",
+    latestCoaches: "[dynastyId+ccid], dynastyId, ccid, seasonYear",
+    latestPlayerSeasons:
+      "[dynastyId+playerUid], dynastyId, playerUid, seasonYear, tgid, pgid, position",
+  })
+  .upgrade(async (tx) => {
+    const [teamRows, coachRows, playerRows] = await Promise.all([
+      tx.table("teamSeasons").toArray(),
+      tx.table("coaches").toArray(),
+      tx.table("playerSeasonStats").toArray(),
+    ]);
+
+    const latestTeams = new Map();
+    for (const row of teamRows) {
+      const dynastyId = row.dynastyId;
+      const tgid = String(row.tgid ?? "");
+      if (!dynastyId || !tgid) continue;
+      const key = `${dynastyId}|${tgid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestTeams.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestTeams.set(key, row);
+      }
+    }
+
+    const latestCoaches = new Map();
+    for (const row of coachRows) {
+      const dynastyId = row.dynastyId;
+      const ccid = String(row.ccid ?? "");
+      if (!dynastyId || !ccid) continue;
+      const key = `${dynastyId}|${ccid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestCoaches.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestCoaches.set(key, row);
+      }
+    }
+
+    const latestPlayers = new Map();
+    for (const row of playerRows) {
+      const dynastyId = row.dynastyId;
+      const playerUid = String(row.playerUid ?? "");
+      if (!dynastyId || !playerUid) continue;
+      const key = `${dynastyId}|${playerUid}`;
+      const yr = Number(row.seasonYear);
+      const existing = latestPlayers.get(key);
+      if (!existing || (Number.isFinite(yr) && yr > Number(existing.seasonYear))) {
+        latestPlayers.set(key, {
+          dynastyId,
+          playerUid,
+          seasonYear: row.seasonYear ?? null,
+          tgid: row.tgid ?? null,
+          pgid: row.pgid ?? null,
+          position: row.position ?? null,
+        });
+      }
+    }
+
+    const teamList = Array.from(latestTeams.values());
+    const coachList = Array.from(latestCoaches.values());
+    const playerList = Array.from(latestPlayers.values());
+
+    if (teamList.length) await tx.table("latestTeamSeasons").bulkPut(teamList);
+    if (coachList.length) await tx.table("latestCoaches").bulkPut(coachList);
+    if (playerList.length) await tx.table("latestPlayerSeasons").bulkPut(playerList);
+  });
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -463,6 +656,9 @@ export async function deleteDynasty(id) {
     db.playerIdentitySeasonMap.where("dynastyId").equals(id).delete(),
     db.playerAllAmericans.where("dynastyId").equals(id).delete(),
     db.playerAwards.where("dynastyId").equals(id).delete(),
+    db.latestTeamSeasons.where("dynastyId").equals(id).delete(),
+    db.latestCoaches.where("dynastyId").equals(id).delete(),
+    db.latestPlayerSeasons.where("dynastyId").equals(id).delete(),
   ]);
 
   const active = await getActiveDynastyId();

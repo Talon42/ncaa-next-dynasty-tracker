@@ -1,4 +1,5 @@
 import { db, getActiveDynastyId, setActiveDynastyId } from "./db";
+import { rebuildLatestSnapshotsForDynasty } from "./latestSnapshots";
 
 const BACKUP_FORMAT = "dynasty-tracker-backup";
 const BACKUP_VERSION = 1;
@@ -201,6 +202,14 @@ export async function importDatabase(payload) {
       await setActiveDynastyId(importedActiveSetting);
     }
   });
+
+  for (const dynastyId of importedIds) {
+    try {
+      await rebuildLatestSnapshotsForDynasty({ dynastyId });
+    } catch {
+      // Snapshot rebuild is non-critical; skip on failure.
+    }
+  }
 
   return {
     importedDynasties: importedDynasties.length,

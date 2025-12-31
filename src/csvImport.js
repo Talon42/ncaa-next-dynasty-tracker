@@ -3,6 +3,7 @@ import { db, getDynasty } from "./db";
 import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 import { computeCoachCareerBases } from "./coachRecords";
+import { rebuildLatestSnapshotsForDynasty } from "./latestSnapshots";
 
 const OSPA_AWARDS = new Map([
   [0, "Heisman Memorial Trophy"],
@@ -1231,6 +1232,12 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     await upsertTeamLogosFromSeasonTeams({ dynastyId, seasonYear: year });
   } catch {
     // stay silent per your preference
+  }
+
+  try {
+    await rebuildLatestSnapshotsForDynasty({ dynastyId });
+  } catch {
+    // If snapshots fail, don't block import.
   }
 
   return { dynastyId, seasonYear: year, teams: teamSeasons.length, games: games.length };
