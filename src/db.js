@@ -363,6 +363,36 @@ db.version(15).stores({
     "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid, awardKey",
 });
 
+// v16 (drop unused player info/raw stat tables)
+db.version(16).stores({
+  dynasties: "id, name, startYear, currentYear",
+  teams: "[dynastyId+tgid], dynastyId, tgid",
+  teamSeasons:
+    "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+  games:
+    "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+seasonYear],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+  settings: "key",
+  logoBaseByName: "nameKey",
+  teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+  logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+  teamStats: "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear], dynastyId, seasonYear, tgid",
+  bowlGames: "[dynastyId+seasonYear+sewn+sgnm], dynastyId, seasonYear, sewn, sgnm",
+  coaches:
+    "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+  coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+  coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+  playerSeasonStats:
+    "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid",
+  playerIdentities:
+    "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+  playerIdentitySeasonMap:
+    "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear], dynastyId, seasonYear, pgid, playerUid",
+  playerAllAmericans:
+    "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid",
+  playerAwards:
+    "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid], dynastyId, seasonYear, playerUid, pgid, awardKey",
+});
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -422,11 +452,6 @@ export async function deleteDynasty(id) {
     db.coaches.where("dynastyId").equals(id).delete(),
     db.coachQuotes.where("dynastyId").equals(id).delete(),
     db.coachCareerBases.where("dynastyId").equals(id).delete(),
-    db.playerInfo.where("dynastyId").equals(id).delete(),
-    db.psofRows.where("dynastyId").equals(id).delete(),
-    db.psdeRows.where("dynastyId").equals(id).delete(),
-    db.pskiRows.where("dynastyId").equals(id).delete(),
-    db.pskpRows.where("dynastyId").equals(id).delete(),
     db.playerSeasonStats.where("dynastyId").equals(id).delete(),
     db.playerIdentities.where("dynastyId").equals(id).delete(),
     db.playerIdentitySeasonMap.where("dynastyId").equals(id).delete(),

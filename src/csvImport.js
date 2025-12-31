@@ -1133,11 +1133,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.bowlGames,
     db.coaches,
     db.coachCareerBases,
-    db.playerInfo,
-    db.psofRows,
-    db.psdeRows,
-    db.pskiRows,
-    db.pskpRows,
     db.playerSeasonStats,
     db.playerAllAmericans,
     db.playerAwards,
@@ -1151,11 +1146,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       await db.teamStats.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.bowlGames.where({ dynastyId, seasonYear: year }).delete();
       await db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
-      await db.playerInfo.where({ dynastyId }).delete();
-      await db.psofRows.where({ dynastyId, seasonYear: year }).delete();
-      await db.psdeRows.where({ dynastyId, seasonYear: year }).delete();
-      await db.pskiRows.where({ dynastyId, seasonYear: year }).delete();
-      await db.pskpRows.where({ dynastyId, seasonYear: year }).delete();
       await db.playerSeasonStats
         .where("[dynastyId+seasonYear]")
         .equals([dynastyId, year])
