@@ -26,7 +26,7 @@ function configurePortablePaths(portableRoot) {
 let server;
 
 async function createMainWindow() {
-  const distRoot = path.resolve(__dirname, "..", "dist");
+  const distRoot = path.resolve(__dirname, "..", "dist-electron");
   const result = await createServer({ root: distRoot, port: 0 });
   server = result.server;
 
