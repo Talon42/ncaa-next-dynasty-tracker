@@ -5,3 +5,4 @@ dist-electron
 .env.local
 data
 release
+docs/LOCAL_GIT_WORKFLOW.md
