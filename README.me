@@ -2,7 +2,7 @@
 
 A browser-based tracker for **NCAA Next** dynasties. Create multiple dynasties, import one or more seasons from game-exported CSVs, then explore schedules/results, teams, team stats, postseason, and conference standings.
 
-All dynasty data is stored **locally in your browser** (IndexedDB). There is no backend and no account system.
+All dynasty data is stored **locally** (IndexedDB via Dexie). There is no backend and no account system.
 
 ## Contents
 - Quick start
@@ -18,24 +18,49 @@ All dynasty data is stored **locally in your browser** (IndexedDB). There is no 
 - Development / deployment notes
 
 ## Quick start
+### Web App (GitHub Pages)
 1. Open the app in a modern browser.
 2. Click **+ New Dynasty**, give it a name, and set a **Starting Year**.
 3. When prompted (or from the sidebar), click **+ Upload New Season**.
-4. Choose a **Season Year** and select **four CSV files**: `TEAM.csv`, `SCHD.csv`, `TSSE.csv`, `BOWL.csv`.
+4. Choose a **Season Year** and select the required CSVs (see CSV requirements below).
 5. After import completes, use the left sidebar to navigate.
+
+### Desktop App (portable offline Windows app)
+1. Download the latest Desktop App zip release and extract it to a folder (USB is fine).
+2. Run `Dynasty Tracker.exe`.
+3. Click **+ New Dynasty** (or **Load Backup** if you already have data).
+4. Click **+ Upload New Season** and import your season CSVs.
+5. Your data is stored in a `data/` folder next to the `.exe` and persists across restarts and upgrades.
 
 ## Requirements
 
-### For normal use
+### Web App (normal use)
 - A modern browser with:
   - IndexedDB support (Chrome/Edge/Firefox/Safari)
   - File upload support
   - `crypto.randomUUID()` support (used for dynasty IDs)
 - Enough local storage space (large dynasties can be sizable).
 
-### For the best reliability (recommended)
+### Web App (best reliability)
 - Use a normal browser window (avoid Incognito/Private mode).
 - If your browser prompts about site storage, allow persistent storage (the app requests it on startup).
+
+### Desktop App (portable offline)
+The Desktop App is a **portable Windows desktop app** (Electron). It is strictly offline and stores all data next to the executable so you can run it from a USB drive.
+
+Key behavior:
+- Storage is **not tied to a browser profile**. Clearing browser site data will not affect the desktop app.
+- All Dexie/IndexedDB data lives in a `data/` folder next to the app `.exe`.
+- The app runs a local loopback server (`http://127.0.0.1:5174`) internally (offline; no external network calls required).
+
+Portability (moving saves between Windows devices):
+- **Copy the app folder** (including the `data/` folder) to the new machine/USB location. As long as `data/` stays next to the `.exe`, your dynasties move with it.
+- Or use **Import / Export**: export a backup file on one machine, then import it on the other (works for both the Web App and Desktop App).
+
+Upgrading the portable app:
+1. Download the new zip release.
+2. Extract it over your existing app folder.
+3. **Do not delete the `data/` folder**. Keeping `data/` preserves all dynasties and seasons.
 
 ### For local development
 - Node.js + npm
@@ -43,6 +68,8 @@ All dynasty data is stored **locally in your browser** (IndexedDB). There is no 
 - Run dev server: `npm run dev` (defaults to `http://127.0.0.1:5173`)
 - Build: `npm run build`
 - Preview build: `npm run preview`
+- Desktop build: `npm run build:electron`
+- Desktop package (Windows zip): `npm run package:electron`
 
 ## Core concepts
 
@@ -58,35 +85,65 @@ A dynasty is a separate "save slot" inside the app. Each dynasty has its own:
 Each import is stored under a specific season year (e.g., 2026). You can import multiple seasons per dynasty, and you can overwrite a season year (with confirmation).
 
 ### Where your data lives
-Data is stored in your browser's IndexedDB under the database name:
+Data is stored in IndexedDB under the database name:
 - `dynasty-tracker-v1`
 
-If you clear Site Data/Storage for the site, you will delete your dynasties.
+### Web App
+If you clear Site Data/Storage for the website, you will delete your dynasties in the browser version.
+
+### Desktop App
+Data is stored in `data/` next to the executable. Deleting `data/` deletes your dynasties.
 
 ## Creating a dynasty
+### Web App
 1. In the left sidebar under **Dynasties**, click **+ New Dynasty**.
 2. Enter:
-   - **Dynasty Name** (required)
-   - **Starting Year** (required, numeric)
+  - **Dynasty Name** (required)
+  - **Starting Year** (required, numeric)
 3. Click **Create Dynasty**.
 
 Notes:
 - If this is your **first** dynasty, the app immediately prompts you to upload your first season.
 - For additional dynasties, the app creates it and then loads it as the active dynasty.
+- If you already have data, use **Import / Export** to load a backup. On first launch (no dynasties), the Create New Dynasty modal also includes a **Load Backup** button.
+
+### Desktop App
+Same flow as the Web App. If you are migrating from the Web App, use **Import / Export** to import your backup file into the Desktop App.
 
 ## Uploading a season (CSV import)
 
-### From the UI
+### Web App (from the UI)
 1. Select the dynasty you want to import into (it must be **Active**).
 2. In the left sidebar under **Dynasties**, click **+ Upload New Season**.
 3. Set **Season Year** (defaults to the dynasty's current-year suggestion).
-4. Click **Choose Files** and select these four files at the same time:
-   - `TEAM.csv`
-   - `SCHD.csv`
-   - `TSSE.csv`
-   - `BOWL.csv`
+4. Choose one import method:
+   - **Choose Files**: pick the required CSV files directly, or
+   - **Choose Folder** (single season): pick a folder containing the season CSVs
 5. Click **Import Season**.
 6. When the status reads something like `Imported 2026: 134 teams, 900 games`, the app returns you to the main views.
+
+### Desktop App (from the UI)
+Same flow as the Web App. The Desktop App is offline, so you must import from local files/folders.
+
+### Getting the required CSVs (recommended)
+The easiest way to export the required CSVs is with Antdroid's NCAA DB Editor:
+- https://github.com/antdroidx/NCAA-DB-Editor
+
+Important dynasty timing:
+- Do **not** advance your dynasty past the National Championship game before exporting.
+- At the National Championship point, **close PCSX2 completely**, load the dynasty file in the DB Editor, and export the CSVs.
+- After exporting, you can resume your dynasty in PCSX2 normally.
+
+Export options in the DB Editor:
+- **Export All**: exports a full set of CSVs (safe fallback if you're missing a required file).
+- **Export to Dynasty Tracker**: exports only the Dynasty Tracker CSVs, but it may lag behind if new required files are added. If an import fails due to a missing CSV type, use **Export All** instead.
+
+Folder organization tip:
+- Keep each season's exported CSVs in its own folder named by season year (e.g., `2030/`) as a backup.
+- The DB Editor will do this season-folder layout automatically when using **Export to Dynasty Tracker**.
+
+### Bulk seasons (folder import)
+In the Import Season modal, switch to **Bulk Seasons** to select a parent folder that contains year folders (e.g., `2025/`, `2026/`). The app will detect seasons from folder paths and import them in order.
 
 ### Overwriting an existing season year
 If you import a year that already exists in the active dynasty:
@@ -218,33 +275,16 @@ The import step detects file types **by filename**. Make sure your files are nam
 - `SCHD.csv`
 - `TSSE.csv`
 - `BOWL.csv`
+- `COCH.csv`
+- `PLAY.csv`
+- `PSOF.csv`
+- `PSDE.csv`
+- `PSKI.csv`
+- `PSKP.csv`
+- `AAPL.csv`
+- `OSPA.csv`
 
 The importer reads the last 4 alphanumeric characters before `.csv` as the type code, so names like `my-export-TEAM.csv` also work as long as they still end in `TEAM.csv`.
-
-### Required columns
-`TEAM.csv` must include:
-- `TGID` (team ID)
-- `CGID` (conference ID snapshot)
-- `TDNA` (team "school" / display name chunk)
-- `TMNA` (team nickname/mascot chunk)
-- `TMPR` (team prestige, used for stars)
-
-`SCHD.csv` must include:
-- `GATG` (away team TGID)
-- `GHTG` (home team TGID)
-- `GASC` (away score)
-- `GHSC` (home score)
-- `SEWN` (week number; supports 0-22)
-- `SGNM` (stage; used to map bowls)
-
-`TSSE.csv` must include:
-- `TGID`
-- Any other columns are stored and surfaced in Team Stats (some keys are case-sensitive).
-
-`BOWL.csv` must include:
-- `SEWN` (week)
-- `SGNM` (stage)
-- `BNME` (bowl name)
 
 ### Data consistency rules (common causes of "missing" data)
 - `TGID` values should match across `TEAM.csv`, `SCHD.csv`, and `TSSE.csv`.
@@ -270,14 +310,24 @@ See `docs/LOGOS.md` for the expected `public/logos/index.json` format.
 
 ### "My data disappeared"
 Most common causes:
-- You opened the app in Incognito/Private mode (storage may be cleared automatically).
-- You cleared the site's storage/cache.
-- A browser/OS "storage pressure" cleanup removed non-persisted storage.
+- Web App: You opened the app in Incognito/Private mode (storage may be cleared automatically).
+- Web App: You cleared the site's storage/cache.
+- Web App: A browser/OS "storage pressure" cleanup removed non-persisted storage.
+- Desktop App: The `data/` folder next to the `.exe` was deleted or the app was moved without that `data/` folder.
 
 What to do:
-- Use a normal browser profile.
-- If prompted, allow persistent storage.
-- Avoid clearing site data if you want to keep dynasties.
+- Web App: Use a normal browser profile.
+- Web App: If prompted, allow persistent storage.
+- Web App: Avoid clearing site data if you want to keep dynasties.
+- Desktop App: Make sure the `data/` folder stays next to the `.exe` when moving the app (e.g., on a USB drive).
+
+### Optimize Database (use only if needed)
+The **Optimize Database** action rebuilds/compacts the local IndexedDB data to reduce fragmentation and improve performance.
+
+Notes:
+- Only use this if you're experiencing severe performance or storage issues.
+- It can take a while on large dynasties, and it may fail if another app window is open (close other tabs/windows first).
+- If you want extra safety, export a backup first via **Import / Export**.
 
 ### Import fails with "Missing required CSV(s)"
 - You did not select all four required files.
@@ -299,9 +349,4 @@ Overwrite is intentionally destructive (season-year scoped). If you want to comp
 - No accounts.
 - No server-side storage.
 - Your imported data stays in your browser unless you delete it.
-
-## Development / deployment notes
-- This is a Vite + React app.
-- GitHub Pages deployments use a base path: `/ncaa-next-dynasty-tracker/` (see `vite.config.js`).
-- The repo includes SPA fallbacks for GitHub Pages (`public/404.html` + `index.html` redirect handling).
 

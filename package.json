@@ -28,10 +28,11 @@
   "build": {
     "appId": "com.dynastytracker.desktop",
     "productName": "Dynasty Tracker",
-    "icon": "public/app_logo.png",
+    "icon": "public/app_logo.ico",
     "directories": {
       "output": "release"
     },
+    "artifactName": "DynastyTracker_${version}.zip",
     "files": [
       "dist-electron/**",
       "electron/**",
@@ -39,7 +40,8 @@
     ],
     "asar": true,
     "win": {
-      "icon": "public/app_logo.png",
+      "publisherName": "Talon Inc.",
+      "icon": "public/app_logo.ico",
       "target": [
         "zip"
       ]
