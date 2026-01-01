@@ -1761,7 +1761,7 @@ button:disabled {
 .confTeamRow {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
-  padding: 10px 12px;
+  padding: 6px 12px;
   border-radius: 12px;
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
   overflow: hidden;
