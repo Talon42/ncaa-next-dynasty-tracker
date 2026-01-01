@@ -199,7 +199,7 @@ export default function CoachesPollRankings() {
   return (
     <div className="pollRankingsPage">
       <div className="hrow" style={{ alignItems: "baseline" }}>
-        <h2>Coach&apos;s Poll Rankings</h2>
+        <h2>Coaches Poll Rankings</h2>
       </div>
       <div className="playerStatsControlRow">
         <div className="playerStatsFilters">

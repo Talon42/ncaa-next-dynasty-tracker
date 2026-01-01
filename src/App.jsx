@@ -524,9 +524,9 @@ export default function App() {
               <button
                 className="headerNavBtn"
                 onClick={() => navigate("/coaches-poll")}
-                title="Coach's Poll Rankings"
+                title="Coaches Poll Rankings"
               >
-                Coach&apos;s Poll Rankings
+                Coaches Poll Rankings
               </button>
 
               <button
@@ -683,8 +683,8 @@ export default function App() {
             <div className="sideNav">
               {[
                 {
-                  label: "Coach's Poll Rankings",
-                  title: "Coach's Poll Rankings",
+                  label: "Coaches Poll Rankings",
+                  title: "Coaches Poll Rankings",
                   href: "/coaches-poll",
                 },
                 {
