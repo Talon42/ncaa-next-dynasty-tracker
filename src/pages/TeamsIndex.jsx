@@ -174,16 +174,20 @@ export default function TeamsIndex() {
 
   return (
     <div className="teamsPage">
-      <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginLeft: "auto" }}>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>Division</span>
-            <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)}>
-              <option value="All">All</option>
-              <option value="FBS">FBS</option>
-              <option value="FCS">FCS</option>
-            </select>
-          </label>
+      <div className="hrow">
+        <h2>Teams</h2>
+      </div>
+      <div className="playerStatsControlRow">
+        <div className="playerStatsFilters">
+          <select
+            aria-label="Division"
+            value={divisionFilter}
+            onChange={(e) => setDivisionFilter(e.target.value)}
+          >
+            <option value="All">All</option>
+            <option value="FBS">FBS</option>
+            <option value="FCS">FCS</option>
+          </select>
         </div>
       </div>
       {!seasonYear ? <p className="kicker">No seasons uploaded yet.</p> : null}
