@@ -55,8 +55,10 @@
 
   /* page widths */
   --page-max: 980px;   /* default pages (Home/Team/Import) */
+  --page-max-static: 980px;
   --teams-max: 1600px; /* TeamsIndex page */
-  --schedule-max: 1260px; /* Schedule / Results page */
+  --schedule-max: 1500px; /* Schedule / Results page */
+
 }
 
 * { box-sizing: border-box; }
@@ -70,7 +72,7 @@ body {
   font-weight: var(--app-font-weight);
   background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
+  min-width: 768px;
 }
 
 /* Force unified typography everywhere */
@@ -91,6 +93,23 @@ textarea {
 }
 
 a { color: inherit; }
+
+.tableLink {
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+}
+
+.tableLogoLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoGlowGold {
+  filter: drop-shadow(0 0 12px rgba(232, 180, 40, 0.65))
+    drop-shadow(0 0 24px rgba(232, 180, 40, 0.35));
+}
 
 .infoCardTitle {
   font-size: var(--app-infocard-title-font-size);
@@ -117,7 +136,44 @@ h2 {
 .shell {
   width: 100%;
   margin: 0;
-  padding: 18px 16px 40px;
+  padding: 18px 0 40px;
+}
+
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding-inline: clamp(12px, 2vw, 24px);
+  min-width: 0;
+}
+
+.flexRowWrap {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.flexRowWrapReverse {
+  flex-wrap: wrap-reverse;
+}
+
+.shrink0 {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hideBelow1024 {
+  display: inline;
+}
+
+.showBelow1024Inline {
+  display: none;
+}
+
+.showAbove1024Inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .shellGrid {
@@ -132,7 +188,8 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 12px;
+  padding: 12px 0;
+  margin-bottom: 12px;
   border: 1px solid var(--border);
   border-radius: 0;
   background: var(--panel);
@@ -144,9 +201,117 @@ h2 {
   --header-control-h: var(--app-header-control-height);
 }
 
+.mobileHeaderBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
 .mobileTitle {
   font-weight: 700;
   font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.mobileHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerUploadBtn {
+  background: var(--red);
+  border: 1px solid rgba(211, 0, 0, 0.9);
+  border-radius: 12px;
+  height: var(--header-control-h);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: var(--app-sidebar-item-font-size);
+  font-weight: var(--app-sidebar-item-font-weight);
+  line-height: 1.3;
+  letter-spacing: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+
+.headerUploadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.headerHamburger {
+  width: var(--header-control-h);
+  height: var(--header-control-h);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0;
+  flex-direction: column;
+}
+
+.headerHamburger span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 999px;
+}
+
+.headerHamburger.isClose {
+  gap: 0;
+}
+
+.headerHamburger.isClose span {
+  width: 16px;
+}
+
+.headerHamburger.isClose span:first-child {
+  transform: rotate(45deg);
+}
+
+.headerHamburger.isClose span:last-child {
+  transform: rotate(-45deg);
+  margin-top: -2px;
+}
+
+.mobileDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1300;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mobileDrawer {
+  width: min(360px, 92vw);
+  height: 100%;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  overflow: auto;
+}
+
+.mobileDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mobileDrawerTitle {
+  font-weight: 700;
   letter-spacing: 0.2px;
 }
 
@@ -193,6 +358,7 @@ h2 {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 12px;
+  box-sizing: border-box;
   opacity: 0;
   transform: translateY(-6px);
   pointer-events: none;
@@ -200,6 +366,11 @@ h2 {
   z-index: 1202;
   max-height: 70vh;
   overflow: auto;
+}
+
+.headerMenu.alignLeft .headerPanel {
+  left: 0;
+  right: auto;
 }
 
 .headerMenu.open .headerPanel {
@@ -225,7 +396,7 @@ h2 {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .headerNavBtn {
@@ -412,24 +583,29 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Default routed page card sizing */
 .routedCard {
   width: 100%;
-  max-width: var(--page-max);
+  max-width: min(100%, var(--page-max));
   margin-left: auto;
   margin-right: auto;
   min-width: 0;
 }
 
+.routedCard.cardFixedMax {
+  max-width: min(100%, var(--page-max-static));
+}
 /* Wide variant only used for TeamsIndex route (via App.jsx class) */
 .routedCard.cardWide {
-  max-width: var(--teams-max);
+  max-width: min(100%, var(--teams-max));
 }
 
 .routedCard.cardPlayer {
-  max-width: 1570px;
+  max-width: 1500px;
 }
 
 .routedCard.cardSchedule {
@@ -442,9 +618,9 @@ h2 {
   max-width: 1500px;
 }
 
-@media (min-width: 1401px) {
+@media (min-width: 1536px) {
   .routedCard.cardSchedule {
-    max-width: calc(var(--schedule-max) * 1.15);
+    max-width: var(--schedule-max);
   }
 }
 .card {
@@ -718,13 +894,85 @@ button:disabled {
 }
 
 /* Tables */
+.tableWrap,
+.statsTableWrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+  overflow-y: visible;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .tableWrap,
+  .statsTableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* Fixed-width first column utility (opt-in per table). */
+.firstColFixed280 th:first-child,
+.firstColFixed280 td:first-child {
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
+}
+
+@media (max-width: 768px) {
+  /* On small screens we scroll the whole table; don't force a wide fixed first column. */
+  .firstColFixed280 th:first-child,
+  .firstColFixed280 td:first-child {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
-  overflow: hidden;
   border-radius: 14px;
   border: 1px solid var(--border);
   min-width: 0;
+}
+
+
+.statsTable {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teamStatsTable {
+  width: 100%;
+  max-width: 100%;
+  --teamstats-team-min: 280px;
+  --teamstats-team-max: 280px;
+  --teamstats-team-w: 280px;
+  --teamstats-stat-w: 84px;
+  table-layout: fixed;
+}
+
+.teamStatsTable col.teamColWidth {
+  width: var(--teamstats-team-w);
+}
+
+.teamStatsTable col.statColWidth {
+  width: auto;
+}
+
+/* Team Stats group header rows:
+   - Desktop uses the full colSpan layout.
+   - <=1024 uses a compact colSpan layout that matches P0/P1 visibility. */
+.teamStatsTable .teamStatsGroupRowCompact {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .teamStatsTable .teamStatsGroupRow {
+    display: none;
+  }
 }
 
 .table thead th {
@@ -749,6 +997,22 @@ button:disabled {
   border-left: 1px solid var(--border);
 }
 
+.table thead th.gDividerLeft,
+.table tbody td.gDividerLeft {
+  border-left: 1px solid var(--border);
+}
+
+.table thead th.noDividerAfterG,
+.table tbody td.noDividerAfterG {
+  border-left: 0;
+}
+
+
+.table thead th.teamDivider,
+.table tbody td.teamDivider {
+  border-left: 1px solid var(--border);
+}
+
 .table tbody td {
   padding: 8px 12px;
   font-size: var(--app-table-cell-font-size);
@@ -762,6 +1026,24 @@ button:disabled {
   text-align: right;
 }
 
+.playerStatsTable td.statCol,
+.playerStatsTable td.playerStatsGCol {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.playerStatsTable th.statCol,
+.playerStatsTable th.playerStatsGCol {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.playerStatsTable th.playerStatsGCol,
+.playerStatsTable td.playerStatsGCol {
+  text-align: center;
+}
+
 .table td.playerStatLeader {
   color: rgba(216, 180, 90, 0.95);
   text-shadow: 0 0 6px rgba(216, 180, 90, 0.25);
@@ -769,6 +1051,66 @@ button:disabled {
 
 .table th.centerCol,
 .table td.centerCol {
+  text-align: center;
+}
+
+.playerStatsTable th:first-child,
+.playerStatsTable td:first-child {
+  width: 30px;
+  min-width: 30px;
+}
+
+.playerStatsTable {
+  table-layout: fixed;
+  --ps-name-w: 250px;
+  --ps-meta-w: 56px;
+  --ps-stat-w: 56px;
+}
+
+.playerStatsTable col.playerStatsJerseyCol {
+  width: 30px;
+}
+
+.playerStatsTable col.playerStatsNameColWidth {
+  width: var(--ps-name-w);
+}
+
+.playerStatsTable col.playerStatsMetaCol {
+  width: var(--ps-meta-w);
+}
+
+.playerStatsTable col.playerStatsStatCol {
+  width: auto;
+}
+
+.playerStatsTable col.playerStatsGColWidth {
+  width: var(--ps-stat-w);
+}
+
+.offenseStatsTable {
+  --ps-stat-w: 56px;
+}
+
+.defenseStatsTable {
+  --ps-stat-w: 56px;
+}
+
+.playerStatsTable th.centerCol.col-p2,
+.playerStatsTable td.centerCol.col-p2 {
+  width: var(--ps-meta-w);
+  min-width: var(--ps-meta-w);
+  max-width: var(--ps-meta-w);
+  white-space: nowrap;
+}
+
+.playerStatsTable th.statCol,
+.playerStatsTable td.statCol {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.playerStatsTable th.playerStatsGCol,
+.playerStatsTable td.playerStatsGCol {
   text-align: center;
 }
 
@@ -1188,7 +1530,7 @@ button:disabled {
   text-align: right;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1024px) {
   .postseasonBracket {
     display: none;
     gap: 10px;
@@ -1258,7 +1600,7 @@ button:disabled {
 }
 
 /* Pass 2: subtle bracket connectors */
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .bracketCol:not(.bracketColFinal) .bracketCard::after {
     content: "";
     position: absolute;
@@ -1315,11 +1657,17 @@ button:disabled {
 }
 
 .playerStatsNameCol {
-  width: 250px;
-  max-width: 250px;
+  width: var(--ps-name-w, 250px);
+  min-width: var(--ps-name-w, 250px);
+  max-width: var(--ps-name-w, 250px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.playerStatsTable th.playerStatsNameCol,
+.playerStatsTable td.playerStatsNameCol {
+  padding-left: 18px;
 }
 
 .playerStatsCategoryRow {
@@ -1357,7 +1705,7 @@ button:disabled {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
@@ -1369,6 +1717,13 @@ button:disabled {
   padding: 4px 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
+}
+
+.playerStatsSubTabsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .playerStatsSubTabBtn {
@@ -1394,7 +1749,91 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+}
+
+.filterMenuWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.filterMenuWrapSolo {
+  margin-left: auto;
+}
+
+.filterMenuBtn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+.filterMenuBtn span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 999px;
+}
+
+.filterMenuPopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  transform: none;
+  width: max-content;
+  max-width: 92vw;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  z-index: 1500;
+}
+
+.filterMenuHeader {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.filterMenuContent {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.filterMenuContent select,
+.filterMenuContent input {
+  width: min(320px, 84vw);
+  max-width: 100%;
+}
+
+.playerStatsTable .returnsGroupRowCompact {
+  display: none;
+}
+
+.playerStatsTable .returnsGroupRowTiny {
+  display: none;
+}
+
+.playerStatsTable .kickingGroupRowCompact {
+  display: none;
 }
 
 .playerStatsControlDivider {
@@ -1495,7 +1934,15 @@ button:disabled {
 }
 
 /* Responsive (kept harmless) */
-@media (max-width: 1400px) {
+@media (max-width: 1536px) {
+  .hideBelow1536 {
+    display: none;
+  }
+  :root {
+    --page-max: 100%;
+    --app-table-header-font-size: 0.7rem;
+    --app-table-cell-font-size: 0.9rem;
+  }
   .shell { padding: 0 0 32px; }
   .shellGrid { grid-template-columns: 1fr; margin-top: 17px; }
   .mobileHeader { font-size: 1rem; }
@@ -1523,8 +1970,6 @@ button:disabled {
   }
   .mobileHeader { display: flex; }
   .sidebar { display: none; }
-  .postseasonTabs { flex-wrap: wrap; }
-  .postseasonBowlCell { white-space: normal; }
   .postseasonBracket {
     flex-direction: column;
   }
@@ -1534,7 +1979,7 @@ button:disabled {
   }
   .mobileHeader {
     --header-control-h: 30px;
-    padding: 10px;
+    padding: 10px 0;
   }
   .headerMenus { gap: 6px; }
   .headerNavButtons {
@@ -1551,6 +1996,222 @@ button:disabled {
     max-width: 140px;
   }
   .headerAddSeason { font-size: 20px; }
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+
+  .playerStatsTable col.col-p2 {
+    display: none;
+  }
+
+  .playerStatsTable col.col-p2.showBelow1024 {
+    display: table-column;
+  }
+
+  .playerStatsTable {
+    --ps-meta-w: 56px;
+    --ps-stat-w: 56px;
+  }
+
+  .playerStatsTable .kickingGroupRowCompact {
+    display: table-row;
+  }
+
+  .playerStatsTable .returnsGroupRowCompact {
+    display: table-row;
+  }
+
+  .playerStatsTable .statsGroupRow,
+  .playerSeasonTable .statsGroupRow {
+    display: none;
+  }
+
+  .playerStatsTable .showBelow1024Row {
+    display: table-row;
+  }
+
+  .playerStatsTable .scoringGroupFull {
+    display: none;
+  }
+
+  .playerStatsTable .scoringGroupCompact {
+    display: table-row;
+  }
+
+  .col-p2 {
+    display: none;
+  }
+
+  .col-p2.showBelow1024 {
+    display: table-cell;
+  }
+
+  .table thead th.noDividerBelow1024,
+  .table tbody td.noDividerBelow1024 {
+    border-left: 0;
+  }
+
+
+  .defenseStatsTable th.statCol,
+  .defenseStatsTable td.statCol {
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+  }
+
+  .hideBelow1024 {
+    display: none;
+  }
+
+  .showBelow1024Inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .showAbove1024Inline {
+    display: none;
+  }
+
+  .headerNavButtons {
+    flex-wrap: wrap;
+  }
+
+  .filterMenuBtn {
+    display: inline-flex;
+  }
+
+  .playerStatsSubTabsRow {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .postseasonTabs { flex-wrap: wrap; }
+  .postseasonBowlCell { white-space: normal; }
+
+  .shell {
+    padding: 0 0 24px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .shellGrid {
+    margin-top: 0;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .routedCard,
+  .routedCard.cardWide,
+  .routedCard.cardPlayer,
+  .routedCard.cardStatsWide,
+  .routedCard.cardSchedule {
+    max-width: 100%;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .routedCard.cardSchedule {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 8px 8px;
+  }
+
+  .coachesTable th,
+  .coachesTable td {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+  }
+
+  .teamStatsTable .teamCol {
+    white-space: nowrap;
+  }
+
+  .teamStatsTable th,
+  .teamStatsTable td {
+    padding: 6px 6px;
+    font-size: 0.9rem;
+  }
+
+  /* Team Stats: tighten to keep group headers visible at 1024px */
+  .teamStatsTable th,
+  .teamStatsTable td {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  .teamStatsTable thead th.tableGroupHeader {
+    font-size: 0.66rem;
+    letter-spacing: 0.15px;
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+
+  .teamStatsTable .teamCol {
+    width: var(--teamstats-team-w);
+    min-width: var(--teamstats-team-w);
+    max-width: var(--teamstats-team-w);
+    padding-right: 12px;
+  }
+
+  .teamStatsTable .teamCol .teamCell span {
+    min-width: 0;
+  }
+
+  .teamStatsTable {
+    --teamstats-stat-w: 56px;
+    table-layout: fixed;
+  }
+
+  .teamStatsTable col.statColWidth {
+    width: auto;
+  }
+
+  .teamStatsTable .statCol {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  /* Postseason results spacing */
+  .postseasonTable .postseasonBowlCell,
+  .postseasonTable .postseasonBowlCell a,
+  .postseasonTable .postseasonBowlCell span {
+    font-size: inherit;
+    font-weight: inherit;
+    white-space: nowrap;
+  }
+
+  .postseasonBowlRow td {
+    font-size: inherit;
+    letter-spacing: inherit;
+  }
+}
+
+@media (max-width: 768px) {
+  .playerStatsTable .returnsGroupRowCompact {
+    display: none;
+  }
 }
 
 /* Team cell */
@@ -1573,9 +2234,34 @@ button:disabled {
   white-space: nowrap;
 }
 
+.teamCellName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.teamNameText {
+  min-width: 0;
+}
+
+.teamRankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(224, 190, 99, 0.45);
+  background: rgba(224, 190, 99, 0.18);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
 .matchupGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -1613,7 +2299,11 @@ button:disabled {
   gap: 6px;
 }
 
-@media (min-width: 1401px) {
+@media (min-width: 1536px) {
+  .matchupGrid {
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+  }
+
   .matchupCard {
     padding: 12px 14px;
     gap: 8px;
@@ -1678,56 +2368,35 @@ button:disabled {
   font-size: 12px;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1024px) {
   .matchupGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .matchupGridPostseason {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1100px) {
-  .matchupGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .matchupGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchupGridPostseason {
     grid-template-columns: 1fr;
   }
 }
 
-/* Teams page: conference grid (always 4 columns, centered within Teams card) */
+/* Teams page: conference grid (auto-fit within the card) */
 .confGrid {
   display: grid;
-  grid-template-columns: repeat(4, 360px);
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
   align-items: stretch;
-
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-@media (max-width: 1500px) {
-  .confGrid {
-    grid-template-columns: repeat(3, minmax(240px, 1fr));
-    width: 100%;
-    gap: 12px;
-    padding: 0 6px;
-    box-sizing: border-box;
-  }
-}
-
-@media (max-width: 1400px) {
-  .confGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-    padding: 0;
-  }
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Equal-height conference cards (no scrollbars; blank space is fine) */
@@ -1737,6 +2406,7 @@ button:disabled {
   background: rgba(255, 255, 255, 0.02);
   padding: 12px;
 
+  min-width: 0;
   min-height: 860px; /* tweak if needed */
   display: flex;
   flex-direction: column;
@@ -1781,18 +2451,54 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
-
-/* Team Stats: contain wide tables inside the card (no clipping) */
-.statsTableWrap {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+.coachProfileCardsRow {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 18px;
 }
 
-/* Override .table overflow: hidden so the wrapper can scroll full width */
+.coachProfileCard {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.coachCareerSummaryCard {
+  flex: 1 1 360px;
+  max-width: 560px;
+}
+
+.coachTrophyRoomCard {
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.coachTendencyCard {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+@media (max-width: 1024px) {
+  .coachProfileCardsRow {
+    flex-direction: column;
+    max-width: 560px;
+  }
+
+  .coachProfileCardsRow > .coachProfileCard {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+
+/* Team/Player stats: keep cell wrapping to avoid extreme width on long labels */
 .statsTableWrap .table {
   width: 100%;
-  min-width: 0;
 }
 
 .statsTableWrap .table th,
@@ -1817,49 +2523,183 @@ button:disabled {
   font-weight: 800 !important;
 }
 
-@media (max-width: 1400px) {
-  .table thead th,
-  .table tbody td {
-    padding: 8px 8px;
+@media (max-width: 768px) {
+  .filterMenuPopover {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
   }
 
-.teamStatsTable .teamCol {
-  white-space: nowrap;
+  .playerStatsTable col.col-p1,
+  .playerStatsTable col.col-p2 {
+    display: none;
+  }
+
+  .playerStatsTable col.col-p1.showBelow1024,
+  .playerStatsTable col.col-p2.showBelow1024 {
+    display: table-column;
+  }
+
+  .col-p1,
+  .col-p2 {
+    display: none;
+  }
+
+  .col-p1.showBelow1024 {
+    display: table-cell;
+  }
+
+  .col-p2.showBelow1024 {
+    display: table-cell;
+  }
+
+  .playerStatsTable .returnsGroupRowTiny {
+    display: table-row;
+  }
+
+  /* Ensure tables can be wider than the wrapper so horizontal scroll actually happens. */
+  .statsTableWrap .statsTable {
+    width: 100%;
+    min-width: max-content;
+  }
+
+  /* Team Stats: keep stat columns readable when scrolling. */
+  .teamStatsTable {
+    --teamstats-stat-w: 64px;
+  }
+
+  .teamStatsTable col.statColWidth {
+    width: var(--teamstats-stat-w);
+  }
 }
 
-.teamStatsTable .teamCol .teamCell span {
-  white-space: nowrap;
-}
-
 .teamStatsTable .teamCol {
-  width: 250px;
-  min-width: 250px;
-  max-width: 250px;
+  width: var(--teamstats-team-w);
+  min-width: var(--teamstats-team-min);
+  max-width: var(--teamstats-team-max);
   box-sizing: border-box;
   padding: 5px 30px 5px 4px;
 }
 
-  .teamStatsTable .statCol {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-
-  /* Postseason results spacing */
-  .postseasonTable .postseasonBowlCell,
-  .postseasonTable .postseasonBowlCell a,
-  .postseasonTable .postseasonBowlCell span {
-    font-size: inherit;
-    font-weight: inherit;
-    white-space: nowrap;
-  }
-
-  .postseasonBowlRow td {
-    font-size: inherit;
-    letter-spacing: inherit;
-  }
+.teamStatsTable .teamNameText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 .table .scheduleWeekSpacer td {
   padding: 6px 0;
   border-bottom: none;
   background: transparent;
+}
+
+@media (max-width: 1024px) {
+  .shell {
+    padding: 0 0 24px;
+  }
+
+  .shellGrid {
+    margin-top: 0;
+    width: 100%;
+    grid-template-columns: 1fr !important;
+    gap: 0;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .routedCard,
+  .routedCard.cardWide,
+  .routedCard.cardPlayer,
+  .routedCard.cardStatsWide,
+  .routedCard.cardSchedule {
+    max-width: 100%;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .routedCard.cardSchedule {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .col-p2 {
+    display: none;
+  }
+
+  .coachesTable th,
+  .coachesTable td {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+  }
+
+  /* Team Stats: tighten to keep group headers visible at 1024px */
+  .teamStatsTable th,
+  .teamStatsTable td {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .teamStatsTable thead th.tableGroupHeader {
+    font-size: 0.7rem;
+    letter-spacing: 0.2px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .teamStatsTable .teamCol {
+    width: var(--teamstats-team-w);
+    min-width: var(--teamstats-team-w);
+    max-width: var(--teamstats-team-w);
+    padding-right: 12px;
+  }
+
+  .teamStatsTable .teamCol .teamCell span {
+    min-width: 0;
+  }
+
+  .teamStatsTable {
+    --teamstats-stat-w: 56px;
+    table-layout: fixed;
+  }
+
+  .teamStatsTable col.statColWidth {
+    width: auto;
+  }
+
+  .teamStatsTable .teamNameText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* At <=1024 we show fewer columns; remove vertical dividers. */
+  .teamStatsTable thead th.tableGroupDivider,
+  .teamStatsTable tbody td.tableGroupDivider {
+    border-left: 0 !important;
+  }
+
+  /* Keep a single divider after Team for readability. */
+  .teamStatsTable thead th.teamDivider,
+  .teamStatsTable tbody td.teamDivider {
+    border-left: 1px solid var(--border) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .col-p1,
+  .col-p2 {
+    display: none;
+  }
 }

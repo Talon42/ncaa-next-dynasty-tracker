@@ -57,7 +57,7 @@ export const STAT_DEFS = [
   { key: "fgLong", label: "LNG", fullLabel: "Longest Field Goal", group: "Special Teams" },
   { key: "xpm", label: "XPM", fullLabel: "Extra Points Made", group: "Special Teams" },
   { key: "xpa", label: "XPA", fullLabel: "Extra Points Attempted", group: "Special Teams" },
-  { key: "xpPct", label: "PCT", fullLabel: "Extra Point Percentage", group: "Special Teams" },
+  { key: "xpPct", label: "XP%", fullLabel: "Extra Point Percentage", group: "Special Teams" },
 
   // Special Teams (Punting)
   { key: "puntAtt", label: "Punt", fullLabel: "Punts", group: "Special Teams" },

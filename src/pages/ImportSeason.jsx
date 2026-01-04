@@ -260,7 +260,12 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         const s = seasonsToImport[i];
         setStatus(`Importing ${s.year} (${i + 1}/${seasonsToImport.length})...`);
         // eslint-disable-next-line no-await-in-loop
-        const r = await importSeasonBatch({ dynastyId, seasonYear: s.year, files: s.files });
+        const r = await importSeasonBatch({
+          dynastyId,
+          seasonYear: s.year,
+          files: s.files,
+          options: { runMaintenance: i === seasonsToImport.length - 1 },
+        });
         results.push(r);
       }
 

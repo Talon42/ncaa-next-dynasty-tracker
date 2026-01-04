@@ -740,13 +740,15 @@ export async function seasonExists({ dynastyId, seasonYear }) {
   return count > 0;
 }
 
-export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
+export async function importSeasonBatch({ dynastyId, seasonYear, files, options } = {}) {
   const dynasty = await getDynasty(dynastyId);
   if (!dynasty) throw new Error("No active dynasty selected.");
 
   const year = Number(seasonYear);
   if (!Number.isFinite(year)) throw new Error("Season year must be a number.");
   if (!files?.length) throw new Error("Please select CSV files to upload.");
+
+  const runMaintenance = options?.runMaintenance !== false;
 
   const byType = {};
   for (const f of files) {
@@ -1152,7 +1154,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     db.teamStats,
     db.bowlGames,
     db.coaches,
-    db.coachCareerBases,
     db.playerSeasonStats,
     db.playerAllAmericans,
     db.playerAwards,
@@ -1190,25 +1191,6 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);
       if (seasonIdentityMapRows.length) await db.playerIdentitySeasonMap.bulkPut(seasonIdentityMapRows);
 
-      // Prune orphaned player identities after season overwrite to avoid storage growth.
-      const identityMapRows = await db.playerIdentitySeasonMap.where({ dynastyId }).toArray();
-      const usedUids = new Set(identityMapRows.map((r) => String(r.playerUid ?? "")).filter(Boolean));
-      const identityRows = await db.playerIdentities.where({ dynastyId }).toArray();
-      const orphanUids = identityRows
-        .map((r) => String(r.playerUid ?? ""))
-        .filter((uid) => uid && !usedUids.has(uid));
-      if (orphanUids.length) {
-        await db.playerIdentities
-          .where("[dynastyId+playerUid]")
-          .anyOf(orphanUids.map((uid) => [dynastyId, uid]))
-          .delete();
-      }
-
-      const allCoachRows = await db.coaches.where({ dynastyId }).toArray();
-      const baseRows = computeCoachCareerBases({ dynastyId, coachRows: allCoachRows });
-      await db.coachCareerBases.where({ dynastyId }).delete();
-      if (baseRows.length) await db.coachCareerBases.bulkPut(baseRows);
-
       // Option A currentYear advance
       const d = await db.dynasties.get(dynastyId);
       if (d && year >= Number(d.currentYear)) {
@@ -1216,6 +1198,36 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
       }
     }
   );
+
+  if (runMaintenance) {
+    try {
+      await db.transaction("rw", db.playerIdentitySeasonMap, db.playerIdentities, async () => {
+        const identityMapRows = await db.playerIdentitySeasonMap.where({ dynastyId }).toArray();
+        const usedUids = new Set(identityMapRows.map((r) => String(r.playerUid ?? "")).filter(Boolean));
+        const identityRows = await db.playerIdentities.where({ dynastyId }).toArray();
+        const orphanUids = identityRows
+          .map((r) => String(r.playerUid ?? ""))
+          .filter((uid) => uid && !usedUids.has(uid));
+        if (!orphanUids.length) return;
+        await db.playerIdentities
+          .where("[dynastyId+playerUid]")
+          .anyOf(orphanUids.map((uid) => [dynastyId, uid]))
+          .delete();
+      });
+    } catch {
+      // Pruning is optional; don't block imports.
+    }
+
+    try {
+      const allCoachRows = await db.coaches.where({ dynastyId }).toArray();
+      const baseRows = computeCoachCareerBases({ dynastyId, coachRows: allCoachRows });
+      await db.transaction("rw", db.coachCareerBases, async () => {
+        await db.coachCareerBases.where({ dynastyId }).delete();
+        if (baseRows.length) await db.coachCareerBases.bulkPut(baseRows);
+      });
+    } catch {
+      // Derived; don't block imports.
+    }
 
   try {
     await ensureCoachQuotesForSeason({
@@ -1238,6 +1250,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files }) {
     await rebuildLatestSnapshotsForDynasty({ dynastyId });
   } catch {
     // If snapshots fail, don't block import.
+  }
   }
 
   return { dynastyId, seasonYear: year, teams: teamSeasons.length, games: games.length };

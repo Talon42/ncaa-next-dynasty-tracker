@@ -436,52 +436,54 @@ useEffect(() => {
   const headerLogo = cgid === "All" ? null : confLogoFor(cgid);
 
   const Table = ({ rows, emptyText }) => (
-    <table className="table">
-      <thead>
-        <tr>
-          <th style={{ textAlign: "left" }}>Team</th>
-          <th style={{ width: 110 }}>Overall</th>
-          <th style={{ width: 110 }}>Conf</th>
-          <th style={{ width: 90 }}>PF</th>
-          <th style={{ width: 90 }}>PA</th>
-          <th style={{ width: 90 }}>Diff</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr className="tableEmptyRow">
-            <td colSpan={6} className="kicker" style={{ padding: "12px" }}>
-              {emptyText}
-            </td>
+    <div className="tableWrap">
+      <table className="table">
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left" }}>Team</th>
+            <th style={{ width: 110 }}>Overall</th>
+            <th style={{ width: 110 }}>Conf</th>
+            <th style={{ width: 90 }} className="col-p1">PF</th>
+            <th style={{ width: 90 }} className="col-p1">PA</th>
+            <th style={{ width: 90 }} className="col-p1">Diff</th>
           </tr>
-        ) : (
-          rows.map((r) => (
-            <tr key={r.id}>
-              <td data-label="Team">
-                <Link
-                  to={`/team/${r.id}`}
-                  style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                  title="View team page"
-                >
-                  <TeamCell name={r.name} logoUrl={r.logoUrl} />
-                </Link>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr className="tableEmptyRow">
+              <td colSpan={6} className="kicker" style={{ padding: "12px" }}>
+                {emptyText}
               </td>
-              <td data-label="Overall">
-                {r.OverallW}-{r.OverallL}
-                {r.OverallT ? `-${r.OverallT}` : ""}
-              </td>
-              <td data-label="Conf">
-                {r.ConfW}-{r.ConfL}
-                {r.ConfT ? `-${r.ConfT}` : ""}
-              </td>
-              <td data-label="PF">{r.PF}</td>
-              <td data-label="PA">{r.PA}</td>
-              <td data-label="Diff">{r.Diff}</td>
             </tr>
-          ))
-        )}
-      </tbody>
-    </table>
+          ) : (
+            rows.map((r) => (
+              <tr key={r.id}>
+                <td data-label="Team">
+                  <Link
+                    to={`/team/${r.id}`}
+                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
+                    title="View team page"
+                  >
+                    <TeamCell name={r.name} logoUrl={r.logoUrl} />
+                  </Link>
+                </td>
+                <td data-label="Overall">
+                  {r.OverallW}-{r.OverallL}
+                  {r.OverallT ? `-${r.OverallT}` : ""}
+                </td>
+                <td data-label="Conf">
+                  {r.ConfW}-{r.ConfL}
+                  {r.ConfT ? `-${r.ConfT}` : ""}
+                </td>
+                <td data-label="PF" className="col-p1">{r.PF}</td>
+                <td data-label="PA" className="col-p1">{r.PA}</td>
+                <td data-label="Diff" className="col-p1">{r.Diff}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 
   return (
@@ -495,8 +497,8 @@ useEffect(() => {
           )}
         </h2>
       </div>
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             value={cgid}
             onChange={(e) => setCgid(e.target.value)}
@@ -558,4 +560,5 @@ useEffect(() => {
     </div>
   );
 }
+
 

@@ -393,21 +393,22 @@ export default function Postseason() {
     }
 
     return (
-      <table className="table postseasonTable">
-        <colgroup>
-          {showSeasonColumn ? <col style={{ width: `${seasonWidth}%` }} /> : null}
-          {showGameColumn ? <col style={{ width: `${gameWidth}%` }} /> : null}
-          <col style={{ width: `${teamWidth}%` }} />
-          <col style={{ width: `${recordWidth}%` }} />
-          {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
-          <col style={{ width: `${resultWidth}%` }} />
-          <col style={{ width: `${teamWidth}%` }} />
-          <col style={{ width: `${recordWidth}%` }} />
-          {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
-          {showWinningCoach ? <col style={{ width: `${winningCoachWidth}%` }} /> : null}
-        </colgroup>
-        <thead />
-        <tbody>
+      <div className="tableWrap">
+        <table className="table postseasonTable">
+          <colgroup>
+            {showSeasonColumn ? <col style={{ width: `${seasonWidth}%` }} /> : null}
+            {showGameColumn ? <col style={{ width: `${gameWidth}%` }} /> : null}
+            <col style={{ width: `${teamWidth}%` }} />
+            <col style={{ width: `${recordWidth}%` }} />
+            {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
+            <col style={{ width: `${resultWidth}%` }} />
+            <col style={{ width: `${teamWidth}%` }} />
+            <col style={{ width: `${recordWidth}%` }} />
+            {showConfRecord ? <col style={{ width: `${confRecordWidth}%` }} /> : null}
+            {showWinningCoach ? <col style={{ width: `${winningCoachWidth}%` }} /> : null}
+          </colgroup>
+          <thead />
+          <tbody>
           {groupBySeason
             ? groupedSeasons.map((season, seasonIdx) => (
                 <Fragment key={season || "season"}>
@@ -421,12 +422,12 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
-                    {showConfRecord ? <th>CONFERENCE</th> : null}
+                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
-                    {showConfRecord ? <th>CONFERENCE</th> : null}
-                    {showWinningCoach ? <th>Winning Coach</th> : null}
+                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
+                    {showWinningCoach ? <th className="col-p1">Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(season) || []).map((r, idx) => (
                     <Fragment key={`${season}-${r.week}-${idx}`}>
@@ -464,7 +465,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
-                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
+                        {showConfRecord ? <td className="col-p1">{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -474,8 +475,8 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
-                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
-                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+                        {showConfRecord ? <td className="col-p1">{r.rightConfRecord || "-"}</td> : null}
+                        {showWinningCoach ? <td className="col-p1">{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
                   ))}
@@ -493,12 +494,12 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
-                    {showConfRecord ? <th>CONFERENCE</th> : null}
+                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
-                    {showConfRecord ? <th>CONFERENCE</th> : null}
-                    {showWinningCoach ? <th>Winning Coach</th> : null}
+                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
+                    {showWinningCoach ? <th className="col-p1">Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(String(singleSeasonLabel ?? "")) || []).map((r, idx) => (
                     <Fragment key={`${r.seasonYear}-${r.week}-${idx}`}>
@@ -536,7 +537,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
-                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
+                        {showConfRecord ? <td className="col-p1">{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -546,15 +547,16 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
-                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
-                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
+                        {showConfRecord ? <td className="col-p1">{r.rightConfRecord || "-"}</td> : null}
+                        {showWinningCoach ? <td className="col-p1">{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
                   ))}
                 </>
               )}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     );
   }
 
@@ -971,8 +973,8 @@ useEffect(() => {
           CFP Bracket
         </button>
       </div>
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             value={seasonYear}
             onChange={(e) => {
@@ -1340,3 +1342,4 @@ useEffect(() => {
     </div>
   );
 }
+

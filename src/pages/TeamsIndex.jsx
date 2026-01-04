@@ -177,8 +177,8 @@ export default function TeamsIndex() {
       <div className="hrow">
         <h2>Teams</h2>
       </div>
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             aria-label="Division"
             value={divisionFilter}
@@ -240,3 +240,4 @@ export default function TeamsIndex() {
     </div>
   );
 }
+

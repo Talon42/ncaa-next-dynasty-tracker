@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loadTeamAbbreviationIndex, matchTeamAbbreviation } from "../abbreviationService";
 import { db, getActiveDynastyId } from "../db";
@@ -70,6 +70,65 @@ const SPECIAL_TEAMS_TABS = [
 ];
 const CATEGORY_TABS = ["Offense", "Defense", "Scoring", "Special Teams"];
 
+const PLAYERSTAT_P0_KEYS = new Set([
+  "passYds",
+  "passTd",
+  "passPct",
+  "passInt",
+  "passSacks",
+  "passQbr",
+  "rushAtt",
+  "rushYds",
+  "rushYpc",
+  "rushYpg",
+  "rushTd",
+  "recvCat",
+  "recvYpc",
+  "recvYds",
+  "recvTd",
+  "defTkl",
+  "defTfl",
+  "defSack",
+  "defPDef",
+  "defInt",
+  "defFF",
+  "puntYds",
+  "puntLong",
+  "puntAtt",
+  "puntAvg",
+  "puntIn20",
+  "puntBlocked",
+  "krAtt",
+  "krYds",
+  "krTd",
+  "prAtt",
+  "prYds",
+  "prTd",
+  "totalTd",
+  "scoringPts",
+  "fgm",
+  "fga",
+  "fgPct",
+  "fgLong",
+  "xpm",
+  "xpa",
+  "xpPct",
+]);
+
+const PLAYERSTAT_P1_KEYS = new Set([
+  "passAtt",
+  "passComp",
+  "passYpg",
+  "passTd",
+  "rushTd",
+  "recvTd",
+  "retTd",
+  "recvYpg",
+  "recvDrops",
+  "recvYac",
+  "scoringPtsPg",
+]);
+
 function positionCategory(value) {
   const label = positionLabel(value);
   if (!label) return null;
@@ -110,6 +169,12 @@ function categoryForTab(tab) {
   if (tab === "Scoring") return "Scoring";
   if (tab === "Kicking" || tab === "Returns" || tab === "Punting") return "Special Teams";
   return "Offense";
+}
+
+function playerStatPriorityClass(key) {
+  if (PLAYERSTAT_P0_KEYS.has(key)) return "";
+  if (PLAYERSTAT_P1_KEYS.has(key)) return "col-p1";
+  return "col-p2";
 }
 
 function defaultTabForCategory(category) {
@@ -165,10 +230,58 @@ export default function PlayerStats() {
   const [teamFilter, setTeamFilter] = useState("All");
   const [posFilter, setPosFilter] = useState("All");
   const [playerFilter, setPlayerFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [isCompactFilters, setIsCompactFilters] = useState(false);
+  const filterMenuRef = useRef(null);
 
   const [sortKey, setSortKey] = useState("playerName");
   const [sortDir, setSortDir] = useState("asc");
   const [visibleCount, setVisibleCount] = useState(100);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const mql = window.matchMedia("(max-width: 1024px)");
+    const sync = () => {
+      const compact = Boolean(mql.matches);
+      setIsCompactFilters(compact);
+      setFiltersOpen(!compact);
+    };
+
+    sync();
+
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", sync);
+      return () => mql.removeEventListener("change", sync);
+    }
+
+    mql.addListener(sync);
+    return () => mql.removeListener(sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isCompactFilters || !filtersOpen) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+
+    const onPointerDown = (e) => {
+      const root = filterMenuRef.current;
+      if (!root) return;
+      if (root.contains(e.target)) return;
+      setFiltersOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [filtersOpen, isCompactFilters]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -593,10 +706,12 @@ export default function PlayerStats() {
   }
 
   const hasAnyYears = availableYears.length > 0;
+  const isOffenseTab = tab === "Passing" || tab === "Rushing" || tab === "Receiving";
   const isReturnsTab = tab === "Returns";
   const isScoringTab = tab === "Scoring";
   const isDefenseTab = tab === "Defense";
   const isKickingTab = tab === "Kicking";
+  const isPuntingTab = tab === "Punting";
   const headerScope = useMemo(() => {
     if (teamFilter !== "All") return teamNameByTgid.get(teamFilter) || `TGID ${teamFilter}`;
     if (confFilter !== "All") return confFilter;
@@ -607,6 +722,114 @@ export default function PlayerStats() {
     category === "Offense" || category === "Special Teams" ? tabLabel : category;
   const headerYear = seasonYear != null ? String(seasonYear) : "";
   const headerText = `${headerScope} Player ${headerStatLabel} Stats${headerYear ? ` ${headerYear}` : ""}`;
+
+  const filterControls = (
+    <>
+      <select
+        value={seasonYear ?? ""}
+        onChange={(e) => {
+          const next = Number(e.target.value);
+          setSeasonYear(next);
+          writeSeasonFilter(next);
+        }}
+        disabled={!hasAnyYears}
+        aria-label="Year"
+      >
+        {!hasAnyYears ? (
+          <option value="">No stats imported</option>
+        ) : (
+          availableYears.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))
+        )}
+      </select>
+
+      <select
+        value={confFilter}
+        onChange={(e) => {
+          setConfFilter(e.target.value);
+          setTeamFilter("All");
+        }}
+        disabled={!confOptions.length}
+        aria-label="Conference"
+      >
+        <option value="All">All Conferences</option>
+        {confOptions.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={teamFilter}
+        onChange={(e) => {
+          const next = e.target.value;
+          setTeamFilter(next);
+          if (next !== "All") setConfFilter("All");
+        }}
+        disabled={!teamOptions.length}
+        aria-label="Team"
+      >
+        <option value="All">All Teams</option>
+        {teamOptions.map((t) => (
+          <option key={t.tgid} value={t.tgid}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={posFilter}
+        onChange={(e) => setPosFilter(e.target.value)}
+        disabled={!positionOptions.length}
+        aria-label="Position"
+      >
+        <option value="All">All Positions</option>
+        {positionOptions.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
+
+      <input
+        value={playerFilter}
+        onChange={(e) => setPlayerFilter(e.target.value)}
+        placeholder="Search player"
+        aria-label="Search player"
+      />
+    </>
+  );
+
+  const renderFilterMenu = (extraClassName = "") => {
+    if (!isCompactFilters) return null;
+    return (
+      <div className={["filterMenuWrap", extraClassName].filter(Boolean).join(" ")} ref={filterMenuRef}>
+        <button
+          type="button"
+          className="filterMenuBtn"
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-label={filtersOpen ? "Hide filters" : "Show filters"}
+          aria-expanded={filtersOpen}
+          aria-haspopup="dialog"
+          title={filtersOpen ? "Hide filters" : "Show filters"}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        {filtersOpen ? (
+          <div className="filterMenuPopover" role="dialog" aria-label="Filters">
+            <div className="filterMenuHeader">Filters</div>
+            <div className="playerStatsFilters filterMenuContent">{filterControls}</div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -629,113 +852,45 @@ export default function PlayerStats() {
         ))}
       </div>
 
-      <div className="playerStatsControlRow">
+      <div className="playerStatsControlRow flexRowWrap flexRowWrapReverse">
         {category === "Offense" ? (
-          <div className="playerStatsSubTabs">
-            {OFFENSE_TABS.map((t) => (
-              <button
-                key={t}
-                className={`toggleBtn playerStatsSubTabBtn${tab === t ? " active" : ""}`}
-                onClick={() => setTabWithSort(t)}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="playerStatsSubTabsRow">
+            <div className="playerStatsSubTabs">
+              {OFFENSE_TABS.map((t) => (
+                <button
+                  key={t}
+                  className={`toggleBtn playerStatsSubTabBtn${tab === t ? " active" : ""}`}
+                  onClick={() => setTabWithSort(t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            {renderFilterMenu()}
           </div>
         ) : null}
 
         {category === "Special Teams" ? (
-          <div className="playerStatsSubTabs">
-            {SPECIAL_TEAMS_TABS.map((t) => (
-              <button
-                key={t.key}
-                className={`toggleBtn playerStatsSubTabBtn${tab === t.key ? " active" : ""}`}
-                onClick={() => setTabWithSort(t.key)}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="playerStatsSubTabsRow">
+            <div className="playerStatsSubTabs">
+              {SPECIAL_TEAMS_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  className={`toggleBtn playerStatsSubTabBtn${tab === t.key ? " active" : ""}`}
+                  onClick={() => setTabWithSort(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {renderFilterMenu()}
           </div>
         ) : null}
 
-        <div className="playerStatsFilters">
-          <select
-            value={seasonYear ?? ""}
-            onChange={(e) => {
-              const next = Number(e.target.value);
-              setSeasonYear(next);
-              writeSeasonFilter(next);
-            }}
-            disabled={!hasAnyYears}
-            aria-label="Year"
-          >
-            {!hasAnyYears ? (
-              <option value="">No stats imported</option>
-            ) : (
-              availableYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))
-            )}
-          </select>
-
-          <select
-            value={confFilter}
-            onChange={(e) => {
-              setConfFilter(e.target.value);
-              setTeamFilter("All");
-            }}
-            disabled={!confOptions.length}
-            aria-label="Conference"
-          >
-            <option value="All">All Conferences</option>
-            {confOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={teamFilter}
-            onChange={(e) => {
-              const next = e.target.value;
-              setTeamFilter(next);
-              if (next !== "All") setConfFilter("All");
-            }}
-            disabled={!teamOptions.length}
-            aria-label="Team"
-          >
-            <option value="All">All Teams</option>
-            {teamOptions.map((t) => (
-              <option key={t.tgid} value={t.tgid}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={posFilter}
-            onChange={(e) => setPosFilter(e.target.value)}
-            disabled={!positionOptions.length}
-            aria-label="Position"
-          >
-            <option value="All">All Positions</option>
-            {positionOptions.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-
-          <input
-            value={playerFilter}
-            onChange={(e) => setPlayerFilter(e.target.value)}
-            placeholder="Search player"
-            aria-label="Search player"
-          />
-        </div>
+        {!isCompactFilters ? <div className="playerStatsFilters flexRowWrap">{filterControls}</div> : null}
+        {isCompactFilters && category !== "Offense" && category !== "Special Teams"
+          ? renderFilterMenu(category === "Defense" || category === "Scoring" ? "" : "filterMenuWrapSolo")
+          : null}
       </div>
 
       {loading || !initLoaded || (dynastyId && seasonYear != null && !seasonLoaded) ? (
@@ -748,19 +903,51 @@ export default function PlayerStats() {
         <div className="muted">No player stats found for {seasonYear}.</div>
       ) : (
         <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-          <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
-            <table className="table">
+          <div className="tableWrap statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
+            <table
+              className={[
+                "table",
+                "statsTable",
+                "playerStatsTable",
+                isReturnsTab ? "returnsStatsTable" : "",
+                isDefenseTab ? "defenseStatsTable" : "",
+                isScoringTab ? "scoringStatsTable" : "",
+                isOffenseTab ? "offenseStatsTable" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <colgroup>
+                <col className="playerStatsJerseyCol" />
+                <col className="playerStatsNameColWidth" />
+                <col className="playerStatsMetaCol col-p2 showBelow1024" />
+                <col className="playerStatsMetaCol col-p2" />
+                <col className="playerStatsStatCol playerStatsGColWidth" />
+                {colsForTab.map((c) => (
+                  <col key={c.key} className={`playerStatsStatCol ${playerStatPriorityClass(c.key)}`} />
+                ))}
+              </colgroup>
               <thead>
                 {isReturnsTab ? (
                   <>
-                    <tr>
+                    <tr className="statsGroupRow">
                       <th colSpan={2} className="tableGroupDivider"></th>
-                      <th colSpan={3} className="tableGroupDivider"></th>
+                      <th colSpan={3}></th>
                       <th colSpan={5} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
                       <th colSpan={5} className="tableGroupHeader tableGroupDivider">PUNTS</th>
                     </tr>
-                    <tr>
-                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                    <tr className="returnsGroupRowCompact">
+                      <th colSpan={4}></th>
+                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
+                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">PUNTS</th>
+                    </tr>
+                    <tr className="returnsGroupRowTiny">
+                      <th colSpan={4}></th>
+                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
+                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">PUNTS</th>
+                    </tr>
+                    <tr className="statsGroupRow showBelow1024Row">
+                      <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
@@ -773,7 +960,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="tableGroupDivider centerCol"
+                        className={`centerCol col-p2 showBelow1024${isScoringTab ? "" : " tableGroupDivider"}`}
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -781,7 +968,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -789,9 +976,9 @@ export default function PlayerStats() {
                           onClick={() => clickSort("gp")}
                           style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                           title="Sort"
-                          className="centerCol"
+                          className={`centerCol${isOffenseTab || isDefenseTab ? " gDividerLeft" : ""}`}
                         >
-                          G{sortIndicator("gp")}
+                        G{sortIndicator("gp")}
                         </th>
 
                       {colsForTab.map((c, idx) => {
@@ -803,9 +990,16 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isKickoffStart || isPuntStart ? "tableGroupDivider " : ""}statCol`}
+                            className={`${isKickoffStart || isPuntStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                           >
-                            {c.label}
+                            {c.key === "defTkl" ? (
+                              <>
+                                <span className="hideBelow1024">{c.label}</span>
+                                <span className="showBelow1024Inline">TACKLES</span>
+                              </>
+                            ) : (
+                              c.label
+                            )}
                             {sortIndicator(c.key)}
                           </th>
                         );
@@ -814,13 +1008,18 @@ export default function PlayerStats() {
                   </>
                 ) : isKickingTab ? (
                   <>
-                    <tr>
+                    <tr className="statsGroupRow">
                       <th colSpan={5}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
                     </tr>
-                    <tr>
-                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                    <tr className="kickingGroupRowCompact">
+                      <th colSpan={4}></th>
+                      <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
+                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
+                    </tr>
+                    <tr className="statsGroupRow showBelow1024Row">
+                      <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
@@ -833,7 +1032,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2 showBelow1024"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -841,7 +1040,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -849,7 +1048,9 @@ export default function PlayerStats() {
                         onClick={() => clickSort("gp")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className={`centerCol${
+                          isOffenseTab || isDefenseTab || isScoringTab || isPuntingTab ? " gDividerLeft" : ""
+                        }`}
                       >
                         G{sortIndicator("gp")}
                       </th>
@@ -863,7 +1064,7 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol`}
+                            className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                           >
                             {c.label}
                             {sortIndicator(c.key)}
@@ -874,15 +1075,15 @@ export default function PlayerStats() {
                   </>
                 ) : isDefenseTab ? (
                   <>
-                    <tr>
-                      <th colSpan={5}></th>
-                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">TACKLES</th>
+                    <tr className="statsGroupRow">
+                      <th colSpan={4}></th>
+                      <th colSpan={4} className="tableGroupHeader tableGroupDivider">TACKLES</th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">INTERCEPTIONS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">FUMBLES</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">SCORING</th>
                     </tr>
                     <tr>
-                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
@@ -895,7 +1096,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2 showBelow1024"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -903,7 +1104,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -911,7 +1112,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("gp")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className={`centerCol${isOffenseTab || isDefenseTab ? " gDividerLeft" : ""}`}
                       >
                         G{sortIndicator("gp")}
                       </th>
@@ -928,12 +1129,20 @@ export default function PlayerStats() {
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
                             className={`${
-                              isTackleStart || isIntStart || isFumbleStart || isScoreStart
+                              (isIntStart || isFumbleStart || isScoreStart) ||
+                              (isTackleStart && !isDefenseTab)
                                 ? "tableGroupDivider "
                                 : ""
-                            }statCol`}
+                            }${isDefenseTab && isTackleStart ? "noDividerAfterG " : ""}${c.key === "defPDef" || c.key === "defInt" || c.key === "defFF" ? "noDividerBelow1024 " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                           >
-                            {c.label}
+                            {c.key === "defTkl" ? (
+                              <>
+                                <span className="hideBelow1024">{c.label}</span>
+                                <span className="showBelow1024Inline">TACKLES</span>
+                              </>
+                            ) : (
+                              c.label
+                            )}
                             {sortIndicator(c.key)}
                           </th>
                         );
@@ -942,14 +1151,14 @@ export default function PlayerStats() {
                   </>
                 ) : isScoringTab ? (
                   <>
-                    <tr>
+                    <tr className="scoringGroupFull">
                       <th colSpan={2}></th>
-                      <th colSpan={3} className="tableGroupDivider"></th>
+                      <th colSpan={3}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">TOUCHDOWNS</th>
-                        <th colSpan={5} className="tableGroupHeader tableGroupDivider">SCORING</th>
+                        <th colSpan={4} className="tableGroupHeader tableGroupDivider">SCORING</th>
                       </tr>
                     <tr>
-                      <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                     <th
                       onClick={() => clickSort("playerName")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
@@ -962,7 +1171,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="tableGroupDivider centerCol"
+                        className="centerCol col-p2 showBelow1024"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -970,7 +1179,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className="centerCol col-p2"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -978,7 +1187,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("gp")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol"
+                        className={`centerCol${isOffenseTab || isDefenseTab ? " gDividerLeft" : ""}`}
                       >
                         G{sortIndicator("gp")}
                       </th>
@@ -992,7 +1201,7 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isTdStart || isScoreStart ? "tableGroupDivider " : ""}statCol`}
+                            className={`${isTdStart || isScoreStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                           >
                             {c.label}
                             {sortIndicator(c.key)}
@@ -1003,7 +1212,7 @@ export default function PlayerStats() {
                   </>
                 ) : (
                   <tr>
-                    <th style={{ whiteSpace: "nowrap", textAlign: "right" }}>#</th>
+                    <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                     <th
                       onClick={() => clickSort("playerName")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
@@ -1012,19 +1221,19 @@ export default function PlayerStats() {
                     >
                       NAME{sortIndicator("playerName")}
                     </th>
-                    <th
-                      onClick={() => clickSort("position")}
-                      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                      title="Sort"
-                      className="centerCol"
-                    >
-                      POS{sortIndicator("position")}
-                    </th>
+                      <th
+                        onClick={() => clickSort("position")}
+                        style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                        title="Sort"
+                        className="centerCol col-p2 showBelow1024"
+                      >
+                        POS{sortIndicator("position")}
+                      </th>
                     <th
                       onClick={() => clickSort("classYear")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                       title="Sort"
-                      className="centerCol"
+                      className="centerCol col-p2"
                     >
                       YR{sortIndicator("classYear")}
                     </th>
@@ -1032,20 +1241,39 @@ export default function PlayerStats() {
                       onClick={() => clickSort("gp")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                       title="Sort"
-                      className="centerCol"
+                      className={`centerCol${
+                        isOffenseTab || isDefenseTab || isScoringTab || isPuntingTab ? " gDividerLeft" : ""
+                      }`}
                     >
-                      G{sortIndicator("gp")}
+                        G{sortIndicator("gp")}
                     </th>
 
-                    {colsForTab.map((c) => (
+                    {colsForTab.map((c, idx) => (
                       <th
                         key={c.key}
                         onClick={() => clickSort(c.key)}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title={c.fullLabel}
-                        className="statCol"
+                        className={`${isOffenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                       >
-                        {c.label}
+                        {tab === "Rushing" && c.key === "rushYpc" ? (
+                          <>
+                            <span className="hideBelow1024">{c.label}</span>
+                            <span className="showBelow1024Inline">AVG</span>
+                          </>
+                        ) : tab === "Receiving" && c.key === "recvYpc" ? (
+                          <>
+                            <span className="hideBelow1024">{c.label}</span>
+                            <span className="showBelow1024Inline">AVG</span>
+                          </>
+                        ) : tab === "Receiving" && c.key === "recvYac" ? (
+                          <>
+                            <span className="hideBelow1024">{c.label}</span>
+                            <span className="showBelow1024Inline">RAC</span>
+                          </>
+                        ) : (
+                          c.label
+                        )}
                         {sortIndicator(c.key)}
                       </th>
                     ))}
@@ -1055,7 +1283,7 @@ export default function PlayerStats() {
               <tbody>
                 {displayedRows.map((r) => (
                   <tr key={`${r.pgid}-${r.seasonYear}`}>
-                    <td data-label="#" style={{ textAlign: "right" }}>
+                    <td data-label="#" style={{ textAlign: "left" }}>
                       <span
                         style={{
                           display: "inline-block",
@@ -1111,17 +1339,20 @@ export default function PlayerStats() {
                       <td
                         data-label="POS"
                         className={`${
-                          isReturnsTab || isScoringTab ? "tableGroupDivider " : ""
-                        }centerCol`}
+                          isReturnsTab ? "tableGroupDivider " : ""
+                        }centerCol col-p2 showBelow1024`}
                       >
                         {positionLabel(r.position)}
                       </td>
-                    <td data-label="YR" className="centerCol">{classLabel(r.classYear)}</td>
-                      <td data-label="G" className="centerCol">
-                        {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
-                          ? getGpForTab(r, normalizeTab(tab))
-                          : ""}
-                      </td>
+                    <td data-label="YR" className="centerCol col-p2">{classLabel(r.classYear)}</td>
+                    <td
+                      data-label="G"
+                      className={`centerCol${isOffenseTab || isDefenseTab || isPuntingTab ? " gDividerLeft" : ""}`}
+                    >
+                      {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
+                        ? getGpForTab(r, normalizeTab(tab))
+                        : ""}
+                    </td>
                     {colsForTab.map((c, idx) => {
                       const isKickoffStart = idx === 0;
                       const isPuntStart = idx === 5;
@@ -1138,7 +1369,7 @@ export default function PlayerStats() {
                         : isScoringTab
                           ? isTdStart || isScoreStart
                           : isDefenseTab
-                            ? isTackleStart || isIntStart || isFumbleStart || isDefenseScoreStart
+                            ? (isIntStart || isFumbleStart || isDefenseScoreStart)
                             : isKickingTab
                               ? isFgStart || isXpStart
                               : false;
@@ -1150,7 +1381,11 @@ export default function PlayerStats() {
                         <td
                           key={c.key}
                           data-label={c.fullLabel || c.label}
-                          className={`${isGroupStart ? "tableGroupDivider " : ""}statCol`}
+                          className={`${isGroupStart ? "tableGroupDivider " : ""}${
+                            c.key === "defPDef" || c.key === "defInt" || c.key === "defFF"
+                              ? "noDividerBelow1024 "
+                              : ""
+                          }${isDefenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol ${playerStatPriorityClass(c.key)}`}
                         >
                           {displayValue}
                         </td>
@@ -1177,3 +1412,4 @@ export default function PlayerStats() {
     </div>
   );
 }
+

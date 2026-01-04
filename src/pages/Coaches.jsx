@@ -402,8 +402,8 @@ export default function Coaches() {
       <div className="hrow">
         <h2>Coaches</h2>
       </div>
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             value={confFilter}
             onChange={(e) => setConfFilter(e.target.value)}
@@ -452,139 +452,142 @@ export default function Coaches() {
             <p className="kicker">No coaches match those filters.</p>
           ) : null}
 
-          <table className="table">
-          <thead>
-            <tr>
-              <th
-                onClick={() => clickSort("coachName")}
-                style={{ cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-              >
-                COACH{sortIndicator("coachName")}
-              </th>
-              <th
-                onClick={() => clickSort("teamName")}
-                style={{ cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-              >
-                TEAM{sortIndicator("teamName")}
-              </th>
-              <th
-                onClick={() => clickSort("record")}
-                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                RECORD{sortIndicator("record")}
-              </th>
-              <th
-                onClick={() => clickSort("winPct")}
-                style={{ width: 120, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                WIN%{sortIndicator("winPct")}
-              </th>
-              <th
-                onClick={() => clickSort("confRecord")}
-                style={{ width: 160, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                CONF RECORD{sortIndicator("confRecord")}
-              </th>
-              <th
-                onClick={() => clickSort("confWinPct")}
-                style={{ width: 120, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                WIN%{sortIndicator("confWinPct")}
-              </th>
-              <th
-                onClick={() => clickSort("bowlRecord")}
-                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                BOWL RECORD{sortIndicator("bowlRecord")}
-              </th>
-              <th
-                onClick={() => clickSort("bowlWinPct")}
-                style={{ width: 140, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                BOWL WIN%{sortIndicator("bowlWinPct")}
-              </th>
-              <th
-                onClick={() => clickSort("prestige")}
-                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                PRESTIGE{sortIndicator("prestige")}
-              </th>
-              <th
-                onClick={() => clickSort("approval")}
-                style={{ width: 110, cursor: "pointer", userSelect: "none" }}
-                title="Sort"
-                className="statCol"
-              >
-                APPROVAL{sortIndicator("approval")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((r) => (
-              <tr key={`${r.ccid}-${r.tgid}`}>
-                <td data-label="Coach">
-                  <Link to={`/coach/${r.ccid}`} style={{ color: "inherit", textDecoration: "none" }}>
-                    {r.name || `Coach ${r.ccid}`}
-                  </Link>
-                </td>
-                <td data-label="Team">
-                  {r.isNotHired ? (
-                    <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
-                  ) : (
-                    <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
-                      <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
-                    </Link>
-                  )}
-                </td>
-                <td data-label="Record" className="statCol">
-                  {recordLabel(r.careerWins, r.careerLosses)}
-                </td>
-                <td data-label="Win%" className="statCol">
-                  {winPctLabel(r.winPct)}
-                </td>
-                <td data-label="Conf Record" className="statCol">
-                  {r.confRecord}
-                </td>
-                <td data-label="Conf Win%" className="statCol">
-                  {winPctLabel(r.confWinPct)}
-                </td>
-                <td data-label="Bowl Record" className="statCol">
-                  {bowlRecordLabel(r.bowlWins, r.bowlLosses)}
-                </td>
-                <td data-label="Bowl Win%" className="statCol">
-                  {winPctLabel(r.bowlWinPct)}
-                </td>
-                <td data-label="Prestige" className="statCol">
-                  {Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}
-                </td>
-                <td data-label="Approval" className="statCol">
-                  {(() => {
-                    const meta = approvalLabel(r.approval);
-                    return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
-                  })()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          </table>
+          <div className="tableWrap">
+            <table className="table coachesTable">
+              <thead>
+                <tr>
+                  <th
+                    onClick={() => clickSort("coachName")}
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                  >
+                    COACH{sortIndicator("coachName")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("teamName")}
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                  >
+                    TEAM{sortIndicator("teamName")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("record")}
+                    style={{ width: 140, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol"
+                  >
+                    RECORD{sortIndicator("record")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("winPct")}
+                    style={{ width: 120, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol col-p2"
+                  >
+                    WIN%{sortIndicator("winPct")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("confRecord")}
+                    style={{ width: 160, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol"
+                  >
+                    CONF <span className="hideBelow1536">RECORD</span>{sortIndicator("confRecord")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("confWinPct")}
+                    style={{ width: 120, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol col-p2"
+                  >
+                    WIN%{sortIndicator("confWinPct")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("bowlRecord")}
+                    style={{ width: 140, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol"
+                  >
+                    BOWL <span className="hideBelow1536">RECORD</span>{sortIndicator("bowlRecord")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("bowlWinPct")}
+                    style={{ width: 140, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol col-p2"
+                  >
+                    <span className="hideBelow1536">BOWL </span>WIN%{sortIndicator("bowlWinPct")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("prestige")}
+                    style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol"
+                  >
+                    PRESTIGE{sortIndicator("prestige")}
+                  </th>
+                  <th
+                    onClick={() => clickSort("approval")}
+                    style={{ width: 110, cursor: "pointer", userSelect: "none" }}
+                    title="Sort"
+                    className="statCol"
+                  >
+                    APPROVAL{sortIndicator("approval")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((r) => (
+                  <tr key={`${r.ccid}-${r.tgid}`}>
+                    <td data-label="Coach">
+                      <Link to={`/coach/${r.ccid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                        {r.name || `Coach ${r.ccid}`}
+                      </Link>
+                    </td>
+                    <td data-label="Team">
+                      {r.isNotHired ? (
+                        <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
+                      ) : (
+                        <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                          <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
+                        </Link>
+                      )}
+                    </td>
+                    <td data-label="Record" className="statCol">
+                      {recordLabel(r.careerWins, r.careerLosses)}
+                    </td>
+                    <td data-label="Win%" className="statCol col-p2">
+                      {winPctLabel(r.winPct)}
+                    </td>
+                    <td data-label="Conf Record" className="statCol">
+                      {r.confRecord}
+                    </td>
+                    <td data-label="Conf Win%" className="statCol col-p2">
+                      {winPctLabel(r.confWinPct)}
+                    </td>
+                    <td data-label="Bowl Record" className="statCol">
+                      {bowlRecordLabel(r.bowlWins, r.bowlLosses)}
+                    </td>
+                    <td data-label="Bowl Win%" className="statCol col-p2">
+                      {winPctLabel(r.bowlWinPct)}
+                    </td>
+                    <td data-label="Prestige" className="statCol">
+                      {Number.isFinite(Number(r.prestige)) ? Number(r.prestige) : "-"}
+                    </td>
+                    <td data-label="Approval" className="statCol">
+                      {(() => {
+                        const meta = approvalLabel(r.approval);
+                        return <span style={{ color: meta.color, fontWeight: 700 }}>{meta.text}</span>;
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
   );
 }
+

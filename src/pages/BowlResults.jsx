@@ -195,7 +195,9 @@ export default function BowlResults() {
 
       setRows(filtered);
       setTitle(bowlDisplayName(bowlName));
-      setLogoUrl(postseasonLogoFor(bowlName));
+      setLogoUrl(
+        postseasonLogoFor(/national championship/i.test(bowlName) ? "Nat Trophy" : bowlName)
+      );
       setWinnerLabel(/national championship/i.test(bowlName) ? "Champion" : "Winner");
     })();
 
@@ -213,12 +215,15 @@ export default function BowlResults() {
     );
   }
 
+  const isNatChamp = /national championship/i.test(bowlName);
+
   return (
     <div>
       <div className="hrow">
         <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           {logoUrl ? (
             <img
+              className={isNatChamp ? "logoGlowGold" : ""}
               src={logoUrl}
               alt=""
               loading="lazy"
@@ -237,42 +242,44 @@ export default function BowlResults() {
       ) : rows.length === 0 ? (
         <p className="kicker">No games found for this bowl.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th style={{ width: 80 }}>Season</th>
-              <th>{winnerLabel}</th>
-              <th style={{ width: 140 }}>Result</th>
-              <th>Opponent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr key={`${r.seasonYear}-${r.week}-${idx}`}>
-                <td data-label="Season">{r.seasonYear}</td>
-                <td data-label="Team">
-                  <Link
-                    to={`/team/${r.leftTgid}`}
-                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                    title="View team page"
-                  >
-                    <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
-                  </Link>
-                </td>
-                <td data-label="Result">{r.result}</td>
-                <td data-label="Team">
-                  <Link
-                    to={`/team/${r.rightTgid}`}
-                    style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
-                    title="View team page"
-                  >
-                    <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
-                  </Link>
-                </td>
+        <div className="tableWrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: 80 }}>Season</th>
+                <th>{winnerLabel}</th>
+                <th style={{ width: 140 }}>Result</th>
+                <th>Opponent</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={`${r.seasonYear}-${r.week}-${idx}`}>
+                  <td data-label="Season">{r.seasonYear}</td>
+                  <td data-label="Team">
+                    <Link
+                      to={`/team/${r.leftTgid}`}
+                      style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
+                      title="View team page"
+                    >
+                      <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
+                    </Link>
+                  </td>
+                  <td data-label="Result">{r.result}</td>
+                  <td data-label="Team">
+                    <Link
+                      to={`/team/${r.rightTgid}`}
+                      style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
+                      title="View team page"
+                    >
+                      <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

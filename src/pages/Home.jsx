@@ -154,58 +154,60 @@ export default function Home() {
     const teamWidth = (100 - resultWidth - recordWidth * 2) / 2;
 
     return (
-      <table className="table postseasonTable">
-        <colgroup>
-          <col style={{ width: `${teamWidth}%` }} />
-          <col style={{ width: `${recordWidth}%` }} />
-          <col style={{ width: `${resultWidth}%` }} />
-          <col style={{ width: `${teamWidth}%` }} />
-          <col style={{ width: `${recordWidth}%` }} />
-        </colgroup>
-        <thead />
-        <tbody>
-          {groups.map((group, groupIdx) => (
-            <Fragment key={group.week ?? "week"}>
-              <tr className="scheduleWeekRow">
-                <th colSpan={5}>
-                  <span className="scheduleWeekHeaderTop">Week {group.week ?? "-"}</span>
-                </th>
-              </tr>
-              <tr className="scheduleWeekHeader">
-                <th>Team</th>
-                <th>Record</th>
-                <th>Result</th>
-                <th>Team</th>
-                <th>Record</th>
-              </tr>
-              {group.rows.map((r, idx) => (
-                <tr key={`${r.week}-${idx}`}>
-                  <td>
-                    <Link to={`/team/${r.leftTgid}`} className="matchupTeam" title="View team page">
-                      <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
-                    </Link>
-                  </td>
-                  <td>{r.leftRecord || "-"}</td>
-                  <td>
-                    {r.leftScore ?? "-"} - {r.rightScore ?? "-"}
-                  </td>
-                  <td>
-                    <Link to={`/team/${r.rightTgid}`} className="matchupTeam" title="View team page">
-                      <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
-                    </Link>
-                  </td>
-                  <td>{r.rightRecord || "-"}</td>
+      <div className="tableWrap">
+        <table className="table postseasonTable">
+          <colgroup>
+            <col style={{ width: `${teamWidth}%` }} />
+            <col style={{ width: `${recordWidth}%` }} />
+            <col style={{ width: `${resultWidth}%` }} />
+            <col style={{ width: `${teamWidth}%` }} />
+            <col style={{ width: `${recordWidth}%` }} />
+          </colgroup>
+          <thead />
+          <tbody>
+            {groups.map((group, groupIdx) => (
+              <Fragment key={group.week ?? "week"}>
+                <tr className="scheduleWeekRow">
+                  <th colSpan={5}>
+                    <span className="scheduleWeekHeaderTop">Week {group.week ?? "-"}</span>
+                  </th>
                 </tr>
-              ))}
-              {groupIdx < groups.length - 1 ? (
-                <tr className="scheduleWeekSpacer" aria-hidden="true">
-                  <td colSpan={5} />
+                <tr className="scheduleWeekHeader">
+                  <th>Team</th>
+                  <th>Record</th>
+                  <th>Result</th>
+                  <th>Team</th>
+                  <th>Record</th>
                 </tr>
-              ) : null}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
+                {group.rows.map((r, idx) => (
+                  <tr key={`${r.week}-${idx}`}>
+                    <td>
+                      <Link to={`/team/${r.leftTgid}`} className="matchupTeam" title="View team page">
+                        <TeamCell name={r.leftName} logoUrl={r.leftLogo} />
+                      </Link>
+                    </td>
+                    <td>{r.leftRecord || "-"}</td>
+                    <td>
+                      {r.leftScore ?? "-"} - {r.rightScore ?? "-"}
+                    </td>
+                    <td>
+                      <Link to={`/team/${r.rightTgid}`} className="matchupTeam" title="View team page">
+                        <TeamCell name={r.rightName} logoUrl={r.rightLogo} />
+                      </Link>
+                    </td>
+                    <td>{r.rightRecord || "-"}</td>
+                  </tr>
+                ))}
+                {groupIdx < groups.length - 1 ? (
+                  <tr className="scheduleWeekSpacer" aria-hidden="true">
+                    <td colSpan={5} />
+                  </tr>
+                ) : null}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
@@ -504,7 +506,7 @@ export default function Home() {
     <div>
       <div className="hrow">
         <h2>Schedule / Results</h2>
-        <div className="scheduleHeaderControls">
+        <div className="scheduleHeaderControls flexRowWrap">
           <div className="scheduleFilters">{filterControls}</div>
           <div className="scheduleControlsDivider" />
           <div className="scheduleViewToggle">{viewToggle}</div>
@@ -570,3 +572,4 @@ export default function Home() {
     </div>
   );
 }
+

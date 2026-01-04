@@ -679,20 +679,8 @@ export default function Coach() {
         })()}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 18,
-          flexWrap: "wrap",
-          justifyContent: "center",
-          alignItems: "stretch",
-          maxWidth: 1320,
-          marginLeft: "auto",
-          marginRight: "auto",
-          marginBottom: 18,
-        }}
-      >
-        <div className="card" style={{ marginBottom: 0, flex: "1 1 360px", maxWidth: 560 }}>
+      <div className="coachProfileCardsRow">
+        <div className="card coachProfileCard coachCareerSummaryCard">
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
             <div className="kicker infoCardTitle">
               Career Summary
@@ -770,7 +758,7 @@ export default function Coach() {
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 0, flex: "1 1 240px", maxWidth: 420 }}>
+        <div className="card coachProfileCard coachTrophyRoomCard">
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
             <div className="kicker infoCardTitle">
               Trophy Room
@@ -947,7 +935,7 @@ export default function Coach() {
           )}
         </div>
 
-        <div className="card" style={{ marginBottom: 0, flex: "1 1 280px", maxWidth: 420 }}>
+        <div className="card coachProfileCard coachTendencyCard">
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
             <div className="kicker infoCardTitle">
               Run/Pass Tendency
@@ -1137,75 +1125,77 @@ export default function Coach() {
         </div>
       </div>
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th style={{ width: 100 }}>YEAR</th>
-            <th>TEAM</th>
-            <th style={{ width: 120 }} className="statCol">RECORD</th>
-            <th style={{ width: 120 }} className="statCol">CONF RECORD</th>
+      <div className="tableWrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th style={{ width: 100 }}>YEAR</th>
+              <th>TEAM</th>
+              <th style={{ width: 120 }} className="statCol">RECORD</th>
+              <th style={{ width: 120 }} className="statCol">CONF RECORD</th>
             <th style={{ width: 90 }} className="statCol">TOP 25</th>
             <th>POSTSEASON</th>
-          </tr>
-        </thead>
-        <tbody>
-          {seasonRows.map((r) => (
-            <tr key={`${r.seasonYear}-${r.teamName}`}>
-              <td data-label="Year">{r.seasonYear}</td>
-              <td data-label="Team">
-                <Link
-                  to={`/team/${r.tgid}?season=${encodeURIComponent(String(r.seasonYear))}`}
-                  style={{ color: "inherit", textDecoration: "none" }}
-                >
-                  <div className="teamCell">
-                    <img
-                      className="teamLogo"
-                      src={r.teamLogo}
-                      alt=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        if (e.currentTarget.src !== FALLBACK_LOGO) e.currentTarget.src = FALLBACK_LOGO;
-                      }}
-                    />
-                    <span>{r.teamName}</span>
-                  </div>
-                </Link>
-              </td>
-              <td data-label="Record" className="statCol">{r.record}</td>
-              <td data-label="Conf Record" className="statCol">{r.confRecord}</td>
+            </tr>
+          </thead>
+          <tbody>
+            {seasonRows.map((r) => (
+              <tr key={`${r.seasonYear}-${r.teamName}`}>
+                <td data-label="Year">{r.seasonYear}</td>
+                <td data-label="Team">
+                  <Link
+                    to={`/team/${r.tgid}?season=${encodeURIComponent(String(r.seasonYear))}`}
+                    style={{ color: "inherit", textDecoration: "none" }}
+                  >
+                    <div className="teamCell">
+                      <img
+                        className="teamLogo"
+                        src={r.teamLogo}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (e.currentTarget.src !== FALLBACK_LOGO) e.currentTarget.src = FALLBACK_LOGO;
+                        }}
+                      />
+                      <span>{r.teamName}</span>
+                    </div>
+                  </Link>
+                </td>
+                <td data-label="Record" className="statCol">{r.record}</td>
+                <td data-label="Conf Record" className="statCol">{r.confRecord}</td>
               <td data-label="Top 25" className="statCol">{r.top25Rank ?? "-"}</td>
               <td data-label="Postseason">
-                {r.postseason.length ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {r.postseason.map((p, idx) => (
-                      <div key={`${r.seasonYear}-${idx}`} className="postseasonMeta">
-                        {p.bowlLogoUrl ? (
-                          <img src={p.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                        ) : null}
-                        <span>{p.bowlName}</span>
-                        {p.outcome ? (
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              marginLeft: 8,
-                              color: p.outcome === "W" ? "#4caf50" : p.outcome === "L" ? "#d30000" : "inherit",
-                            }}
-                          >
-                            {p.outcome}
-                          </span>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="kicker">-</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  {r.postseason.length ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {r.postseason.map((p, idx) => (
+                        <div key={`${r.seasonYear}-${idx}`} className="postseasonMeta">
+                          {p.bowlLogoUrl ? (
+                            <img src={p.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          ) : null}
+                          <span>{p.bowlName}</span>
+                          {p.outcome ? (
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                marginLeft: 8,
+                                color: p.outcome === "W" ? "#4caf50" : p.outcome === "L" ? "#d30000" : "inherit",
+                              }}
+                            >
+                              {p.outcome}
+                            </span>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="kicker">-</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

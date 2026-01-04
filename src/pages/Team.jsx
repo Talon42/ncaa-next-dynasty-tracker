@@ -600,122 +600,126 @@ useEffect(() => {
                 );
               })()}
 
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 80 }}>Week</th>
-                    <th>Opponent</th>
-                    <th style={{ width: 180 }}>Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sec.rows.map((r, idx) => (
-                    <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
-                      <td data-label="Week">{r.week}</td>
-                      <td data-label="Opponent">
-                        {r.bowlName ? (
-                          <div className="postseasonMeta">
-                            {r.bowlLogoUrl ? (
-                              <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                            ) : null}
-                            <span>{r.bowlName}</span>
-                          </div>
-                        ) : null}
-                        {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span
-                            style={{
-                              width: 22,
-                              textAlign: "center",
-                              fontWeight: 400,
-                              opacity: 0.9,
-                            }}
-                            title={r.isHome ? "Home game" : "Away game"}
-                          >
-                            {r.isHome ? "vs" : "@"}
-                          </span>
-
-                          <Link
-                            to={`/team/${r.oppTgid}`}
-                            style={{
-                              color: "inherit",
-                              textDecoration: "none",
-                              display: "inline-block",
-                            }}
-                            title="View opponent team page"
-                          >
-                            <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                          </Link>
-                        </div>
-                      </td>
-                      <td data-label="Result">
-                        <OutcomeBadge outcome={r.outcome} />
-                        {r.result}
-                      </td>
+              <div className="tableWrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 80 }}>Week</th>
+                      <th>Opponent</th>
+                      <th style={{ width: 180 }}>Result</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {sec.rows.map((r, idx) => (
+                      <tr key={`${sec.seasonYear}-${r.week}-${idx}`}>
+                        <td data-label="Week">{r.week}</td>
+                        <td data-label="Opponent">
+                          {r.bowlName ? (
+                            <div className="postseasonMeta">
+                              {r.bowlLogoUrl ? (
+                                <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                              ) : null}
+                              <span>{r.bowlName}</span>
+                            </div>
+                          ) : null}
+                          {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span
+                              style={{
+                                width: 22,
+                                textAlign: "center",
+                                fontWeight: 400,
+                                opacity: 0.9,
+                              }}
+                              title={r.isHome ? "Home game" : "Away game"}
+                            >
+                              {r.isHome ? "vs" : "@"}
+                            </span>
+
+                            <Link
+                              to={`/team/${r.oppTgid}`}
+                              style={{
+                                color: "inherit",
+                                textDecoration: "none",
+                                display: "inline-block",
+                              }}
+                              title="View opponent team page"
+                            >
+                              <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                            </Link>
+                          </div>
+                        </td>
+                        <td data-label="Result">
+                          <OutcomeBadge outcome={r.outcome} />
+                          {r.result}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th style={{ width: 80 }}>Week</th>
-              <th>Opponent</th>
-              <th style={{ width: 180 }}>Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, idx) => (
-              <tr key={`${r.week}-${idx}`}>
-                <td data-label="Week">{r.week}</td>
-                <td data-label="Opponent">
-                  {r.bowlName ? (
-                    <div className="postseasonMeta">
-                      {r.bowlLogoUrl ? (
-                        <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                      ) : null}
-                      <span>{r.bowlName}</span>
-                    </div>
-                  ) : null}
-                  {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      style={{
-                        width: 22,
-                        textAlign: "center",
-                        fontWeight: 400,
-                        opacity: 0.9,
-                      }}
-                      title={r.isHome ? "Home game" : "Away game"}
-                    >
-                      {r.isHome ? "vs" : "@"}
-                    </span>
-
-                    <Link
-                      to={`/team/${r.oppTgid}`}
-                      style={{
-                        color: "inherit",
-                        textDecoration: "none",
-                        display: "inline-block",
-                      }}
-                      title="View opponent team page"
-                    >
-                      <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
-                    </Link>
-                  </div>
-                </td>
-                <td data-label="Result">
-                  <OutcomeBadge outcome={r.outcome} />
-                  {r.result}
-                </td>
+        <div className="tableWrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: 80 }}>Week</th>
+                <th>Opponent</th>
+                <th style={{ width: 180 }}>Result</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r, idx) => (
+                <tr key={`${r.week}-${idx}`}>
+                  <td data-label="Week">{r.week}</td>
+                  <td data-label="Opponent">
+                    {r.bowlName ? (
+                      <div className="postseasonMeta">
+                        {r.bowlLogoUrl ? (
+                          <img src={r.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ) : null}
+                        <span>{r.bowlName}</span>
+                      </div>
+                    ) : null}
+                    {/* FIX: enforce horizontal layout so vs/@ never stacks above logo */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span
+                        style={{
+                          width: 22,
+                          textAlign: "center",
+                          fontWeight: 400,
+                          opacity: 0.9,
+                        }}
+                        title={r.isHome ? "Home game" : "Away game"}
+                      >
+                        {r.isHome ? "vs" : "@"}
+                      </span>
+
+                      <Link
+                        to={`/team/${r.oppTgid}`}
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          display: "inline-block",
+                        }}
+                        title="View opponent team page"
+                      >
+                        <TeamCell name={r.oppName} logoUrl={r.oppLogo} />
+                      </Link>
+                    </div>
+                  </td>
+                  <td data-label="Result">
+                    <OutcomeBadge outcome={r.outcome} />
+                    {r.result}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -32,6 +32,46 @@ const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
 const ALL_AMERICAN_LOGO =
   "https://github.com/Talon42/ncaa-next-26/blob/main/textures/SLUS-21214/replacements/general/dynasty-mode/d6ce085a9cf265a1-7d77d8b3187e07c4-00005553.png?raw=true";
 const AWARD_LABEL_RE = /\s+(Award|Trophy)\s*$/i;
+const PLAYERSEASON_P0_KEYS = new Set([
+  "passYds",
+  "passTd",
+  "rushYds",
+  "rushTd",
+  "recvCat",
+  "recvYpc",
+  "recvYds",
+  "recvTd",
+  "defIntYds",
+  "defFumYds",
+  "defDTD",
+  "puntYds",
+  "puntLong",
+  "krYds",
+  "krTd",
+  "prYds",
+  "prTd",
+  "totalTd",
+  "scoringPts",
+  "fgm",
+  "xpm",
+]);
+
+const PLAYERSEASON_P1_KEYS = new Set([
+  "passAtt",
+  "passComp",
+  "passYpg",
+  "passInt",
+  "passSacks",
+  "passQbr",
+  "rushAtt",
+  "rushYpc",
+  "rushYpg",
+  "rushFum",
+  "recvYpg",
+  "krAtt",
+  "prAtt",
+  "scoringPtsPg",
+]);
 
 function sumOrZero(value) {
   const n = Number(value);
@@ -50,6 +90,12 @@ function awardShortLabel(name) {
   if (!trimmed) return "";
   const short = trimmed.replace(AWARD_LABEL_RE, "");
   return short || trimmed;
+}
+
+function playerSeasonPriorityClass(key) {
+  if (PLAYERSEASON_P0_KEYS.has(key)) return "";
+  if (PLAYERSEASON_P1_KEYS.has(key)) return "col-p1";
+  return "col-p2";
 }
 
 function defaultTabForPosition(value) {
@@ -866,7 +912,7 @@ export default function Player() {
       ) : null}
 
       {category === "Offense" ? (
-        <div className="playerStatsControlRow">
+        <div className="playerStatsControlRow flexRowWrap">
           <div className="playerStatsSubTabs">
             {availableOffenseTabs.map((group) => (
               <button
@@ -886,7 +932,7 @@ export default function Player() {
       ) : null}
 
       {category === "Special Teams" ? (
-        <div className="playerStatsControlRow">
+        <div className="playerStatsControlRow flexRowWrap">
           <div className="playerStatsSubTabs">
             {SPECIAL_TEAMS_TABS.filter((group) => availableSpecialTeamsTabs.includes(group.key)).map((group) => (
               <button
@@ -906,19 +952,19 @@ export default function Player() {
       ) : null}
 
       {activeDefs.length ? (
-        <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
-          <table className="table">
+        <div className="tableWrap statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
+          <table className="table statsTable playerSeasonTable">
             <thead>
               {isDefenseTab ? (
                 <>
-                  <tr>
+	                  <tr className="statsGroupRow">
                     <th colSpan={4}></th>
                     <th colSpan={3} className="tableGroupHeader tableGroupDivider">TACKLES</th>
                     <th colSpan={4} className="tableGroupHeader tableGroupDivider">INTERCEPTIONS</th>
                     <th colSpan={3} className="tableGroupHeader tableGroupDivider">FUMBLES</th>
                     <th colSpan={3} className="tableGroupHeader tableGroupDivider">SCORING</th>
                   </tr>
-                  <tr>
+	                  <tr className="statsGroupRow">
                     <th>Season</th>
                     <th>Team</th>
                     <th>Class</th>
@@ -936,7 +982,7 @@ export default function Player() {
                             isTackleStart || isIntStart || isFumbleStart || isScoreStart
                               ? "tableGroupDivider "
                               : ""
-                          }statCol`}
+                          }statCol ${playerSeasonPriorityClass(c.key)}`}
                         >
                           {c.label}
                         </th>
@@ -963,7 +1009,7 @@ export default function Player() {
                         <th
                           key={c.key}
                           title={c.fullLabel}
-                          className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol`}
+                          className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol ${playerSeasonPriorityClass(c.key)}`}
                         >
                           {c.label}
                         </th>
@@ -978,7 +1024,7 @@ export default function Player() {
                   <th>Class</th>
                   <th className="centerCol">G</th>
                   {activeDefs.map((c) => (
-                    <th key={c.key} title={c.fullLabel} className="statCol">
+                    <th key={c.key} title={c.fullLabel} className={`statCol ${playerSeasonPriorityClass(c.key)}`}>
                       {c.label}
                     </th>
                   ))}
@@ -1045,7 +1091,7 @@ export default function Player() {
                         {activeDefs.map((c, idx) => (
                           <td
                             key={c.key}
-                            className={`statCol${
+                            className={`statCol ${playerSeasonPriorityClass(c.key)}${
                               (() => {
                                 const value = valueForStat(row, c.key, tab);
                                 const leaders = leadersBySeason.get(String(row.seasonYear));
@@ -1115,7 +1161,7 @@ export default function Player() {
                         {activeDefs.map((c, idx) => (
                           <td
                             key={c.key}
-                            className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                            className={`statCol ${playerSeasonPriorityClass(c.key)}${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
                           >
                             0
                           </td>
@@ -1171,7 +1217,7 @@ export default function Player() {
                       return (
                         <td
                           key={c.key}
-                          className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                          className={`statCol ${playerSeasonPriorityClass(c.key)}${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
                         >
                           {formatStat(value, c.key)}
                         </td>
@@ -1192,7 +1238,7 @@ export default function Player() {
                   return (
                     <td
                       key={c.key}
-                      className={`statCol${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
+                      className={`statCol ${playerSeasonPriorityClass(c.key)}${defenseDividerClass(idx)}${kickingDividerClass(idx)}`}
                     >
                       {formatStat(value, c.key)}
                     </td>
@@ -1208,3 +1254,4 @@ export default function Player() {
     </div>
   );
 }
+

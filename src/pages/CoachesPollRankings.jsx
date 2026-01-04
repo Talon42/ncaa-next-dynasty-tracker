@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
-import { buildSeasonBowlNameMap, getSeasonBowlName } from "../postseasonMeta";
+import { loadPostseasonLogoMap } from "../logoService";
+import {
+  buildSeasonBowlNameMap,
+  createPostseasonLogoResolver,
+  getSeasonBowlName,
+} from "../postseasonMeta";
 
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
@@ -36,12 +41,25 @@ export default function CoachesPollRankings() {
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [rows, setRows] = useState([]);
   const [rankFilter, setRankFilter] = useState("Top 25");
+  const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
 
   useEffect(() => {
     (async () => {
       const id = await getActiveDynastyId();
       setDynastyId(id);
     })();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const map = await loadPostseasonLogoMap();
+      if (!alive) return;
+      setPostseasonLogoMap(map);
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -113,6 +131,7 @@ export default function CoachesPollRankings() {
       }
 
       const bowlByKey = buildSeasonBowlNameMap(bowlRows);
+      const postseasonLogoFor = createPostseasonLogoResolver(postseasonLogoMap);
       const bowlByTgid = new Map();
       for (const g of games) {
         const bowlNameRaw = getSeasonBowlName(bowlByKey, Number(g.seasonYear), Number(g.week), g.sgnm);
@@ -149,6 +168,9 @@ export default function CoachesPollRankings() {
         const record = recordByTgid.get(String(t.tgid)) || { w: 0, l: 0, t: 0 };
         const recordText = record.t > 0 ? `${record.w}-${record.l}-${record.t}` : `${record.w}-${record.l}`;
         const bowl = bowlByTgid.get(String(t.tgid)) || null;
+        const bowlLogoUrl = bowl?.bowlName
+          ? postseasonLogoFor(/national championship/i.test(bowl.bowlName) ? "Nat Trophy" : bowl.bowlName)
+          : "";
         return {
           tgid: String(t.tgid),
           name: `${String(t.tdna ?? "").trim()} ${String(t.tmna ?? "").trim()}`.trim() || `TGID ${t.tgid}`,
@@ -156,13 +178,14 @@ export default function CoachesPollRankings() {
           logoUrl: logoFor(t.tgid),
           recordText,
           bowlName: bowl?.bowlName || "",
+          bowlLogoUrl,
           bowlResult: bowl?.result || "",
         };
       });
 
       setRows(mapped);
     })();
-  }, [dynastyId, seasonYear]);
+  }, [dynastyId, seasonYear, postseasonLogoMap]);
 
   const sortedRows = useMemo(() => {
     const list = rows.filter((r) => {
@@ -201,8 +224,8 @@ export default function CoachesPollRankings() {
       <div className="hrow" style={{ alignItems: "baseline" }}>
         <h2>Coaches Poll Rankings</h2>
       </div>
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             value={seasonYear ?? ""}
             onChange={(e) => setSeasonYear(Number(e.target.value))}
@@ -226,37 +249,76 @@ export default function CoachesPollRankings() {
       {!sortedRows.length ? (
         <p className="kicker">No teams found for this season.</p>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th style={{ width: 110 }}>Rank</th>
-              <th>Team</th>
-              <th style={{ width: 120 }}>Record</th>
-              <th>Bowl</th>
-              <th style={{ width: 110 }}>Bowl Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((r) => {
-              return (
-                <tr key={`${r.tgid}-${r.name}`}>
-                  <td data-label="Rank">
-                    {r.rank ?? "-"}
-                  </td>
-                  <td data-label="Team">
-                    <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
-                      <TeamCell name={r.name} logoUrl={r.logoUrl} />
-                    </Link>
-                  </td>
-                  <td data-label="W/L">{r.recordText}</td>
-                  <td data-label="Bowl">{r.bowlName || "-"}</td>
-                  <td data-label="Bowl W/L">{r.bowlResult || "-"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="tableWrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: 110 }}>Rank</th>
+                <th>Team</th>
+                <th style={{ width: 120 }}>Record</th>
+                <th className="col-p2 showBelow1024">Bowl</th>
+                <th style={{ width: 110 }} className="col-p2 showBelow1024">Bowl Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((r) => {
+                return (
+                  <tr key={`${r.tgid}-${r.name}`}>
+                    <td data-label="Rank">
+                      {r.rank ?? "-"}
+                    </td>
+                    <td data-label="Team">
+                      <Link to={`/team/${r.tgid}`} style={{ color: "inherit", textDecoration: "none" }}>
+                        <TeamCell name={r.name} logoUrl={r.logoUrl} />
+                      </Link>
+                    </td>
+                    <td data-label="W/L">{r.recordText}</td>
+                    <td data-label="Bowl" className="col-p2 showBelow1024">
+                      {r.bowlName ? (
+                        <Link
+                          to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
+                          className="tableLink tableLogoLabel"
+                          title="View bowl results"
+                        >
+                          {r.bowlLogoUrl ? (
+                            <>
+                              <span className="showBelow1024Inline">
+                                <img
+                                  className="postseasonBowlLogo"
+                                  src={r.bowlLogoUrl}
+                                  alt=""
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </span>
+                              <span className="showAbove1024Inline">
+                                <img
+                                  className="postseasonBowlLogo"
+                                  src={r.bowlLogoUrl}
+                                  alt=""
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </span>
+                            </>
+                          ) : (
+                            <span className="showBelow1024Inline">{r.bowlName}</span>
+                          )}
+                          <span className="hideBelow1024">{r.bowlName}</span>
+                        </Link>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td data-label="Bowl W/L" className="col-p2 showBelow1024">{r.bowlResult || "-"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
 }
+

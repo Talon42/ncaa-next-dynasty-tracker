@@ -21,10 +21,10 @@ const STAT_DEFS = [
   // Offense (requested order)
   { key: "tsoy", label: "TOT OFF", fullLabel: "Total Offense", group: "Offense" },
   { key: "totOffYpg", label: "YDS/G", fullLabel: "Total Offense Yards Per Game", group: "Offense" },
-  { key: "tsop", label: "YDS", fullLabel: "Passing Yards", group: "Offense" },
+  { key: "tsop", label: "PASS YDS", fullLabel: "Passing Yards", group: "Offense" },
   { key: "passYpg", label: "YDS/G", fullLabel: "Passing Yards Per Game", group: "Offense" },
   { key: "tspt", label: "TD", fullLabel: "Passing TD", group: "Offense" },
-  { key: "tsor", label: "YDS", fullLabel: "Rushing Yards", group: "Offense" },
+  { key: "tsor", label: "RUSH YDS", fullLabel: "Rushing Yards", group: "Offense" },
   { key: "rushYpg", label: "YDS/G", fullLabel: "Rushing Yards Per Game", group: "Offense" },
   { key: "tsrt", label: "TD", fullLabel: "Rushing TD", group: "Offense" },
   { key: "offPtsTotal", label: "PTS", fullLabel: "Total Points Scored", group: "Offense" },
@@ -33,10 +33,10 @@ const STAT_DEFS = [
   // Defense (requested order + additions)
   { key: "defTotYds", label: "TOT YDS", fullLabel: "Total Yards Allowed", group: "Defense" },
   { key: "defTotYpg", label: "YDS/G", fullLabel: "Total Yards Allowed Per Game", group: "Defense" },
-  { key: "tsdp", label: "YDS", fullLabel: "Passing Yards Allowed", group: "Defense" },
+  { key: "tsdp", label: "PASS YDS", fullLabel: "Passing Yards Allowed", group: "Defense" },
   { key: "defPassYpg", label: "YDS/G", fullLabel: "Passing Yards Allowed Per Game", group: "Defense" },
   { key: "tssk", label: "SACK", fullLabel: "Sacks", group: "Defense" },
-  { key: "tsdy", label: "YDS", fullLabel: "Rushing Yards Allowed", group: "Defense" },
+  { key: "tsdy", label: "RUSH YDS", fullLabel: "Rushing Yards Allowed", group: "Defense" },
   { key: "defRushYpg", label: "YDS/G", fullLabel: "Rushing Yards Allowed Per Game", group: "Defense" },
   { key: "defPtsPerGame", label: "PTS/G", fullLabel: "Points Allowed Per Game", group: "Defense" },
   { key: "tsdi", label: "INT", fullLabel: "Interceptions", group: "Defense" },
@@ -61,7 +61,44 @@ const STAT_DEFS = [
   { key: "tspy", label: "PEN YDS", fullLabel: "Penalty Yards", group: "Efficiency" },
 ];
 
+const EFFICIENCY_COMPACT_DEFS = [
+  { key: "eff3dPct", label: "3D%", fullLabel: "3rd Down Conversion %", group: "Efficiency" },
+  { key: "eff4dPct", label: "4D%", fullLabel: "4th Down Conversion %", group: "Efficiency" },
+  { key: "eff2pPct", label: "2P%", fullLabel: "2 Point Conversion %", group: "Efficiency" },
+  { key: "rzOffPct", label: "RZ-OFF%", fullLabel: "Red Zone Offense % (TD+FG / ATT)", group: "Efficiency" },
+  { key: "rzDefPct", label: "RZ-DEF%", fullLabel: "Red Zone Defense % (TD+FG / ATT)", group: "Efficiency" },
+  { key: "tspe", label: "PEN", fullLabel: "Penalties", group: "Efficiency" },
+];
+
 const TAB_ORDER = ["Offense", "Defense", "Efficiency"];
+const TEAMSTAT_P0_KEYS = new Set([
+  "offPtsTotal",
+  "offPtsPerGame",
+  "defPtsPerGame",
+  "tsoy",
+  "tsop",
+  "tspt",
+  "tsor",
+  "tsrt",
+  // Defense: keep visible at <=768
+  "defTotYds", // TOT YDS
+  "tsdp", // PASS YDS
+  "tsdy", // RUSH YDS
+  "tssk", // SACK
+  "tsdi", // INT
+
+  // Efficiency (<=1024 compact)
+  "eff3dPct",
+  "eff4dPct",
+  "eff2pPct",
+  "rzOffPct",
+  "rzDefPct",
+]);
+const TEAMSTAT_P1_KEYS = new Set([
+  // Defense turnovers (hide at <=768)
+  "tsff",
+  "tsfr",
+]);
 
 function toComparable(v) {
   if (v === null || v === undefined) return null;
@@ -113,25 +150,10 @@ function TeamCell({ name, logoUrl, rank }) {
           if (src !== FALLBACK_TEAM_LOGO) setSrc(FALLBACK_TEAM_LOGO);
         }}
       />
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        {name}
+      <span className="teamCellName">
+        <span className="teamNameText">{name}</span>
         {showRank ? (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              minWidth: 24,
-              padding: "2px 6px",
-              borderRadius: 999,
-              border: "1px solid rgba(224, 190, 99, 0.45)",
-              background: "rgba(224, 190, 99, 0.18)",
-              fontSize: 11,
-              fontWeight: 800,
-              lineHeight: 1.1,
-            }}
-            title="Coach's Poll Rank"
-          >
+          <span className="teamRankBadge" title="Coach's Poll Rank">
             #{rankValue}
           </span>
         ) : null}
@@ -143,6 +165,62 @@ function TeamCell({ name, logoUrl, rank }) {
 function round1(n) {
   if (!Number.isFinite(n)) return null;
   return Math.round(n * 10) / 10;
+}
+
+function teamStatPriorityClass(key) {
+  if (TEAMSTAT_P0_KEYS.has(key)) return "";
+  if (TEAMSTAT_P1_KEYS.has(key)) return "col-p1";
+  return "col-p2";
+}
+
+function useMaxWidth(maxWidthPx) {
+  const getMatch = () => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches;
+  };
+
+  const [matches, setMatches] = useState(getMatch);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mql = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
+    const onChange = () => setMatches(mql.matches);
+
+    if (mql.addEventListener) mql.addEventListener("change", onChange);
+    else mql.addListener(onChange);
+
+    onChange();
+    return () => {
+      if (mql.removeEventListener) mql.removeEventListener("change", onChange);
+      else mql.removeListener(onChange);
+    };
+  }, [maxWidthPx]);
+
+  return matches;
+}
+
+function moveKeyAfter(cols, moveKey, afterKey) {
+  const fromIdx = cols.findIndex((c) => c.key === moveKey);
+  const afterIdx = cols.findIndex((c) => c.key === afterKey);
+  if (fromIdx === -1 || afterIdx === -1) return cols;
+  if (fromIdx === afterIdx + 1) return cols;
+
+  const next = cols.slice();
+  const [moved] = next.splice(fromIdx, 1);
+  const insertAt = next.findIndex((c) => c.key === afterKey) + 1;
+  next.splice(insertAt, 0, moved);
+  return next;
+}
+
+function orderKeysFirst(cols, orderedKeys) {
+  if (!Array.isArray(cols) || !cols.length) return cols;
+  const rank = new Map(orderedKeys.map((k, i) => [k, i]));
+  return cols.slice().sort((a, b) => {
+    const ra = rank.has(a.key) ? rank.get(a.key) : Number.POSITIVE_INFINITY;
+    const rb = rank.has(b.key) ? rank.get(b.key) : Number.POSITIVE_INFINITY;
+    if (ra !== rb) return ra - rb;
+    return cols.indexOf(a) - cols.indexOf(b);
+  });
 }
 
 export default function TeamStats() {
@@ -325,7 +403,26 @@ export default function TeamStats() {
     };
   }, [dynastyId, seasonYear]);
 
-  const colsForTab = useMemo(() => STAT_DEFS.filter((d) => d.group === tab), [tab]);
+  const isAtOrBelow1024 = useMaxWidth(1024);
+  const isAtOrBelow768 = useMaxWidth(768);
+  const colsForTab = useMemo(() => {
+    if (tab === "Efficiency" && isAtOrBelow1024) return EFFICIENCY_COMPACT_DEFS;
+
+    const cols = STAT_DEFS.filter((d) => d.group === tab);
+    if (tab !== "Defense") return cols;
+
+    if (isAtOrBelow768) {
+      // At <=768, keep the most important defense stats in a compact scan order.
+      return orderKeysFirst(cols, ["defTotYds", "tsdp", "tsdy", "tssk", "tsdi", "defPtsPerGame"]);
+    }
+
+    if (isAtOrBelow1024) {
+      // At <=1024, place INT next to SACK for easier scanning.
+      return moveKeyAfter(cols, "tsdi", "tssk");
+    }
+
+    return cols;
+  }, [tab, isAtOrBelow1024, isAtOrBelow768]);
   const isOffenseTab = tab === "Offense";
   const isDefenseTab = tab === "Defense";
   const isEfficiencyTab = tab === "Efficiency";
@@ -439,6 +536,35 @@ export default function TeamStats() {
       const defRushYpg = gp ? round1(defRush / gp) : null;
       const penPerGame = gp ? round1(Number(s.tspe ?? lc["tspe"] ?? 0) / gp) : null;
 
+      const pct = (made, att) => {
+        const m = Number(made ?? 0);
+        const a = Number(att ?? 0);
+        if (!Number.isFinite(m) || !Number.isFinite(a) || a <= 0) return null;
+        return round1((m / a) * 100);
+      };
+
+      const eff3dPct = pct(s.ts3c ?? lc["ts3c"], s.ts3d ?? lc["ts3d"]);
+      const eff4dPct = pct(s.ts4c ?? lc["ts4c"], s.ts4d ?? lc["ts4d"]);
+      const eff2pPct = pct(s.ts2c ?? lc["ts2c"], s.ts2a ?? lc["ts2a"]);
+
+      const rzOffPct = (() => {
+        const att = Number(s.tsoz ?? lc["tsoz"] ?? 0);
+        const td = Number(s.tsot ?? lc["tsot"] ?? 0);
+        const fg = Number(s.tsof ?? lc["tsof"] ?? 0);
+        if (!Number.isFinite(att) || att <= 0) return null;
+        if (!Number.isFinite(td) || !Number.isFinite(fg)) return null;
+        return round1(((td + fg) / att) * 100);
+      })();
+
+      const rzDefPct = (() => {
+        const att = Number(s.tsdr ?? lc["tsdr"] ?? 0);
+        const td = Number(s.tsdt ?? lc["tsdt"] ?? 0);
+        const fg = Number(s.tsdf ?? lc["tsdf"] ?? 0);
+        if (!Number.isFinite(att) || att <= 0) return null;
+        if (!Number.isFinite(td) || !Number.isFinite(fg)) return null;
+        return round1(((td + fg) / att) * 100);
+      })();
+
       return {
         ...s,
         __lc: lc,
@@ -452,6 +578,11 @@ export default function TeamStats() {
         defPassYpg,
         defRushYpg,
         penPerGame,
+        eff3dPct,
+        eff4dPct,
+        eff2pPct,
+        rzOffPct,
+        rzDefPct,
         offPtsPerGame,
         passYpg,
         rushYpg,
@@ -512,8 +643,8 @@ export default function TeamStats() {
 
   const hasAnyYears = availableYears.length > 0;
 
-  return (
-    <div>
+	  return (
+	    <div>
       <div className="hrow">
         <h2>Team Stats - {tab}</h2>
       </div>
@@ -539,8 +670,8 @@ export default function TeamStats() {
         ))}
       </div>
 
-      <div className="playerStatsControlRow">
-        <div className="playerStatsFilters">
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">
           <select
             value={seasonYear ?? ""}
             onChange={(e) => {
@@ -584,39 +715,50 @@ export default function TeamStats() {
         <div className="muted">
           No Team Stats imported yet. Import a season with TEAM.csv, SCHD.csv, TSSE.csv, and BOWL.csv.
         </div>
-      ) : mergedRows.length === 0 ? (
-        <div className="muted">No stats rows found for {seasonYear}.</div>
-      ) : (
-        <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
-          <div className="statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
-            <table className="table teamStatsTable">
+	      ) : mergedRows.length === 0 ? (
+	        <div className="muted">No stats rows found for {seasonYear}.</div>
+	      ) : (
+	        <div style={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
+	          <div className="tableWrap statsTableWrap" style={{ width: "100%", maxWidth: "100%" }}>
+            <table className="table statsTable teamStatsTable firstColFixed280">
+              <colgroup>
+                <col className="teamColWidth" />
+                {colsForTab.map((c) => (
+                  <col
+                    key={`col-${c.key}`}
+                    className={`statColWidth ${teamStatPriorityClass(c.key)}`}
+                  />
+                ))}
+              </colgroup>
               <thead>
-                {isOffenseTab ? (
-                  <tr>
-                    <th></th>
-                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RUSHING</th>
-                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">POINTS</th>
-                  </tr>
-                ) : isDefenseTab ? (
-                  <tr>
-                    <th></th>
-                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
-                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">RUSHING</th>
-                    <th className="tableGroupHeader tableGroupDivider">POINTS</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">TURNOVERS</th>
-                  </tr>
-                ) : isEfficiencyTab ? (
-                  <tr>
-                    <th></th>
-                    <th colSpan={6} className="tableGroupHeader tableGroupDivider">CONVERSIONS</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE OFFENSE</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE DEFENSE</th>
-                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PENALTIES</th>
-                  </tr>
-                ) : null}
+	                {isOffenseTab ? (
+	                  <tr className="teamStatsGroupRow teamStatsGroupRowFull">
+	                    <th></th>
+	                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
+	                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
+	                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RUSHING</th>
+	                    <th colSpan={2} className="tableGroupHeader tableGroupDivider">POINTS</th>
+	                  </tr>
+	                ) : isDefenseTab ? (
+	                  <>
+	                    <tr className="teamStatsGroupRow teamStatsGroupRowFull">
+	                      <th></th>
+	                      <th colSpan={2} className="tableGroupHeader tableGroupDivider">TOTAL</th>
+	                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">PASSING</th>
+	                      <th colSpan={2} className="tableGroupHeader tableGroupDivider">RUSHING</th>
+	                      <th className="tableGroupHeader tableGroupDivider">POINTS</th>
+	                      <th colSpan={3} className="tableGroupHeader tableGroupDivider">TURNOVERS</th>
+	                    </tr>
+	                  </>
+	                ) : isEfficiencyTab ? (
+	                  <tr className="teamStatsGroupRow teamStatsGroupRowFull">
+	                    <th></th>
+	                    <th colSpan={6} className="tableGroupHeader tableGroupDivider">CONVERSIONS</th>
+	                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE OFFENSE</th>
+	                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">RED ZONE DEFENSE</th>
+	                    <th colSpan={3} className="tableGroupHeader tableGroupDivider">PENALTIES</th>
+	                  </tr>
+	                ) : null}
                 <tr>
                   <th
                     className="teamCol"
@@ -661,7 +803,7 @@ export default function TeamStats() {
                     return (
                       <th
                         key={c.key}
-                        className={`${isGroupStart ? "tableGroupDivider " : ""}statCol`}
+                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol ${teamStatPriorityClass(c.key)}`}
                         onClick={() => clickSort(c.key)}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title={c.fullLabel}
@@ -690,7 +832,7 @@ export default function TeamStats() {
                       </Link>
                     </td>
 
-                    {colsForTab.map((c, idx) => {
+                  {colsForTab.map((c, idx) => {
                       const isTotalStart = idx === 0;
                       const isPassingStart = isOffenseTab ? idx === 2 : idx === 2;
                       const isRushingStart = isOffenseTab ? idx === 5 : idx === 5;
@@ -715,16 +857,16 @@ export default function TeamStats() {
                                 isRedZoneDefStart ||
                                 isPenaltiesStart
                               : false;
-                      return (
-                        <td
-                          key={c.key}
-                          className={`${isGroupStart ? "tableGroupDivider " : ""}statCol`}
-                          data-label={c.fullLabel || c.label}
-                        >
-                          {getVal(r, c.key) ?? ""}
-                        </td>
-                      );
-                    })}
+                    return (
+                      <td
+                        key={c.key}
+                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol ${teamStatPriorityClass(c.key)}`}
+                        data-label={c.fullLabel || c.label}
+                      >
+                        {getVal(r, c.key) ?? ""}
+                      </td>
+                    );
+                  })}
                   </tr>
                 ))}
               </tbody>
@@ -735,3 +877,4 @@ export default function TeamStats() {
     </div>
   );
 }
+

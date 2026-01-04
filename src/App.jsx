@@ -62,12 +62,9 @@ export default function App() {
 
   // widen the routed card on TeamsIndex and Team Stats
   const isTeamsPage =
-    location.pathname === "/teams" ||
     location.pathname === "/team-stats" ||
     location.pathname === "/player-stats" ||
-    location.pathname === "/postseason" ||
     location.pathname === "/coaches" ||
-    location.pathname === "/coaches-poll" ||
     location.pathname.startsWith("/coach/");
   const isSchedulePage = location.pathname === "/";
 
@@ -102,7 +99,7 @@ export default function App() {
   const [importStatus, setImportStatus] = useState("");
   const [importBusy, setImportBusy] = useState(false);
   const [importFileName, setImportFileName] = useState("");
-  const [openHeaderPanel, setOpenHeaderPanel] = useState(null);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -137,7 +134,7 @@ export default function App() {
   }, [dynasties.length, showBackupModal]);
 
   useEffect(() => {
-    setOpenHeaderPanel(null);
+    setMobileDrawerOpen(false);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -502,173 +499,184 @@ export default function App() {
     }
   }
 
-  function toggleHeaderPanel(name) {
-    setOpenHeaderPanel((cur) => (cur === name ? null : name));
+  const navItems = useMemo(
+    () =>
+      [
+        { key: "coaches-poll", label: "Coaches Poll Rankings", title: "Coaches Poll Rankings", path: "/coaches-poll" },
+        { key: "coaches", label: "Coaches", title: "Coaches", path: "/coaches" },
+        {
+          key: "standings",
+          label: "Conference Standings",
+          title: "Conference Standings",
+          path: "/standings",
+          getHref: () => `/standings?conf=All&ts=${Date.now()}`,
+        },
+        { key: "postseason", label: "Postseason", title: "Postseason", path: "/postseason" },
+        { key: "schedule", label: "Schedule / Results", title: "Schedule / Results", path: "/" },
+        { key: "team-stats", label: "Team Stats", title: "Team Stats", path: "/team-stats" },
+        { key: "player-stats", label: "Player Stats", title: "Player Stats", path: "/player-stats" },
+        { key: "teams", label: "Teams", title: "Teams", path: "/teams" },
+      ],
+    []
+  );
+
+  function navHref(item) {
+    return item.getHref ? item.getHref() : item.path;
   }
+
+  function isNavActive(item) {
+    if (item.path === "/") return location.pathname === "/";
+    return location.pathname === item.path;
+  }
+
+  function handleNavClick(item) {
+    navigate(navHref(item));
+    setMobileDrawerOpen(false);
+  }
+
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [location.pathname, location.search]);
 
   return (
     <div className="shell">
       <div className="mobileHeader">
-        <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
-        <div className="headerMenus">
-          <div className="headerNavGroup">
-            <div className="headerNavButtons">
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/coaches")}
-                title="Coaches"
-              >
-                Coaches
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/coaches-poll")}
-                title="Coaches Poll Rankings"
-              >
-                Coaches Poll Rankings
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate(`/standings?conf=All&ts=${Date.now()}`)}
-                title="Conference Standings"
-              >
-                Conference Standings
-              </button>
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/postseason")}
-                title="Postseason"
-              >
-                Postseason
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/")}
-                title="Schedule / Results"
-              >
-                Schedule / Results
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/team-stats")}
-                title="Team Stats"
-              >
-                Team Stats
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/player-stats")}
-                title="Player Stats"
-              >
-                Player Stats
-              </button>
-
-              <button
-                className="headerNavBtn"
-                onClick={() => navigate("/teams")}
-                title="Teams"
-              >
-                Teams
-              </button>
-            </div>
-          </div>
-
-          <div className="headerDivider" role="presentation" />
-
-          <div className={`headerMenu ${openHeaderPanel === "dynasties" ? "open" : ""}`}>
+        <div className="container mobileHeaderBar">
+          <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
+          <div className="mobileHeaderActions">
             <button
-              className="headerTrigger"
-              onClick={() => toggleHeaderPanel("dynasties")}
-              aria-expanded={openHeaderPanel === "dynasties"}
+              className="headerUploadBtn"
+              onClick={() => setShowImportSeason(true)}
+              title="Upload New Season"
+              aria-label="Upload New Season"
+              disabled={!activeId}
             >
-              Dynasties
+              Upload Season <span aria-hidden="true">+</span>
             </button>
-            <div className="headerPanel">
-              <div className="sideNav">
-                {activeDynasty ? (
-                  <a
-                    href="#"
-                    className="active"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpenHeaderPanel(null);
-                      if (dynasties.length === 1) {
-                        openDynastyActions(activeDynasty);
-                        return;
-                      }
-                      setShowDynastyActions(false);
-                      setSelectedDynasty(null);
-                      navigate("/");
-                    }}
-                    title="Go to Schedule / Results"
-                  >
-                    <span>{activeDynasty.name}</span>
-                    <span className="badge active">Active</span>
-                  </a>
-                ) : (
-                  <span className="kicker">No dynasty loaded</span>
-                )}
-
-                {otherDynasties.map((d) => (
-                  <a
-                    key={d.id}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpenHeaderPanel(null);
-                      openDynastyActions(d);
-                    }}
-                  >
-                    <span>{d.name}</span>
-                  </a>
-                ))}
-              </div>
-
-              <div className="sidebarActionStack">
-                <button
-                  className="sidebarBtn"
-                  onClick={() => {
-                    setOpenHeaderPanel(null);
-                    setShowNewDynasty(true);
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  + New Dynasty
-                </button>
-
-                <button
-                  className="sidebarBtn"
-                  onClick={() => {
-                    setOpenHeaderPanel(null);
-                    resetImportState();
-                    setShowBackupModal(true);
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  Import / Export
-                </button>
-              </div>
-            </div>
+            <button
+              className="headerHamburger"
+              onClick={() => setMobileDrawerOpen(true)}
+              aria-label="Open navigation"
+              title="Open navigation"
+            >
+              <span />
+              <span />
+              <span />
+            </button>
           </div>
-
-          <button
-            className="headerAddSeason"
-            onClick={() => setShowImportSeason(true)}
-            title="Upload New Season"
-            aria-label="Upload New Season"
-            disabled={!activeId}
-          >
-            <span className="headerAddSeasonIcon">+</span>
-          </button>
         </div>
+        {mobileDrawerOpen ? (
+          <div
+            className="mobileDrawerOverlay"
+            onClick={() => setMobileDrawerOpen(false)}
+            role="presentation"
+          >
+            <aside className="mobileDrawer" onClick={(e) => e.stopPropagation()}>
+              <div className="mobileDrawerHeader">
+                <div className="mobileDrawerTitle">Navigation</div>
+                <button className="headerHamburger isClose" onClick={() => setMobileDrawerOpen(false)}>
+                  <span />
+                  <span />
+                </button>
+              </div>
+              <div className="sideSection" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
+                <div className="sideTitle" style={{ marginBottom: 8 }}>
+                  Pages
+                </div>
+                <div className="sideNav">
+                  {navItems
+                    .slice()
+                    .sort((a, b) => a.label.localeCompare(b.label))
+                    .map((item) => (
+                      <a
+                        key={item.key}
+                        href="#"
+                        className={isNavActive(item) ? "active" : ""}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleNavClick(item);
+                        }}
+                        title={item.title}
+                      >
+                        <span>{item.label}</span>
+                      </a>
+                    ))}
+                </div>
+              </div>
+              <div className="sideSection">
+                <div className="sideTitleRow">
+                  <div className="sideTitle">Dynasties</div>
+                </div>
+                <div className="sideNav">
+                  {activeDynasty ? (
+                    <a
+                      href="#"
+                      className="active"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (dynasties.length === 1) {
+                          openDynastyActions(activeDynasty);
+                          setMobileDrawerOpen(false);
+                          return;
+                        }
+                        setShowDynastyActions(false);
+                        setSelectedDynasty(null);
+                        navigate("/");
+                        setMobileDrawerOpen(false);
+                      }}
+                      title="Go to Schedule / Results"
+                    >
+                      <span>{activeDynasty.name}</span>
+                      <span className="badge active">Active</span>
+                    </a>
+                  ) : (
+                    <span className="kicker">No dynasty loaded</span>
+                  )}
+                  {otherDynasties.map((d) => (
+                    <a
+                      key={d.id}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openDynastyActions(d);
+                        setMobileDrawerOpen(false);
+                      }}
+                    >
+                      <span>{d.name}</span>
+                    </a>
+                  ))}
+                </div>
+                <div className="sidebarActionStack">
+                  <button
+                    className="sidebarBtn"
+                    onClick={() => {
+                      setShowNewDynasty(true);
+                      setMobileDrawerOpen(false);
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    + New Dynasty
+                  </button>
+                  <button
+                    className="sidebarBtn"
+                    onClick={() => {
+                      resetImportState();
+                      setShowBackupModal(true);
+                      setMobileDrawerOpen(false);
+                    }}
+                    style={{ width: "100%" }}
+                  >
+                    Import / Export
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        ) : null}
       </div>
       {!clearingStorage && (
-        <div className="shellGrid">
+        <div className="container">
+          <div className="shellGrid">
           <aside className="sidebar">
           <div className="brandRow" style={{ marginBottom: 10 }}>
             <h1>NCAA Next Dynasty Tracker</h1>
@@ -681,57 +689,17 @@ export default function App() {
             </div>
 
             <div className="sideNav">
-              {[
-                {
-                  label: "Coaches Poll Rankings",
-                  title: "Coaches Poll Rankings",
-                  href: "/coaches-poll",
-                },
-                {
-                  label: "Coaches",
-                  title: "Coaches",
-                  href: "/coaches",
-                },
-                {
-                  label: "Conference Standings",
-                  title: "Conference Standings",
-                  href: `/standings?conf=All&ts=${Date.now()}`,
-                },
-                {
-                  label: "Postseason",
-                  title: "Postseason",
-                  href: "/postseason",
-                },
-                {
-                  label: "Schedule / Results",
-                  title: "Schedule / Results",
-                  href: "/",
-                },
-                {
-                  label: "Team Stats",
-                  title: "Team Stats",
-                  href: "/team-stats",
-                },
-                {
-                  label: "Player Stats",
-                  title: "Player Stats",
-                  href: "/player-stats",
-                },
-                {
-                  label: "Teams",
-                  title: "Teams",
-                  href: "/teams",
-                },
-              ]
+              {navItems
                 .slice()
                 .sort((a, b) => a.label.localeCompare(b.label))
                 .map((item) => (
                   <a
-                    key={item.label}
+                    key={item.key}
                     href="#"
+                    className={isNavActive(item) ? "active" : ""}
                     onClick={(e) => {
                       e.preventDefault();
-                      navigate(item.href);
+                      handleNavClick(item);
                     }}
                     title={item.title}
                   >
@@ -872,7 +840,7 @@ export default function App() {
         </div>
           </aside>
 
-          <main className="main">
+          <main className="main shrink0">
           {dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
           ) : dynasties.length === 0 ? null : (
@@ -883,10 +851,17 @@ export default function App() {
                   isTeamsPage ? "cardWide" : "",
                   isSchedulePage ? "cardSchedule" : "",
                   location.pathname.startsWith("/player/") ? "cardPlayer" : "",
-                  location.pathname === "/player-stats" || location.pathname === "/team-stats"
+                  location.pathname === "/player-stats" ||
+                  location.pathname === "/team-stats" ||
+                  location.pathname === "/teams" ||
+                  location.pathname === "/coaches" ||
+                  location.pathname.startsWith("/coach/") ||
+                  location.pathname === "/postseason" ||
+                  location.pathname.startsWith("/postseason/")
                     ? "cardStatsWide"
                     : "",
                   location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
+                  location.pathname === "/standings" || location.pathname === "/coaches-poll" ? "cardFixedMax" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -913,6 +888,7 @@ export default function App() {
             </div>
           )}
           </main>
+          </div>
         </div>
       )}
 

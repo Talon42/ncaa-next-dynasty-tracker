@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { db } from "./db";
+import { normalizeBowlName } from "./postseasonMeta";
 
 const CSV_PATH = `${import.meta.env.BASE_URL}logos/ncaa_team_logos.csv`;
 const CONF_CSV_PATH = `${import.meta.env.BASE_URL}logos/conference_logos.csv`;
@@ -186,7 +187,7 @@ export async function loadPostseasonLogoMap() {
       const name = String(nameRaw ?? "").trim();
       const url = normalizeGithubUrl(urlRaw);
       if (!name || !url) continue;
-      map.set(name.toLowerCase(), url);
+      map.set(normalizeBowlName(name), url);
     }
 
     _postseasonLogoMapCache = map;
