@@ -221,6 +221,7 @@ export default function PlayerStats() {
 
   const [rows, setRows] = useState([]);
   const [teamSeasons, setTeamSeasons] = useState([]);
+  const [games, setGames] = useState([]);
   const [logoByTgid, setLogoByTgid] = useState(new Map());
   const [overrideByTgid, setOverrideByTgid] = useState(new Map());
   const [identityByUid, setIdentityByUid] = useState(new Map());
@@ -230,6 +231,7 @@ export default function PlayerStats() {
   const [teamFilter, setTeamFilter] = useState("All");
   const [posFilter, setPosFilter] = useState("All");
   const [playerFilter, setPlayerFilter] = useState("");
+  const [qualifiersEnabled, setQualifiersEnabled] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [isCompactFilters, setIsCompactFilters] = useState(false);
   const filterMenuRef = useRef(null);
@@ -293,6 +295,7 @@ export default function PlayerStats() {
     const team = params.get("team");
     const pos = params.get("pos");
     const player = params.get("player");
+    const qual = params.get("qual");
 
     const resolved = getSeasonFromParamOrSaved(season);
     if (resolved != null) {
@@ -314,6 +317,7 @@ export default function PlayerStats() {
     if (team) setTeamFilter(team);
     if (pos) setPosFilter(pos);
     if (player) setPlayerFilter(player);
+    setQualifiersEnabled(qual === "1" || qual === "true");
   }, [location.search]);
 
   useEffect(() => {
@@ -357,6 +361,11 @@ export default function PlayerStats() {
     params.set("conf", confFilter);
     params.set("team", teamFilter);
     params.set("pos", posFilter);
+    if (qualifiersEnabled) {
+      params.set("qual", "1");
+    } else {
+      params.delete("qual");
+    }
     if (playerFilter.trim()) {
       params.set("player", playerFilter.trim());
     } else {
@@ -373,6 +382,7 @@ export default function PlayerStats() {
     confFilter,
     teamFilter,
     posFilter,
+    qualifiersEnabled,
     playerFilter,
     navigate,
     location.search,
@@ -380,7 +390,7 @@ export default function PlayerStats() {
 
   useEffect(() => {
     setVisibleCount(100);
-  }, [seasonYear, tab, confFilter, teamFilter, posFilter, playerFilter]);
+  }, [seasonYear, tab, confFilter, teamFilter, posFilter, qualifiersEnabled, playerFilter]);
 
   useEffect(() => {
     if (tab === "Passing") {
@@ -417,6 +427,7 @@ export default function PlayerStats() {
       if (!dynastyId || !seasonYear) {
         setRows([]);
         setTeamSeasons([]);
+        setGames([]);
         setLogoByTgid(new Map());
         setOverrideByTgid(new Map());
         setSeasonLoaded(false);
@@ -448,15 +459,17 @@ export default function PlayerStats() {
         return db.playerSeasonStats.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]);
       })();
 
-      const [statsRows, seasonTeams] = await Promise.all([
+      const [statsRows, seasonTeams, seasonGames] = await Promise.all([
         statsQuery.toArray(),
         db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
+        db.games.where("[dynastyId+seasonYear]").equals([dynastyId, seasonYear]).toArray(),
       ]);
 
       if (!alive) return;
 
       setRows(statsRows);
       setTeamSeasons(seasonTeams);
+      setGames(seasonGames);
       setSeasonLoaded(true);
       setLoading(false);
     })();
@@ -636,10 +649,52 @@ export default function PlayerStats() {
   const colsForTab = useMemo(() => statsDefsForTab(tab), [tab]);
   const category = useMemo(() => categoryForTab(tab), [tab]);
 
+  const teamGamesByTgid = useMemo(() => {
+    const map = new Map();
+    for (const g of games) {
+      const ht = String(g.homeTgid ?? "");
+      const at = String(g.awayTgid ?? "");
+      const hs = g.homeScore;
+      const as = g.awayScore;
+      if (!ht || !at) continue;
+      if (hs == null || as == null) continue;
+
+      map.set(ht, (map.get(ht) ?? 0) + 1);
+      map.set(at, (map.get(at) ?? 0) + 1);
+    }
+    return map;
+  }, [games]);
+
   const tabRows = useMemo(() => {
     if (!colsForTab.length) return filteredRows;
-    return filteredRows.filter((row) => rowHasStatsForTab(row, colsForTab, normalizeTab(tab)));
-  }, [filteredRows, colsForTab, tab]);
+
+    const applyQualifier =
+      qualifiersEnabled && (tab === "Passing" || tab === "Rushing" || tab === "Receiving");
+
+    return filteredRows.filter((row) => {
+      if (!rowHasStatsForTab(row, colsForTab, normalizeTab(tab))) return false;
+      if (!applyQualifier) return true;
+
+      const tgid = String(row.tgid ?? "");
+      const teamGames = teamGamesByTgid.get(tgid) ?? 0;
+      if (!Number.isFinite(teamGames) || teamGames <= 0) return false;
+
+      if (tab === "Passing") {
+        const att = Number(row.passAtt ?? 0);
+        return Number.isFinite(att) && att / teamGames >= 14;
+      }
+      if (tab === "Rushing") {
+        const att = Number(row.rushAtt ?? 0);
+        return Number.isFinite(att) && att / teamGames >= 10;
+      }
+      if (tab === "Receiving") {
+        const rec = Number(row.recvCat ?? 0);
+        return Number.isFinite(rec) && rec / teamGames >= 1;
+      }
+
+      return true;
+    });
+  }, [filteredRows, colsForTab, tab, qualifiersEnabled, teamGamesByTgid]);
 
   const sortedRows = useMemo(() => {
     const dir = sortDir === "desc" ? -1 : 1;
@@ -681,11 +736,21 @@ export default function PlayerStats() {
 
   const rankLabels = useMemo(() => {
     const normalizedTab = normalizeTab(tab);
+    const OFFENSE_WORSE_HIGHER_KEYS = new Set(["passSacks", "passInt", "rushFum", "recvFum", "recvDrops"]);
+    const isOffenseTab = tab === "Passing" || tab === "Rushing" || tab === "Receiving";
+    const isNeutralSortKey =
+      sortKey === "playerName" ||
+      sortKey === "teamName" ||
+      sortKey === "position" ||
+      sortKey === "classYear";
+    const bestIsLower = isOffenseTab && OFFENSE_WORSE_HIGHER_KEYS.has(sortKey);
+    const bestFirst = isNeutralSortKey ? true : bestIsLower ? sortDir === "asc" : sortDir === "desc";
+
     const labelForRow = (row) => {
       if (sortKey === "gp") return toComparable(getGpForTab(row, normalizedTab));
-      if (sortKey === "playerName" || sortKey === "position" || sortKey === "classYear") {
-        return toComparable(row?.[sortKey]);
-      }
+      if (sortKey === "playerName") return toComparable(row?.playerSortName);
+      if (sortKey === "teamName") return toComparable(row?.teamName);
+      if (sortKey === "position" || sortKey === "classYear") return toComparable(row?.[sortKey]);
 
       const raw = valueForStat(row, sortKey, tab);
       const comparable = toComparable(raw);
@@ -695,23 +760,32 @@ export default function PlayerStats() {
       return comparable;
     };
 
-    const labels = new Array(displayedRows.length);
+    const labels = new Array(sortedRows.length);
     let currentRank = 0;
     let previous = Symbol("rank");
 
-    for (let index = 0; index < displayedRows.length; index += 1) {
-      const key = labelForRow(displayedRows[index]);
-      if (index === 0 || key !== previous) {
-        currentRank += 1;
+    if (bestFirst) {
+      for (let index = 0; index < sortedRows.length; index += 1) {
+        const key = labelForRow(sortedRows[index]);
+        if (index === 0 || key !== previous) {
+          currentRank += 1;
+          previous = key;
+        }
         labels[index] = String(currentRank);
-        previous = key;
-      } else {
+      }
+    } else {
+      for (let index = sortedRows.length - 1; index >= 0; index -= 1) {
+        const key = labelForRow(sortedRows[index]);
+        if (index === sortedRows.length - 1 || key !== previous) {
+          currentRank += 1;
+          previous = key;
+        }
         labels[index] = String(currentRank);
       }
     }
 
     return labels;
-  }, [displayedRows, sortKey, tab]);
+  }, [sortedRows, sortKey, sortDir, tab]);
 
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
@@ -899,6 +973,17 @@ export default function PlayerStats() {
                   {t}
                 </button>
               ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                type="button"
+                className={`toggleBtn qualifierToggleBtn${qualifiersEnabled ? " active" : ""}`}
+                style={{ padding: "6px 10px", fontSize: 12, opacity: 0.95 }}
+                onClick={() => setQualifiersEnabled((v) => !v)}
+                title="Filters out players who don't meet the stat qualifier for this tab"
+              >
+                Q
+              </button>
             </div>
             {renderFilterMenu()}
           </div>
