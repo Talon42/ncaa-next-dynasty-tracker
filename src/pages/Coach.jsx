@@ -102,6 +102,16 @@ function approvalLabel(value) {
   return { text: "Secure", color: "#2f9b4f" };
 }
 
+function runPassPercentsFromPassValue(value) {
+  const passRaw = Number(value);
+  if (!Number.isFinite(passRaw)) return null;
+
+  const pass = Math.max(0, Math.min(100, passRaw));
+  const run = Math.max(0, Math.min(100, 100 - pass));
+
+  return { run: Math.round(run), pass: Math.round(pass) };
+}
+
 export default function Coach() {
   const { ccid } = useParams();
   const coachId = String(ccid ?? "");
@@ -952,6 +962,7 @@ export default function Coach() {
             };
             const raw = Number(coachStats.runPassTendency);
             const has = Number.isFinite(raw);
+            const pctValues = runPassPercentsFromPassValue(raw);
             const scaleMax = Number.isFinite(Number(tendencyScale.offMax)) ? Number(tendencyScale.offMax) : 80;
             const min = 20;
             const max = Math.max(min, Math.min(80, scaleMax));
@@ -965,8 +976,12 @@ export default function Coach() {
                   Offense
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span className="kicker infoCardTitle infoCardLabelStrong">Run</span>
-                  <span className="kicker infoCardTitle infoCardLabelStrong">Pass</span>
+                  <span className="kicker infoCardTitle infoCardLabelStrong">
+                    Run{pctValues ? ` ${pctValues.run}%` : ""}
+                  </span>
+                  <span className="kicker infoCardTitle infoCardLabelStrong">
+                    Pass{pctValues ? ` ${pctValues.pass}%` : ""}
+                  </span>
                 </div>
 
                 <div
@@ -1028,6 +1043,7 @@ export default function Coach() {
                 {(() => {
                   const rawDef = Number(coachStats.defenseRunPassTendency);
                   const hasDef = Number.isFinite(rawDef);
+                  const pctValuesDef = runPassPercentsFromPassValue(rawDef);
                   const scaleMaxDef = Number.isFinite(Number(tendencyScale.defMax))
                     ? Number(tendencyScale.defMax)
                     : 80;
@@ -1043,8 +1059,12 @@ export default function Coach() {
                         Defense
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <span className="kicker infoCardTitle infoCardLabelStrong">Man</span>
-                        <span className="kicker infoCardTitle infoCardLabelStrong">Zone</span>
+                        <span className="kicker infoCardTitle infoCardLabelStrong">
+                          Run{pctValuesDef ? ` ${pctValuesDef.run}%` : ""}
+                        </span>
+                        <span className="kicker infoCardTitle infoCardLabelStrong">
+                          Pass{pctValuesDef ? ` ${pctValuesDef.pass}%` : ""}
+                        </span>
                       </div>
 
                       <div
