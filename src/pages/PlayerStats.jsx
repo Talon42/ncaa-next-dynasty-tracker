@@ -679,6 +679,40 @@ export default function PlayerStats() {
 
   const displayedRows = useMemo(() => sortedRows.slice(0, visibleCount), [sortedRows, visibleCount]);
 
+  const rankLabels = useMemo(() => {
+    const normalizedTab = normalizeTab(tab);
+    const labelForRow = (row) => {
+      if (sortKey === "gp") return toComparable(getGpForTab(row, normalizedTab));
+      if (sortKey === "playerName" || sortKey === "position" || sortKey === "classYear") {
+        return toComparable(row?.[sortKey]);
+      }
+
+      const raw = valueForStat(row, sortKey, tab);
+      const comparable = toComparable(raw);
+      if (typeof comparable === "number" && Number.isFinite(comparable)) {
+        return Number(comparable.toFixed(6));
+      }
+      return comparable;
+    };
+
+    const labels = new Array(displayedRows.length);
+    let currentRank = 0;
+    let previous = Symbol("rank");
+
+    for (let index = 0; index < displayedRows.length; index += 1) {
+      const key = labelForRow(displayedRows[index]);
+      if (index === 0 || key !== previous) {
+        currentRank += 1;
+        labels[index] = String(currentRank);
+        previous = key;
+      } else {
+        labels[index] = String(currentRank);
+      }
+    }
+
+    return labels;
+  }, [displayedRows, sortKey, tab]);
+
   function clickSort(nextKey) {
     if (sortKey !== nextKey) {
       setSortKey(nextKey);
@@ -918,6 +952,7 @@ export default function PlayerStats() {
                 .join(" ")}
             >
               <colgroup>
+                <col className="playerStatsRankCol" />
                 <col className="playerStatsJerseyCol" />
                 <col className="playerStatsNameColWidth" />
                 <col className="playerStatsMetaCol col-p2 showBelow1024" />
@@ -931,22 +966,23 @@ export default function PlayerStats() {
                 {isReturnsTab ? (
                   <>
                     <tr className="statsGroupRow">
-                      <th colSpan={2} className="tableGroupDivider"></th>
+                      <th colSpan={3} className="tableGroupDivider"></th>
                       <th colSpan={3}></th>
                       <th colSpan={5} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
                       <th colSpan={5} className="tableGroupHeader tableGroupDivider">PUNTS</th>
                     </tr>
                     <tr className="returnsGroupRowCompact">
-                      <th colSpan={4}></th>
+                      <th colSpan={5}></th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">PUNTS</th>
                     </tr>
                     <tr className="returnsGroupRowTiny">
-                      <th colSpan={4}></th>
+                      <th colSpan={5}></th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">PUNTS</th>
                     </tr>
                     <tr className="statsGroupRow showBelow1024Row">
+                      <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
@@ -1009,16 +1045,17 @@ export default function PlayerStats() {
                 ) : isKickingTab ? (
                   <>
                     <tr className="statsGroupRow">
-                      <th colSpan={5}></th>
+                      <th colSpan={6}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
                     </tr>
                     <tr className="kickingGroupRowCompact">
-                      <th colSpan={4}></th>
+                      <th colSpan={5}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
                     </tr>
                     <tr className="statsGroupRow showBelow1024Row">
+                      <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
@@ -1076,13 +1113,14 @@ export default function PlayerStats() {
                 ) : isDefenseTab ? (
                   <>
                     <tr className="statsGroupRow">
-                      <th colSpan={4}></th>
+                      <th colSpan={5}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">TACKLES</th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">INTERCEPTIONS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">FUMBLES</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">SCORING</th>
                     </tr>
                     <tr>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
                         onClick={() => clickSort("playerName")}
@@ -1152,12 +1190,13 @@ export default function PlayerStats() {
                 ) : isScoringTab ? (
                   <>
                     <tr className="scoringGroupFull">
-                      <th colSpan={2}></th>
+                      <th colSpan={3}></th>
                       <th colSpan={3}></th>
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">TOUCHDOWNS</th>
                         <th colSpan={4} className="tableGroupHeader tableGroupDivider">SCORING</th>
                       </tr>
                     <tr>
+                      <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                     <th
                       onClick={() => clickSort("playerName")}
@@ -1212,6 +1251,7 @@ export default function PlayerStats() {
                   </>
                 ) : (
                   <tr>
+                    <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                     <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                     <th
                       onClick={() => clickSort("playerName")}
@@ -1281,8 +1321,15 @@ export default function PlayerStats() {
                 )}
               </thead>
               <tbody>
-                {displayedRows.map((r) => (
+                {displayedRows.map((r, idx) => (
                   <tr key={`${r.pgid}-${r.seasonYear}`}>
+                    <td
+                      data-label="RNK"
+                      className="centerCol"
+                      style={{ color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}
+                    >
+                      {rankLabels[idx]}
+                    </td>
                     <td data-label="#" style={{ textAlign: "left" }}>
                       <span
                         style={{

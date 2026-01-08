@@ -1056,8 +1056,8 @@ button:disabled {
 
 .playerStatsTable th:first-child,
 .playerStatsTable td:first-child {
-  width: 30px;
-  min-width: 30px;
+  width: 42px;
+  min-width: 42px;
 }
 
 .playerStatsTable {
@@ -1069,6 +1069,10 @@ button:disabled {
 
 .playerStatsTable col.playerStatsJerseyCol {
   width: 30px;
+}
+
+.playerStatsTable col.playerStatsRankCol {
+  width: 42px;
 }
 
 .playerStatsTable col.playerStatsNameColWidth {
