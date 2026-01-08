@@ -1,0 +1,2757 @@
+{
+  "format": "dynasty-tracker-tdb-layout",
+  "source": {
+    "dynastyFile": "F:\\Test Dynasty Files\\Test File Import\\2025\\BASLUS-21214DDyn1"
+  },
+  "generatedAt": "2026-01-08T19:14:15.696Z",
+  "tables": {
+    "BOWL": {
+      "recordSizeBytes": 38,
+      "recordCount": 47,
+      "capacity": 47,
+      "recordDataOffset": 296,
+      "fields": {
+        "BCI1": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 240,
+          "bitMode": "lsb"
+        },
+        "BCR1": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 245,
+          "bitMode": "lsb"
+        },
+        "BCI2": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 249,
+          "bitMode": "lsb"
+        },
+        "BCR2": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 254,
+          "bitMode": "lsb"
+        },
+        "BMFD": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 192,
+          "bitMode": "lsb"
+        },
+        "SGID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 223,
+          "bitMode": "lsb"
+        },
+        "UTID": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 269,
+          "bitMode": "lsb"
+        },
+        "GTOD": {
+          "sizeBits": 11,
+          "type": "uint",
+          "bitOffset": 202,
+          "bitMode": "lsb"
+        },
+        "BNME": {
+          "sizeBits": 192,
+          "type": "string",
+          "byteOffset": 0,
+          "byteLen": 24
+        },
+        "SGNM": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 262,
+          "bitMode": "lsb"
+        },
+        "BMON": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 258,
+          "bitMode": "lsb"
+        },
+        "SEWN": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 276,
+          "bitMode": "lsb"
+        },
+        "BLGO": {
+          "sizeBits": 10,
+          "type": "sint",
+          "bitOffset": 213,
+          "bitMode": "lsb"
+        },
+        "BPLO": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 280,
+          "bitMode": "lsb"
+        },
+        "BIDX": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 232,
+          "bitMode": "lsb"
+        },
+        "BDAY": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 287,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "COCH": {
+      "recordSizeBytes": 108,
+      "recordCount": 310,
+      "capacity": 315,
+      "recordDataOffset": 1384,
+      "fields": {
+        "CT05": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 672,
+          "bitMode": "lsb"
+        },
+        "CT15": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 674,
+          "bitMode": "lsb"
+        },
+        "CT25": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 675,
+          "bitMode": "msb"
+        },
+        "CDTA": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 336,
+          "bitMode": "lsb"
+        },
+        "COTA": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 344,
+          "bitMode": "lsb"
+        },
+        "CCBB": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 678,
+          "bitMode": "lsb"
+        },
+        "CDPC": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 682,
+          "bitMode": "lsb"
+        },
+        "CRPC": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 689,
+          "bitMode": "lsb"
+        },
+        "CTPC": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 696,
+          "bitMode": "lsb"
+        },
+        "CFRC": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 703,
+          "bitMode": "lsb"
+        },
+        "CFUC": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 704,
+          "bitMode": "lsb"
+        },
+        "CYCD": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 705,
+          "bitMode": "lsb"
+        },
+        "CCID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "CDID": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 712,
+          "bitMode": "lsb"
+        },
+        "TGID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 713,
+          "bitMode": "lsb"
+        },
+        "CPID": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 352,
+          "bitMode": "lsb"
+        },
+        "PTID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 722,
+          "bitMode": "lsb"
+        },
+        "CPRE": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 360,
+          "bitMode": "lsb"
+        },
+        "CCTF": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 704,
+          "bitMode": "lsb"
+        },
+        "CLTF": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "COCI": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 732,
+          "bitMode": "lsb"
+        },
+        "CSKI": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 736,
+          "bitMode": "msb"
+        },
+        "CCWI": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "CSWI": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 80,
+          "bitMode": "lsb"
+        },
+        "C25L": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 368,
+          "bitMode": "lsb"
+        },
+        "CBLL": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 744,
+          "bitMode": "lsb"
+        },
+        "CCOL": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 376,
+          "bitMode": "lsb"
+        },
+        "CCRL": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 384,
+          "bitMode": "lsb"
+        },
+        "CNTL": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 751,
+          "bitMode": "lsb"
+        },
+        "CRTL": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 757,
+          "bitMode": "lsb"
+        },
+        "CTTL": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 96,
+          "bitMode": "lsb"
+        },
+        "CRVL": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 112,
+          "bitMode": "lsb"
+        },
+        "CLFN": {
+          "sizeBits": 80,
+          "type": "string",
+          "byteOffset": 49,
+          "byteLen": 10
+        },
+        "CLLN": {
+          "sizeBits": 104,
+          "type": "string",
+          "byteOffset": 59,
+          "byteLen": 13
+        },
+        "CCRN": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 575,
+          "bitMode": "lsb"
+        },
+        "CCWN": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 576,
+          "bitMode": "lsb"
+        },
+        "CTWN": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 128,
+          "bitMode": "lsb"
+        },
+        "CCJO": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 143,
+          "bitMode": "lsb"
+        },
+        "CCLO": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 144,
+          "bitMode": "lsb"
+        },
+        "CSLO": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 160,
+          "bitMode": "lsb"
+        },
+        "CCPO": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 584,
+          "bitMode": "lsb"
+        },
+        "CTOP": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 765,
+          "bitMode": "lsb"
+        },
+        "CCTP": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 768,
+          "bitMode": "lsb"
+        },
+        "CHAR": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 769,
+          "bitMode": "lsb"
+        },
+        "CDTR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 592,
+          "bitMode": "lsb"
+        },
+        "CLTR": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "COTR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 600,
+          "bitMode": "lsb"
+        },
+        "CCYR": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 772,
+          "bitMode": "lsb"
+        },
+        "CTYR": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 776,
+          "bitMode": "lsb"
+        },
+        "CSAS": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 783,
+          "bitMode": "lsb"
+        },
+        "COFS": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 784,
+          "bitMode": "lsb"
+        },
+        "CCLS": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 192,
+          "bitMode": "lsb"
+        },
+        "CSLS": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 208,
+          "bitMode": "lsb"
+        },
+        "CTLS": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 224,
+          "bitMode": "lsb"
+        },
+        "CDTS": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 608,
+          "bitMode": "lsb"
+        },
+        "COTS": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 616,
+          "bitMode": "lsb"
+        },
+        "CCWS": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 240,
+          "bitMode": "lsb"
+        },
+        "CRWS": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 624,
+          "bitMode": "lsb"
+        },
+        "CSWS": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 256,
+          "bitMode": "lsb"
+        },
+        "CCCT": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 787,
+          "bitMode": "lsb"
+        },
+        "COCT": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 632,
+          "bitMode": "lsb"
+        },
+        "COHT": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 791,
+          "bitMode": "lsb"
+        },
+        "CCNT": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 794,
+          "bitMode": "lsb"
+        },
+        "CDST": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 798,
+          "bitMode": "lsb"
+        },
+        "COST": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 802,
+          "bitMode": "lsb"
+        },
+        "CWST": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 272,
+          "bitMode": "lsb"
+        },
+        "C25W": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 640,
+          "bitMode": "lsb"
+        },
+        "CBLW": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 806,
+          "bitMode": "lsb"
+        },
+        "CCRW": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 304,
+          "bitMode": "lsb"
+        },
+        "CCSW": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 813,
+          "bitMode": "lsb"
+        },
+        "CCTW": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 817,
+          "bitMode": "lsb"
+        },
+        "CNTW": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 824,
+          "bitMode": "lsb"
+        },
+        "CRTW": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 831,
+          "bitMode": "lsb"
+        },
+        "CTTW": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 288,
+          "bitMode": "lsb"
+        },
+        "CNVW": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 837,
+          "bitMode": "lsb"
+        },
+        "CRVW": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 304,
+          "bitMode": "lsb"
+        },
+        "CCEX": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 317,
+          "bitMode": "lsb"
+        },
+        "CFEX": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 320,
+          "bitMode": "lsb"
+        },
+        "CCFY": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 846,
+          "bitMode": "lsb"
+        },
+        "COTY": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "CBSZ": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 852,
+          "bitMode": "lsb"
+        },
+        "USid": {
+          "sizeBits": 32,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "CThg": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 664,
+          "bitMode": "lsb"
+        },
+        "CTgw": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 849,
+          "bitMode": "msb"
+        }
+      }
+    },
+    "OSPA": {
+      "recordSizeBytes": 8,
+      "recordCount": 178,
+      "capacity": 207,
+      "recordDataOffset": 104,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "POAR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 22,
+          "bitMode": "lsb"
+        },
+        "POAT": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 28,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "PSDE": {
+      "recordSizeBytes": 20,
+      "recordCount": 3085,
+      "capacity": 11900,
+      "recordDataOffset": 296,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 29,
+          "bitMode": "lsb"
+        },
+        "sslR": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "slsa": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 38,
+          "bitMode": "lsb"
+        },
+        "sdta": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 45,
+          "bitMode": "lsb"
+        },
+        "sdpd": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "slff": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 54,
+          "bitMode": "lsb"
+        },
+        "slsk": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 61,
+          "bitMode": "lsb"
+        },
+        "slbl": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 70,
+          "bitMode": "lsb"
+        },
+        "sdtl": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 77,
+          "bitMode": "lsb"
+        },
+        "ssin": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 86,
+          "bitMode": "lsb"
+        },
+        "sgmp": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 93,
+          "bitMode": "lsb"
+        },
+        "slfr": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 97,
+          "bitMode": "lsb"
+        },
+        "ssdt": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 104,
+          "bitMode": "lsb"
+        },
+        "slfy": {
+          "sizeBits": 10,
+          "type": "sint",
+          "bitOffset": 110,
+          "bitMode": "lsb"
+        },
+        "ssiy": {
+          "sizeBits": 9,
+          "type": "sint",
+          "bitOffset": 120,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "PSKI": {
+      "recordSizeBytes": 28,
+      "recordCount": 271,
+      "capacity": 1428,
+      "recordDataOffset": 504,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "skfL": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "splN": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 69,
+          "bitMode": "lsb"
+        },
+        "skaa": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 78,
+          "bitMode": "lsb"
+        },
+        "skea": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "skfa": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 85,
+          "bitMode": "lsb"
+        },
+        "skma": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 92,
+          "bitMode": "lsb"
+        },
+        "spya": {
+          "sizeBits": 14,
+          "type": "sint",
+          "bitOffset": 99,
+          "bitMode": "lsb"
+        },
+        "skab": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 113,
+          "bitMode": "lsb"
+        },
+        "skeb": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 120,
+          "bitMode": "lsb"
+        },
+        "skfb": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 124,
+          "bitMode": "lsb"
+        },
+        "skmb": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 128,
+          "bitMode": "lsb"
+        },
+        "sktb": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 135,
+          "bitMode": "lsb"
+        },
+        "sptb": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 142,
+          "bitMode": "lsb"
+        },
+        "skac": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 149,
+          "bitMode": "lsb"
+        },
+        "skmc": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 156,
+          "bitMode": "lsb"
+        },
+        "skad": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 163,
+          "bitMode": "lsb"
+        },
+        "skmd": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 170,
+          "bitMode": "lsb"
+        },
+        "skae": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 177,
+          "bitMode": "lsb"
+        },
+        "skme": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 184,
+          "bitMode": "lsb"
+        },
+        "sknk": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 40,
+          "bitMode": "lsb"
+        },
+        "spbl": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 191,
+          "bitMode": "lsb"
+        },
+        "skem": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "skfm": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 195,
+          "bitMode": "lsb"
+        },
+        "sgmp": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 202,
+          "bitMode": "lsb"
+        },
+        "spat": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 56,
+          "bitMode": "lsb"
+        },
+        "sppt": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "spny": {
+          "sizeBits": 14,
+          "type": "sint",
+          "bitOffset": 206,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "PSKP": {
+      "recordSizeBytes": 12,
+      "recordCount": 693,
+      "capacity": 1428,
+      "recordDataOffset": 216,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "srkL": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "srpL": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 46,
+          "bitMode": "lsb"
+        },
+        "srka": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "srpa": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 40,
+          "bitMode": "lsb"
+        },
+        "sgmp": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 54,
+          "bitMode": "lsb"
+        },
+        "srkt": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 58,
+          "bitMode": "lsb"
+        },
+        "srpt": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "srky": {
+          "sizeBits": 12,
+          "type": "sint",
+          "bitOffset": 70,
+          "bitMode": "lsb"
+        },
+        "srpy": {
+          "sizeBits": 12,
+          "type": "sint",
+          "bitOffset": 82,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "PSOF": {
+      "recordSizeBytes": 28,
+      "recordCount": 2188,
+      "capacity": 9520,
+      "recordDataOffset": 424,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "scrL": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "salN": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "sulN": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 75,
+          "bitMode": "lsb"
+        },
+        "scca": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 40,
+          "bitMode": "lsb"
+        },
+        "sasa": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 86,
+          "bitMode": "lsb"
+        },
+        "saya": {
+          "sizeBits": 15,
+          "type": "sint",
+          "bitOffset": 93,
+          "bitMode": "lsb"
+        },
+        "scya": {
+          "sizeBits": 14,
+          "type": "sint",
+          "bitOffset": 108,
+          "bitMode": "lsb"
+        },
+        "suya": {
+          "sizeBits": 14,
+          "type": "sint",
+          "bitOffset": 122,
+          "bitMode": "lsb"
+        },
+        "scyc": {
+          "sizeBits": 13,
+          "type": "sint",
+          "bitOffset": 136,
+          "bitMode": "lsb"
+        },
+        "satd": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 149,
+          "bitMode": "lsb"
+        },
+        "sctd": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "sutd": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 56,
+          "bitMode": "lsb"
+        },
+        "suyh": {
+          "sizeBits": 13,
+          "type": "sint",
+          "bitOffset": 156,
+          "bitMode": "lsb"
+        },
+        "sacm": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 169,
+          "bitMode": "lsb"
+        },
+        "sain": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 179,
+          "bitMode": "lsb"
+        },
+        "sgmp": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 185,
+          "bitMode": "lsb"
+        },
+        "scdr": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 189,
+          "bitMode": "lsb"
+        },
+        "saat": {
+          "sizeBits": 11,
+          "type": "uint",
+          "bitOffset": 194,
+          "bitMode": "lsb"
+        },
+        "suat": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 205,
+          "bitMode": "lsb"
+        },
+        "subt": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "sufu": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 215,
+          "bitMode": "lsb"
+        },
+        "su2y": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 72,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "SCHD": {
+      "recordSizeBytes": 16,
+      "recordCount": 877,
+      "capacity": 900,
+      "recordDataOffset": 264,
+      "fields": {
+        "GSTA": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "GASC": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 56,
+          "bitMode": "lsb"
+        },
+        "GHSC": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "GTOD": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "GATG": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "GHTG": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "SGNM": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 88,
+          "bitMode": "lsb"
+        },
+        "SEWN": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 95,
+          "bitMode": "lsb"
+        },
+        "GDAT": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 72,
+          "bitMode": "lsb"
+        },
+        "GFOT": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 99,
+          "bitMode": "msb"
+        },
+        "SEWT": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 80,
+          "bitMode": "lsb"
+        },
+        "GFFU": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 101,
+          "bitMode": "lsb"
+        },
+        "GFHU": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 102,
+          "bitMode": "lsb"
+        },
+        "GMFX": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 96,
+          "bitMode": "msb"
+        }
+      }
+    },
+    "TSSE": {
+      "recordSizeBytes": 48,
+      "recordCount": 136,
+      "capacity": 136,
+      "recordDataOffset": 600,
+      "fields": {
+        "TGID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 328,
+          "bitMode": "lsb"
+        },
+        "ts2a": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 128,
+          "bitMode": "lsb"
+        },
+        "tsga": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 136,
+          "bitMode": "lsb"
+        },
+        "tssa": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 144,
+          "bitMode": "lsb"
+        },
+        "tsta": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 152,
+          "bitMode": "lsb"
+        },
+        "ts2c": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 160,
+          "bitMode": "lsb"
+        },
+        "ts3c": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 168,
+          "bitMode": "lsb"
+        },
+        "ts4c": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 176,
+          "bitMode": "lsb"
+        },
+        "ts1d": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "ts3d": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 184,
+          "bitMode": "lsb"
+        },
+        "ts4d": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 192,
+          "bitMode": "lsb"
+        },
+        "tspd": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 200,
+          "bitMode": "lsb"
+        },
+        "tspe": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 208,
+          "bitMode": "lsb"
+        },
+        "tsdf": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 216,
+          "bitMode": "lsb"
+        },
+        "tsof": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 224,
+          "bitMode": "lsb"
+        },
+        "tsDi": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 232,
+          "bitMode": "lsb"
+        },
+        "tsPi": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 240,
+          "bitMode": "lsb"
+        },
+        "tspi": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 248,
+          "bitMode": "lsb"
+        },
+        "tssk": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 256,
+          "bitMode": "lsb"
+        },
+        "tsfl": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 264,
+          "bitMode": "lsb"
+        },
+        "tsdp": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "tsop": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "tsdr": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 272,
+          "bitMode": "lsb"
+        },
+        "tsfr": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 280,
+          "bitMode": "lsb"
+        },
+        "tsor": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "tsPt": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 288,
+          "bitMode": "lsb"
+        },
+        "tsdt": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 296,
+          "bitMode": "lsb"
+        },
+        "tsot": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 304,
+          "bitMode": "lsb"
+        },
+        "tsrt": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 312,
+          "bitMode": "lsb"
+        },
+        "tsPy": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "tsTy": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 80,
+          "bitMode": "lsb"
+        },
+        "tsdy": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 96,
+          "bitMode": "lsb"
+        },
+        "tsoy": {
+          "sizeBits": 16,
+          "type": "sint",
+          "bitOffset": 112,
+          "bitMode": "lsb"
+        },
+        "tsty": {
+          "sizeBits": 17,
+          "type": "sint",
+          "bitOffset": 337,
+          "bitMode": "lsb"
+        },
+        "tsoz": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 320,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "AAPL": {
+      "recordSizeBytes": 8,
+      "recordCount": 625,
+      "capacity": 3406,
+      "recordDataOffset": 136,
+      "fields": {
+        "CGID": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "TTYP": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 21,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "PPOS": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 30,
+          "bitMode": "lsb"
+        },
+        "ARET": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 35,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "TEAM": {
+      "recordSizeBytes": 184,
+      "recordCount": 211,
+      "capacity": 300,
+      "recordDataOffset": 1768,
+      "fields": {
+        "TSI1": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1208,
+          "bitMode": "lsb"
+        },
+        "TEZ1": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1215,
+          "bitMode": "lsb"
+        },
+        "TSI2": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1224,
+          "bitMode": "lsb"
+        },
+        "TEZ2": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1231,
+          "bitMode": "lsb"
+        },
+        "TL35": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 256,
+          "bitMode": "lsb"
+        },
+        "TMAA": {
+          "sizeBits": 17,
+          "type": "uint",
+          "bitOffset": 1240,
+          "bitMode": "lsb"
+        },
+        "TMIA": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1257,
+          "bitMode": "lsb"
+        },
+        "TDNA": {
+          "sizeBits": 176,
+          "type": "string",
+          "byteOffset": 33,
+          "byteLen": 22
+        },
+        "TMNA": {
+          "sizeBits": 144,
+          "type": "string",
+          "byteOffset": 55,
+          "byteLen": 18
+        },
+        "TSNA": {
+          "sizeBits": 56,
+          "type": "string",
+          "byteOffset": 73,
+          "byteLen": 7
+        },
+        "TCPA": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "TDPA": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "TSPA": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "TRDB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 640,
+          "bitMode": "lsb"
+        },
+        "TFFB": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "TRLB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 648,
+          "bitMode": "lsb"
+        },
+        "TFOB": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "TDPB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 656,
+          "bitMode": "lsb"
+        },
+        "TOPB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 664,
+          "bitMode": "lsb"
+        },
+        "TRQB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 672,
+          "bitMode": "lsb"
+        },
+        "TRRB": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 680,
+          "bitMode": "lsb"
+        },
+        "TWPC": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 688,
+          "bitMode": "lsb"
+        },
+        "CGID": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 1264,
+          "bitMode": "lsb"
+        },
+        "DGID": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 1072,
+          "bitMode": "lsb"
+        },
+        "LGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 72,
+          "bitMode": "lsb"
+        },
+        "SGID": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 696,
+          "bitMode": "lsb"
+        },
+        "TGID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1273,
+          "bitMode": "lsb"
+        },
+        "TOID": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1282,
+          "bitMode": "lsb"
+        },
+        "TPID": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1291,
+          "bitMode": "lsb"
+        },
+        "MSID": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 704,
+          "bitMode": "lsb"
+        },
+        "TFRD": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 96,
+          "bitMode": "lsb"
+        },
+        "TORD": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1298,
+          "bitMode": "lsb"
+        },
+        "TRDE": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 712,
+          "bitMode": "lsb"
+        },
+        "TCHE": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 265,
+          "bitMode": "msb"
+        },
+        "TROF": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 720,
+          "bitMode": "lsb"
+        },
+        "TCPF": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 112,
+          "bitMode": "lsb"
+        },
+        "TDPF": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 128,
+          "bitMode": "lsb"
+        },
+        "TSPF": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 144,
+          "bitMode": "lsb"
+        },
+        "TFFG": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 160,
+          "bitMode": "lsb"
+        },
+        "TFOG": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 176,
+          "bitMode": "lsb"
+        },
+        "TSWI": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 728,
+          "bitMode": "lsb"
+        },
+        "TBRK": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 736,
+          "bitMode": "lsb"
+        },
+        "TCRK": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 744,
+          "bitMode": "lsb"
+        },
+        "TMRK": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 752,
+          "bitMode": "lsb"
+        },
+        "TNCL": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 760,
+          "bitMode": "lsb"
+        },
+        "TRDL": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 768,
+          "bitMode": "lsb"
+        },
+        "TMFL": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1308,
+          "bitMode": "lsb"
+        },
+        "TLGL": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1317,
+          "bitMode": "lsb"
+        },
+        "TCHL": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 1326,
+          "bitMode": "lsb"
+        },
+        "TROL": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 776,
+          "bitMode": "lsb"
+        },
+        "TPIO": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1336,
+          "bitMode": "lsb"
+        },
+        "TSLO": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 888,
+          "bitMode": "lsb"
+        },
+        "INPO": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 896,
+          "bitMode": "lsb"
+        },
+        "DCAP": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1343,
+          "bitMode": "lsb"
+        },
+        "OCAP": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1350,
+          "bitMode": "lsb"
+        },
+        "TMCP": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 192,
+          "bitMode": "lsb"
+        },
+        "NCDP": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 904,
+          "bitMode": "lsb"
+        },
+        "TCFP": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1357,
+          "bitMode": "lsb"
+        },
+        "TMFP": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1364,
+          "bitMode": "lsb"
+        },
+        "TMPP": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 968,
+          "bitMode": "lsb"
+        },
+        "TCRP": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1371,
+          "bitMode": "lsb"
+        },
+        "TCWP": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 976,
+          "bitMode": "lsb"
+        },
+        "TDWP": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 984,
+          "bitMode": "lsb"
+        },
+        "TTYP": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 1380,
+          "bitMode": "lsb"
+        },
+        "TMAR": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 1383,
+          "bitMode": "lsb"
+        },
+        "TFOR": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 208,
+          "bitMode": "lsb"
+        },
+        "TBPR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 992,
+          "bitMode": "lsb"
+        },
+        "TCPR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1000,
+          "bitMode": "lsb"
+        },
+        "TDPR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1008,
+          "bitMode": "lsb"
+        },
+        "TMPR": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 1387,
+          "bitMode": "lsb"
+        },
+        "TOPR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1016,
+          "bitMode": "lsb"
+        },
+        "TDRR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1024,
+          "bitMode": "lsb"
+        },
+        "TORR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1032,
+          "bitMode": "lsb"
+        },
+        "TWRR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1040,
+          "bitMode": "lsb"
+        },
+        "SDUR": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 8,
+          "bitMode": "msb"
+        },
+        "TOVR": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1048,
+          "bitMode": "lsb"
+        },
+        "TSCS": {
+          "sizeBits": 8,
+          "type": "sint",
+          "bitOffset": 1056,
+          "bitMode": "lsb"
+        },
+        "TSDS": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1064,
+          "bitMode": "lsb"
+        },
+        "TCHS": {
+          "sizeBits": 10,
+          "type": "sint",
+          "bitOffset": 1393,
+          "bitMode": "lsb"
+        },
+        "TVIS": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 1403,
+          "bitMode": "lsb"
+        },
+        "THPS": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 1072,
+          "bitMode": "lsb"
+        },
+        "TMPS": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1072,
+          "bitMode": "lsb"
+        },
+        "TPRS": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 1405,
+          "bitMode": "lsb"
+        },
+        "SNCT": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 1412,
+          "bitMode": "lsb"
+        },
+        "TCHT": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 1415,
+          "bitMode": "lsb"
+        },
+        "TCPT": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 224,
+          "bitMode": "lsb"
+        },
+        "TMPT": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 240,
+          "bitMode": "lsb"
+        },
+        "TRST": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1080,
+          "bitMode": "lsb"
+        },
+        "TENV": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 1425,
+          "bitMode": "lsb"
+        },
+        "TROV": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1088,
+          "bitMode": "lsb"
+        },
+        "TMRV": {
+          "sizeBits": 9,
+          "type": "uint",
+          "bitOffset": 1427,
+          "bitMode": "lsb"
+        },
+        "TNCW": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1096,
+          "bitMode": "lsb"
+        },
+        "TCHW": {
+          "sizeBits": 10,
+          "type": "uint",
+          "bitOffset": 1436,
+          "bitMode": "lsb"
+        },
+        "TSLW": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1104,
+          "bitMode": "lsb"
+        },
+        "tsal": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1112,
+          "bitMode": "lsb"
+        },
+        "tsbl": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1120,
+          "bitMode": "lsb"
+        },
+        "tscl": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1128,
+          "bitMode": "lsb"
+        },
+        "tsdl": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1136,
+          "bitMode": "lsb"
+        },
+        "tshl": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1144,
+          "bitMode": "lsb"
+        },
+        "tscs": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1152,
+          "bitMode": "lsb"
+        },
+        "tsns": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 56,
+          "bitMode": "lsb"
+        },
+        "tsaw": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1168,
+          "bitMode": "lsb"
+        },
+        "tsbw": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1176,
+          "bitMode": "lsb"
+        },
+        "tscw": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1184,
+          "bitMode": "lsb"
+        },
+        "tsdw": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1192,
+          "bitMode": "lsb"
+        },
+        "tshw": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 1200,
+          "bitMode": "lsb"
+        }
+      }
+    },
+    "PLAY": {
+      "recordSizeBytes": 56,
+      "recordCount": 8956,
+      "capacity": 8976,
+      "recordDataOffset": 1592,
+      "fields": {
+        "PF10": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "PL10": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 30,
+          "bitMode": "lsb"
+        },
+        "PF01": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 36,
+          "bitMode": "lsb"
+        },
+        "PL01": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 42,
+          "bitMode": "lsb"
+        },
+        "PL11": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "PRG1": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 49,
+          "bitMode": "lsb"
+        },
+        "PF02": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 52,
+          "bitMode": "lsb"
+        },
+        "PL02": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 58,
+          "bitMode": "lsb"
+        },
+        "PL12": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 64,
+          "bitMode": "lsb"
+        },
+        "PRG2": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 67,
+          "bitMode": "lsb"
+        },
+        "PF03": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 70,
+          "bitMode": "lsb"
+        },
+        "PL03": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 76,
+          "bitMode": "lsb"
+        },
+        "PL13": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 82,
+          "bitMode": "lsb"
+        },
+        "PF04": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 86,
+          "bitMode": "lsb"
+        },
+        "PL04": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 92,
+          "bitMode": "lsb"
+        },
+        "PF05": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 98,
+          "bitMode": "lsb"
+        },
+        "PL05": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 104,
+          "bitMode": "lsb"
+        },
+        "PF06": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 110,
+          "bitMode": "lsb"
+        },
+        "PL06": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 116,
+          "bitMode": "lsb"
+        },
+        "PF07": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 122,
+          "bitMode": "lsb"
+        },
+        "PL07": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 128,
+          "bitMode": "lsb"
+        },
+        "PF08": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 134,
+          "bitMode": "lsb"
+        },
+        "PL08": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 140,
+          "bitMode": "lsb"
+        },
+        "PF09": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 146,
+          "bitMode": "lsb"
+        },
+        "PL09": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 152,
+          "bitMode": "lsb"
+        },
+        "PRGA": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 158,
+          "bitMode": "lsb"
+        },
+        "PTHA": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 161,
+          "bitMode": "lsb"
+        },
+        "PSTA": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 167,
+          "bitMode": "lsb"
+        },
+        "PLEB": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 173,
+          "bitMode": "lsb"
+        },
+        "PREB": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 177,
+          "bitMode": "lsb"
+        },
+        "PKAC": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 181,
+          "bitMode": "lsb"
+        },
+        "PACC": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 187,
+          "bitMode": "lsb"
+        },
+        "PRGC": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 193,
+          "bitMode": "lsb"
+        },
+        "PHED": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 196,
+          "bitMode": "lsb"
+        },
+        "RCHD": {
+          "sizeBits": 14,
+          "type": "uint",
+          "bitOffset": 200,
+          "bitMode": "lsb"
+        },
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "PHPD": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 214,
+          "bitMode": "lsb"
+        },
+        "PSPD": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 215,
+          "bitMode": "lsb"
+        },
+        "PRSD": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 221,
+          "bitMode": "lsb"
+        },
+        "PPOE": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 223,
+          "bitMode": "lsb"
+        },
+        "PBRE": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 228,
+          "bitMode": "lsb"
+        },
+        "PEYE": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 229,
+          "bitMode": "lsb"
+        },
+        "PLMG": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 230,
+          "bitMode": "lsb"
+        },
+        "PFSH": {
+          "sizeBits": 4,
+          "type": "sint",
+          "bitOffset": 231,
+          "bitMode": "lsb"
+        },
+        "PLSH": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 235,
+          "bitMode": "lsb"
+        },
+        "PMSH": {
+          "sizeBits": 4,
+          "type": "sint",
+          "bitOffset": 237,
+          "bitMode": "lsb"
+        },
+        "PRSH": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 241,
+          "bitMode": "lsb"
+        },
+        "PSSH": {
+          "sizeBits": 4,
+          "type": "sint",
+          "bitOffset": 243,
+          "bitMode": "lsb"
+        },
+        "PCTH": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 247,
+          "bitMode": "lsb"
+        },
+        "PAGI": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 253,
+          "bitMode": "lsb"
+        },
+        "PSKI": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 259,
+          "bitMode": "lsb"
+        },
+        "PINJ": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 262,
+          "bitMode": "lsb"
+        },
+        "PTAK": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 268,
+          "bitMode": "lsb"
+        },
+        "PPBK": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 274,
+          "bitMode": "lsb"
+        },
+        "PRBK": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 280,
+          "bitMode": "lsb"
+        },
+        "PNEK": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 286,
+          "bitMode": "lsb"
+        },
+        "PFMK": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 289,
+          "bitMode": "lsb"
+        },
+        "PBTK": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 293,
+          "bitMode": "lsb"
+        },
+        "PHCL": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 299,
+          "bitMode": "lsb"
+        },
+        "PFGM": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 302,
+          "bitMode": "lsb"
+        },
+        "PGGM": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 306,
+          "bitMode": "lsb"
+        },
+        "HELM": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 309,
+          "bitMode": "lsb"
+        },
+        "PHAN": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 311,
+          "bitMode": "lsb"
+        },
+        "PJEN": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 312,
+          "bitMode": "lsb"
+        },
+        "PTEN": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 319,
+          "bitMode": "lsb"
+        },
+        "PLHN": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 324,
+          "bitMode": "lsb"
+        },
+        "PRHN": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 327,
+          "bitMode": "lsb"
+        },
+        "PSLO": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 330,
+          "bitMode": "lsb"
+        },
+        "PTTO": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 332,
+          "bitMode": "lsb"
+        },
+        "PLFP": {
+          "sizeBits": 1,
+          "type": "uint",
+          "bitOffset": 334,
+          "bitMode": "lsb"
+        },
+        "PTHP": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 335,
+          "bitMode": "lsb"
+        },
+        "PFMP": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 341,
+          "bitMode": "lsb"
+        },
+        "PIMP": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 347,
+          "bitMode": "lsb"
+        },
+        "PJMP": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 352,
+          "bitMode": "lsb"
+        },
+        "PTYP": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 358,
+          "bitMode": "lsb"
+        },
+        "PCAR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 360,
+          "bitMode": "lsb"
+        },
+        "PYER": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 366,
+          "bitMode": "lsb"
+        },
+        "PRGR": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 368,
+          "bitMode": "lsb"
+        },
+        "PKPR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 372,
+          "bitMode": "lsb"
+        },
+        "PSTR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 378,
+          "bitMode": "lsb"
+        },
+        "POVR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 384,
+          "bitMode": "lsb"
+        },
+        "PAWR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 390,
+          "bitMode": "lsb"
+        },
+        "PRGS": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 396,
+          "bitMode": "lsb"
+        },
+        "PDIS": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 399,
+          "bitMode": "lsb"
+        },
+        "PVIS": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 402,
+          "bitMode": "lsb"
+        },
+        "PFJS": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 404,
+          "bitMode": "lsb"
+        },
+        "PPOS": {
+          "sizeBits": 5,
+          "type": "uint",
+          "bitOffset": 407,
+          "bitMode": "lsb"
+        },
+        "PLWS": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 412,
+          "bitMode": "lsb"
+        },
+        "PRWS": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 416,
+          "bitMode": "lsb"
+        },
+        "PHGT": {
+          "sizeBits": 7,
+          "type": "uint",
+          "bitOffset": 420,
+          "bitMode": "lsb"
+        },
+        "PRGT": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 48,
+          "bitMode": "lsb"
+        },
+        "PWGT": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "PSLT": {
+          "sizeBits": 2,
+          "type": "uint",
+          "bitOffset": 430,
+          "bitMode": "lsb"
+        },
+        "PGRT": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 432,
+          "bitMode": "lsb"
+        },
+        "PRST": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 435,
+          "bitMode": "lsb"
+        },
+        "PRGY": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 441,
+          "bitMode": "lsb"
+        },
+        "PLSY": {
+          "sizeBits": 3,
+          "type": "uint",
+          "bitOffset": 439,
+          "bitMode": "msb"
+        }
+      }
+    }
+  }
+}

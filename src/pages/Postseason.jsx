@@ -91,8 +91,10 @@ export default function Postseason() {
   const initialSeasonParam = initialParams.get("season");
   const initialSeasonYear = initialSeasonParam === "All" ? "All" : initialSeasonParam || "";
   const initialView = readViewFromSearch(location.search) || "cards";
-  const [dynastyId, setDynastyId] = useState(null);
+  // `undefined` while loading, `null` if loaded and none selected.
+  const [dynastyId, setDynastyId] = useState(undefined);
   const [availableSeasons, setAvailableSeasons] = useState([]);
+  const [seasonsLoaded, setSeasonsLoaded] = useState(false);
   const [seasonYear, setSeasonYear] = useState(initialSeasonYear);
   const [tab, setTab] = useState(initialTab);
   const [bowlFilter, setBowlFilter] = useState("");
@@ -108,6 +110,7 @@ export default function Postseason() {
   });
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
   const [confLogoMap, setConfLogoMap] = useState(new Map());
+  const [loadingRows, setLoadingRows] = useState(false);
 
   const viewButtonStyle = (active) => ({
     fontWeight: "var(--app-control-font-weight)",
@@ -562,8 +565,12 @@ export default function Postseason() {
 
   useEffect(() => {
     (async () => {
-      const id = await getActiveDynastyId();
-      setDynastyId(id);
+      try {
+        const id = await getActiveDynastyId();
+        setDynastyId(id ?? null);
+      } catch {
+        setDynastyId(null);
+      }
     })();
   }, []);
 
@@ -668,20 +675,28 @@ export default function Postseason() {
   }, []);
 
   useEffect(() => {
-    if (!dynastyId) {
+    if (dynastyId == null) {
       setAvailableSeasons([]);
       setSeasonYear("");
+      setSeasonsLoaded(false);
       return;
     }
 
+    let alive = true;
+    setSeasonsLoaded(false);
     (async () => {
       const allGames = await db.games.where({ dynastyId }).toArray();
+      if (!alive) return;
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
+      setSeasonsLoaded(true);
       if (seasonYear === "All") return;
       const picked = pickSeasonFromList({ currentSeason: seasonYear, availableSeasons: years });
       if (picked != null) setSeasonYear(picked);
     })();
+    return () => {
+      alive = false;
+    };
   }, [dynastyId]);
 
   useEffect(() => {
@@ -699,7 +714,7 @@ useEffect(() => {
 }, [tab]);
 
   useEffect(() => {
-    if (!dynastyId || seasonYear === "") {
+    if (dynastyId == null || seasonYear === "") {
       setRows([]);
       setPlayoffCols({
         "CFP - Round 1": [],
@@ -707,32 +722,35 @@ useEffect(() => {
         "CFP - Semifinals": [],
         "National Championship": [],
       });
+      setLoadingRows(false);
       return;
     }
 
     let alive = true;
+    setLoadingRows(true);
 
     (async () => {
-      const isAllSeasons = seasonYear === "All";
-      const year = Number(seasonYear);
-      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
-        isAllSeasons
-          ? db.games.where({ dynastyId }).toArray()
-          : db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
-        isAllSeasons
-          ? db.teamSeasons.where({ dynastyId }).toArray()
-          : db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
-        db.teamLogos.where({ dynastyId }).toArray(),
-        db.logoOverrides.where({ dynastyId }).toArray(),
-        isAllSeasons
-          ? db.bowlGames.where({ dynastyId }).toArray()
-          : db.bowlGames.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
-        isAllSeasons
-          ? db.coaches.where({ dynastyId }).toArray()
-          : db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
-      ]);
+      try {
+        const isAllSeasons = seasonYear === "All";
+        const year = Number(seasonYear);
+        const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows, coachRows] = await Promise.all([
+          isAllSeasons
+            ? db.games.where({ dynastyId }).toArray()
+            : db.games.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
+          isAllSeasons
+            ? db.teamSeasons.where({ dynastyId }).toArray()
+            : db.teamSeasons.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
+          db.teamLogos.where({ dynastyId }).toArray(),
+          db.logoOverrides.where({ dynastyId }).toArray(),
+          isAllSeasons
+            ? db.bowlGames.where({ dynastyId }).toArray()
+            : db.bowlGames.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
+          isAllSeasons
+            ? db.coaches.where({ dynastyId }).toArray()
+            : db.coaches.where("[dynastyId+seasonYear]").equals([dynastyId, year]).toArray(),
+        ]);
 
-      if (!alive) return;
+        if (!alive) return;
 
       const nameByKey = new Map(
         teamSeasonRows.map((t) => [`${t.seasonYear}|${t.tgid}`, `${t.tdna} ${t.tmna}`.trim()])
@@ -887,6 +905,9 @@ useEffect(() => {
 
       setRows(postseasonGames);
       setPlayoffCols(grouped);
+      } finally {
+        if (alive) setLoadingRows(false);
+      }
     })();
 
     return () => {
@@ -939,7 +960,11 @@ useEffect(() => {
     return options;
   }, [baseFilteredRows, tab]);
 
-  if (!dynastyId) {
+  if (dynastyId === undefined) {
+    return null;
+  }
+
+  if (dynastyId === null) {
     return (
       <div>
         <h2>Postseason</h2>
@@ -989,7 +1014,9 @@ useEffect(() => {
             disabled={!hasSeasons}
             aria-label="Season"
           >
-            {!hasSeasons ? (
+            {!seasonsLoaded ? (
+              <option value="">Loading seasons...</option>
+            ) : !hasSeasons ? (
               <option value="">No seasons uploaded</option>
             ) : (
               seasonOptions.map((y) => (
@@ -1104,7 +1131,9 @@ useEffect(() => {
         </div>
       </div>
 
-      {!hasSeasons ? (
+      {!seasonsLoaded || loadingRows ? (
+        <p className="kicker">Loading...</p>
+      ) : !hasSeasons ? (
         <p className="kicker">No seasons uploaded yet for this dynasty.</p>
       ) : tab === "bracket" ? (
         seasonYear === "All" ? (

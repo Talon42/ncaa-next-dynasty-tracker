@@ -68,8 +68,10 @@ export default function App() {
     location.pathname.startsWith("/coach/");
   const isSchedulePage = location.pathname === "/";
 
-  const [dynasties, setDynasties] = useState([]);
-  const [activeId, setActiveId] = useState(null);
+  // `null` means "still loading", `[]` means "loaded, none exist".
+  const [dynasties, setDynasties] = useState(null);
+  // `undefined` means "still loading", `null` means "loaded, none selected".
+  const [activeId, setActiveId] = useState(undefined);
   const [dynastyOpen, setDynastyOpen] = useState(true);
 
   const [showNewDynasty, setShowNewDynasty] = useState(false);
@@ -106,12 +108,16 @@ export default function App() {
   const lastRouteRef = useRef("");
 
   async function refresh() {
-    const list = await listDynasties();
+    const [list, id, gamesCount] = await Promise.all([
+      listDynasties(),
+      getActiveDynastyId(),
+      db.games.count(),
+    ]);
+
     setDynasties(list);
-    const id = await getActiveDynastyId();
     setActiveId(id);
-    const gamesCount = await db.games.count();
     setHasAnySeasons(gamesCount > 0);
+
     if (id) {
       const activeCount = await db.games.where({ dynastyId: id }).count();
       setActiveDynastyHasSeasons(activeCount > 0);
@@ -122,16 +128,27 @@ export default function App() {
 
   useEffect(() => {
     if (clearingStorage) return;
-    refresh();
+    let alive = true;
+    (async () => {
+      try {
+        await refresh();
+      } finally {
+        if (!alive) return;
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
+    if (dynasties == null) return;
     if (dynasties.length === 0) {
       setShowNewDynasty(!showBackupModal);
       return;
     }
     setShowNewDynasty(false);
-  }, [dynasties.length, showBackupModal]);
+  }, [dynasties, showBackupModal]);
 
   useEffect(() => {
     setMobileDrawerOpen(false);
@@ -319,11 +336,11 @@ export default function App() {
   }, [activeId]);
 
   const activeDynasty = useMemo(
-    () => dynasties.find((d) => d.id === activeId) || null,
+    () => (dynasties || []).find((d) => d.id === activeId) || null,
     [dynasties, activeId]
   );
   const otherDynasties = useMemo(
-    () => dynasties.filter((d) => d.id !== activeId),
+    () => (dynasties || []).filter((d) => d.id !== activeId),
     [dynasties, activeId]
   );
 
@@ -614,7 +631,7 @@ export default function App() {
                       className="active"
                       onClick={(e) => {
                         e.preventDefault();
-                        if (dynasties.length === 1) {
+                        if ((dynasties || []).length === 1) {
                           openDynastyActions(activeDynasty);
                           setMobileDrawerOpen(false);
                           return;
@@ -630,7 +647,9 @@ export default function App() {
                       <span className="badge active">Active</span>
                     </a>
                   ) : (
-                    <span className="kicker">No dynasty loaded</span>
+                    <span className="kicker">
+                      {dynasties == null || activeId === undefined ? "Loading..." : "No dynasty loaded"}
+                    </span>
                   )}
                   {otherDynasties.map((d) => (
                     <a
@@ -766,7 +785,7 @@ export default function App() {
                         className="active"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (dynasties.length === 1) {
+                          if ((dynasties || []).length === 1) {
                             openDynastyActions(activeDynasty);
                             return;
                           }
@@ -841,9 +860,9 @@ export default function App() {
           </aside>
 
           <main className="main shrink0">
-          {dynasties.length === 0 && !showNewDynasty ? (
+          {dynasties == null ? null : dynasties.length === 0 && !showNewDynasty ? (
             <CreateDynastySplash onCreate={() => setShowNewDynasty(true)} />
-          ) : dynasties.length === 0 ? null : (
+          ) : dynasties == null || dynasties.length === 0 ? null : (
               <div
                 className={[
                   "card",
@@ -856,12 +875,15 @@ export default function App() {
                   location.pathname === "/teams" ||
                   location.pathname === "/coaches" ||
                   location.pathname.startsWith("/coach/") ||
-                  location.pathname === "/postseason" ||
-                  location.pathname.startsWith("/postseason/")
+                  location.pathname === "/postseason"
                     ? "cardStatsWide"
                     : "",
                   location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
-                  location.pathname === "/standings" || location.pathname === "/coaches-poll" ? "cardFixedMax" : "",
+                  location.pathname === "/standings" ||
+                  location.pathname === "/coaches-poll" ||
+                  location.pathname.startsWith("/postseason/bowl")
+                    ? "cardFixedMax"
+                    : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -987,7 +1009,7 @@ export default function App() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={() => setShowDynastyActions(false)}>Cancel</button>
-            {dynasties.length > 1 ? (
+            {(dynasties || []).length > 1 ? (
               <button className="primary" onClick={() => loadDynasty(selectedDynasty.id)}>
                 Load
               </button>

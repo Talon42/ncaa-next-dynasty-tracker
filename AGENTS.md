@@ -32,6 +32,7 @@ Rules:
 - Do not introduce visual changes as side effects of refactors
 
 ## Workflow & Git (IMPORTANT)
+- When adding a tracked field/table, update both CSV import (csvImport.js) and dynasty import (layout generation + regenerate ncaa_next_required_layout.json).
 - After completing a task, ALWAYS provide Git instructions in chat:
   - Exact `git checkout`, `git add`, and `git commit` commands
   - A clear, descriptive commit message
@@ -39,3 +40,4 @@ Rules:
 ## Verification
 - Clearly state how to verify the change is correct (what pages/actions to check)
 - List all files changed and the reason for each
+ - Do not create or run JS test scripts; provide manual/verbal verification steps only (e.g., “Load XYZ file and ensure there are no errors”).

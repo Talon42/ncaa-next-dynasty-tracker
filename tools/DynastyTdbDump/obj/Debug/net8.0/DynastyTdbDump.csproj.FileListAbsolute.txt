@@ -1,0 +1,16 @@
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\tdbaccess.dll
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\DynastyTdbDump.exe
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\DynastyTdbDump.deps.json
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\DynastyTdbDump.runtimeconfig.json
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\DynastyTdbDump.dll
+F:\Dynasty Tracker\tools\DynastyTdbDump\bin\Debug\net8.0\DynastyTdbDump.pdb
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.GeneratedMSBuildEditorConfig.editorconfig
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.AssemblyInfoInputs.cache
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.AssemblyInfo.cs
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.csproj.CoreCompileInputs.cache
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.sourcelink.json
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.dll
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\refint\DynastyTdbDump.dll
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.pdb
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\DynastyTdbDump.genruntimeconfig.cache
+F:\Dynasty Tracker\tools\DynastyTdbDump\obj\Debug\net8.0\ref\DynastyTdbDump.dll

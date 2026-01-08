@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getOrCreateCoachQuote } from "../coachQuotes";
 import { db, getActiveDynastyId } from "../db";
@@ -527,6 +527,9 @@ export default function Coach() {
         teamLosses += Number(rec.l) || 0;
       }
 
+      const hasTeamRecord = latestTgid !== "511" && (teamWins > 0 || teamLosses > 0);
+
+      // Team postseason record is derived from postseason game results (not COCH coach-only totals).
       let teamPostseasonWins = 0;
       let teamPostseasonLosses = 0;
       for (const [yr, list] of postseasonByYear.entries()) {
@@ -537,7 +540,6 @@ export default function Coach() {
         }
       }
 
-      const hasTeamRecord = latestTgid !== "511" && (teamWins > 0 || teamLosses > 0);
       const hasTeamPostseasonRecord =
         latestTgid !== "511" && (teamPostseasonWins > 0 || teamPostseasonLosses > 0);
 
@@ -797,46 +799,61 @@ export default function Coach() {
                   }
 
                   const size = 42;
-                  const renderBadge = ({ key, title, logoUrl, isNationalChampionship, style }) => {
+                  const renderBadge = ({ key, title, logoUrl, isNationalChampionship, style, to }) => {
                     const champBorder = "rgba(216,180,90,0.95)";
-                    return (
-                    <div
-                      key={key}
-                      title={title}
-                      style={{
-                        width: size,
-                        height: size,
-                        borderRadius: 999,
-                        overflow: "hidden",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                        background: isNationalChampionship
-                          ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
-                          : "rgba(255,255,255,0.06)",
-                        border: isNationalChampionship ? `1px solid ${champBorder}` : "1px solid var(--border)",
-                        boxShadow: isNationalChampionship
-                          ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
-                          : "0 2px 8px rgba(0,0,0,0.25)",
-                        flex: "0 0 auto",
-                        ...style,
-                      }}
-                    >
+                    const badge = (
+                      <div
+                        title={title}
+                        style={{
+                          width: size,
+                          height: size,
+                          borderRadius: 999,
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          position: "relative",
+                          background: isNationalChampionship
+                            ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
+                            : "rgba(255,255,255,0.06)",
+                          border: isNationalChampionship ? `1px solid ${champBorder}` : "1px solid var(--border)",
+                          boxShadow: isNationalChampionship
+                            ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
+                            : "0 2px 8px rgba(0,0,0,0.25)",
+                          flex: "0 0 auto",
+                          ...(to ? { cursor: "pointer" } : null),
+                          ...style,
+                        }}
+                      >
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
+                          />
+                        ) : (
+                          <span style={{ fontWeight: "var(--app-font-weight)", letterSpacing: 0.5 }}>W</span>
+                        )}
+                      </div>
+                    );
 
-                      {logoUrl ? (
-                        <img
-                          src={logoUrl}
-                          alt=""
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
-                        />
-                      ) : (
-                        <span style={{ fontWeight: "var(--app-font-weight)", letterSpacing: 0.5 }}>W</span>
-                      )}
-                    </div>
-                  );
+                    if (!to) {
+                      return <Fragment key={key}>{badge}</Fragment>;
+                    }
+
+                    return (
+                      <Link
+                        key={key}
+                        to={to}
+                        title={title}
+                        aria-label={title}
+                        style={{ textDecoration: "none", display: "inline-flex" }}
+                      >
+                        {badge}
+                      </Link>
+                    );
                   };
 
                   const nodes = [];
@@ -852,6 +869,7 @@ export default function Coach() {
                             title: label,
                             logoUrl: t.bowlLogoUrl,
                             isNationalChampionship: Boolean(t.isNationalChampionship),
+                            to: t.bowlName ? `/postseason/bowl?name=${encodeURIComponent(t.bowlName)}` : "",
                           })
                         );
                       });
@@ -893,6 +911,9 @@ export default function Coach() {
                             top: 0,
                             opacity: 0.65,
                           },
+                          to: first.bowlName
+                            ? `/postseason/bowl?name=${encodeURIComponent(first.bowlName)}`
+                            : "",
                         })}
                         {renderBadge({
                           key: `${groupKey}-stack-2`,
@@ -905,6 +926,9 @@ export default function Coach() {
                             top: 0,
                             opacity: 0.85,
                           },
+                          to: first.bowlName
+                            ? `/postseason/bowl?name=${encodeURIComponent(first.bowlName)}`
+                            : "",
                         })}
                         {renderBadge({
                           key: `${groupKey}-stack-3`,
@@ -916,6 +940,9 @@ export default function Coach() {
                             left: offset * 2,
                             top: 0,
                           },
+                          to: first.bowlName
+                            ? `/postseason/bowl?name=${encodeURIComponent(first.bowlName)}`
+                            : "",
                         })}
                         <div
                           style={{
@@ -1188,7 +1215,13 @@ export default function Coach() {
                   {r.postseason.length ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {r.postseason.map((p, idx) => (
-                        <div key={`${r.seasonYear}-${idx}`} className="postseasonMeta">
+                        <Link
+                          key={`${r.seasonYear}-${idx}`}
+                          to={`/postseason/bowl?name=${encodeURIComponent(String(p.bowlName ?? ""))}`}
+                          title={String(p.bowlName ?? "")}
+                          style={{ color: "inherit", textDecoration: "none" }}
+                        >
+                          <div className="postseasonMeta">
                           {p.bowlLogoUrl ? (
                             <img src={p.bowlLogoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
                           ) : null}
@@ -1204,7 +1237,8 @@ export default function Coach() {
                               {p.outcome}
                             </span>
                           ) : null}
-                        </div>
+                          </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (

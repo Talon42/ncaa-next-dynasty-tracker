@@ -1184,6 +1184,10 @@ button:disabled {
   max-width: 950px;
 }
 
+.bowlResultsTable {
+  table-layout: fixed;
+}
+
 
 
 

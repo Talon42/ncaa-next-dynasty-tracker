@@ -36,11 +36,13 @@ function TeamCell({ name, logoUrl }) {
 export default function Home() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [dynastyId, setDynastyId] = useState(null);
+  // `undefined` while loading, `null` if loaded and none selected.
+  const [dynastyId, setDynastyId] = useState(undefined);
 
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [seasonYear, setSeasonYear] = useState("");
   const latestSeasonRef = useRef(null);
+  const [seasonsLoaded, setSeasonsLoaded] = useState(false);
 
   const [availableWeeks, setAvailableWeeks] = useState([]);
   const [weekFilter, setWeekFilter] = useState("All");
@@ -81,8 +83,12 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
-      const id = await getActiveDynastyId();
-      setDynastyId(id);
+      try {
+        const id = await getActiveDynastyId();
+        setDynastyId(id ?? null);
+      } catch {
+        setDynastyId(null);
+      }
     })();
   }, []);
 
@@ -228,17 +234,22 @@ export default function Home() {
   }, [dynastyId, seasonYear, weekFilter, confFilter, navigate, location.search]);
 
   useEffect(() => {
-    if (!dynastyId) {
+    if (dynastyId == null) {
       setAvailableSeasons([]);
       setSeasonYear("");
       latestSeasonRef.current = null;
+      setSeasonsLoaded(false);
       return;
     }
 
+    let alive = true;
+    setSeasonsLoaded(false);
     (async () => {
       const allGames = await db.games.where({ dynastyId }).toArray();
+      if (!alive) return;
       const years = Array.from(new Set(allGames.map((g) => g.seasonYear))).sort((a, b) => b - a);
       setAvailableSeasons(years);
+      setSeasonsLoaded(true);
 
       const latest = years[0] ?? null;
       const prevLatest = latestSeasonRef.current;
@@ -269,6 +280,9 @@ export default function Home() {
 
       latestSeasonRef.current = latest;
     })();
+    return () => {
+      alive = false;
+    };
   }, [dynastyId, location.search, seasonYear, navigate]);
 
   useEffect(() => {
@@ -493,7 +507,11 @@ export default function Home() {
     </>
   );
 
-  if (!dynastyId) {
+  if (dynastyId === undefined) {
+    return null;
+  }
+
+  if (dynastyId === null) {
     return (
       <div>
         <h2>Schedule / Results</h2>
@@ -513,7 +531,9 @@ export default function Home() {
         </div>
       </div>
 
-      {!hasSeasons ? (
+      {!seasonsLoaded ? (
+        <p className="kicker">Loading...</p>
+      ) : !hasSeasons ? (
         <p className="kicker">
           No seasons uploaded yet for this dynasty. Use <b>Upload New Season</b> in the sidebar.
         </p>

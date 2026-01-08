@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, getActiveDynastyId, getDynasty } from "../db";
 import { importSeasonBatch, seasonExists } from "../csvImport";
+import { dynastySaveBytesToCsvFiles } from "../tdb/dynastySaveToCsvFiles";
+import layout from "../tdb/layouts/ncaa_next_required_layout.json";
 
 const REQUIRED_TYPES = [
   "TEAM",
@@ -88,6 +90,16 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
   const [mode, setMode] = useState("single"); // single | bulk
   const [seasonYear, setSeasonYear] = useState(2025);
   const [singleSource, setSingleSource] = useState("files"); // files | folder
+  const [dynastyFilePath, setDynastyFilePath] = useState("");
+  const [dynastyFile, setDynastyFile] = useState(null);
+  const [pendingDynastyFilePath, setPendingDynastyFilePath] = useState(null);
+  const [pendingDynastyFile, setPendingDynastyFile] = useState(null);
+
+  const canDesktopDynastyImport =
+    typeof window !== "undefined" &&
+    window.dynastyImport &&
+    typeof window.dynastyImport.pickFile === "function" &&
+    typeof window.dynastyImport.exportCsvFromFile === "function";
   const [files, setFiles] = useState([]);
   const [singleFolderFiles, setSingleFolderFiles] = useState([]);
   const [bulkFiles, setBulkFiles] = useState([]);
@@ -146,6 +158,20 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
 
   function onPickFiles(e) {
     setFiles(Array.from(e.target.files || []));
+  }
+
+  async function onPickDynastyFile() {
+    if (!canDesktopDynastyImport) {
+      setStatus("Dynasty file import is only available in the Desktop app.");
+      return;
+    }
+
+    try {
+      const p = await window.dynastyImport.pickFile();
+      setDynastyFilePath(p || "");
+    } catch (err) {
+      setStatus(err && err.message ? err.message : String(err));
+    }
   }
 
   function onPickSingleFolder(e) {
@@ -251,6 +277,95 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     }
   }
 
+  function onPickDynastyFileWeb(e) {
+    const file = (e?.target?.files || [])[0] || null;
+    setDynastyFile(file);
+    setDynastyFilePath("");
+  }
+
+  async function runDynastyFileImportDesktop(yearNum, filePath) {
+    setStatus("");
+    setBusy(true);
+    try {
+      setStatus("Reading dynasty file...");
+      const result = await window.dynastyImport.exportCsvFromFile({ filePath });
+      const filesToUse = (result?.files || []).map((f) => new File([f.text], f.name, { type: "text/csv" }));
+
+      setStatus("Importing season...");
+      const imported = await importSeasonBatch({ dynastyId, seasonYear: yearNum, files: filesToUse });
+      await refreshExistingYears();
+      setStatus(`Imported ${imported.seasonYear}: ${imported.teams} teams, ${imported.games} games`);
+      sessionStorage.setItem("seasonUploadComplete", String(Date.now()));
+      sessionStorage.setItem("seasonUploadLatest", String(imported.seasonYear));
+      setTimeout(() => {
+        if (onImported) {
+          onImported(imported);
+          return;
+        }
+        navigate(`/?ts=${Date.now()}`);
+      }, 400);
+    } catch (err) {
+      setStatus(err && err.message ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function runDynastyFileImportWeb(yearNum, file) {
+    setStatus("");
+    setBusy(true);
+    try {
+      setStatus("Reading dynasty file...");
+      const buf = await file.arrayBuffer();
+      const saveBytes = new Uint8Array(buf);
+
+      setStatus("Parsing tables...");
+      const result = await (async () => {
+        if (typeof Worker === "undefined") {
+          return dynastySaveBytesToCsvFiles({ saveBytes, layout });
+        }
+
+        return await new Promise((resolve, reject) => {
+          const worker = new Worker(new URL("../tdb/dynastyImportWorker.js", import.meta.url), { type: "module" });
+
+          worker.onmessage = (evt) => {
+            const msg = evt?.data;
+            worker.terminate();
+            if (msg?.ok) resolve(msg.result);
+            else reject(new Error(msg?.error || "Dynasty import worker failed"));
+          };
+
+          worker.onerror = (err) => {
+            worker.terminate();
+            reject(err);
+          };
+
+          worker.postMessage({ buffer: saveBytes.buffer }, [saveBytes.buffer]);
+        });
+      })();
+      const filesToUse = (result?.files || []).map((f) => new File([f.text], f.name, { type: "text/csv" }));
+
+      setStatus("Importing season...");
+      const imported = await importSeasonBatch({ dynastyId, seasonYear: yearNum, files: filesToUse });
+      await refreshExistingYears();
+      setStatus(`Imported ${imported.seasonYear}: ${imported.teams} teams, ${imported.games} games`);
+      sessionStorage.setItem("seasonUploadComplete", String(Date.now()));
+      sessionStorage.setItem("seasonUploadLatest", String(imported.seasonYear));
+      setTimeout(() => {
+        if (onImported) {
+          onImported(imported);
+          return;
+        }
+        navigate(`/?ts=${Date.now()}`);
+      }, 400);
+    } catch (err) {
+      setStatus(err && err.message ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+
   async function runBulkImport(seasonsToImport) {
     setStatus("");
     setBusy(true);
@@ -347,6 +462,47 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
       setStatus("Season year must be a valid number.");
       return;
     }
+
+    if (singleSource === "dynasty") {
+      if (canDesktopDynastyImport) {
+        if (!dynastyFilePath) {
+          setStatus("Please select a dynasty save file.");
+          return;
+        }
+
+        const existsDyn = await seasonExists({ dynastyId, seasonYear: yearNum });
+        if (existsDyn) {
+          setPendingYear(yearNum);
+          setPendingDynastyFilePath(dynastyFilePath);
+          setPendingDynastyFile(null);
+          setPendingFiles([]);
+          setShowOverwriteModal(true);
+          return;
+        }
+
+        await runDynastyFileImportDesktop(yearNum, dynastyFilePath);
+        return;
+      }
+
+      if (!dynastyFile) {
+        setStatus("Please select a dynasty save file.");
+        return;
+      }
+
+      const existsDyn = await seasonExists({ dynastyId, seasonYear: yearNum });
+      if (existsDyn) {
+        setPendingYear(yearNum);
+        setPendingDynastyFilePath(null);
+        setPendingDynastyFile(dynastyFile);
+        setPendingFiles([]);
+        setShowOverwriteModal(true);
+        return;
+      }
+
+      await runDynastyFileImportWeb(yearNum, dynastyFile);
+      return;
+    }
+
     const filesToUse = singleSource === "folder" ? singleFolderParsed.filesToUse : files;
     if (!filesToUse.length) {
       setStatus(
@@ -385,10 +541,26 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
   async function confirmOverwrite() {
     const yearNum = pendingYear;
     const filesToUse = pendingFiles;
+    const filePath = pendingDynastyFilePath;
+    const fileObj = pendingDynastyFile;
+
     setShowOverwriteModal(false);
     setPendingYear(null);
     setPendingFiles([]);
+    setPendingDynastyFilePath(null);
+    setPendingDynastyFile(null);
     if (yearNum == null) return;
+
+    if (filePath) {
+      await runDynastyFileImportDesktop(yearNum, filePath);
+      return;
+    }
+
+    if (fileObj) {
+      await runDynastyFileImportWeb(yearNum, fileObj);
+      return;
+    }
+
     await runImport(yearNum, filesToUse);
   }
 
@@ -488,11 +660,65 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
               >
                 Choose Folder
               </button>
+              <button
+                className={singleSource === "dynasty" ? "primary" : ""}
+                onClick={() => {
+                  setSingleSource("dynasty");
+                  setStatus("");
+                }}
+                disabled={busy}
+              >
+                Dynasty File
+              </button>
             </div>
 
-            {singleSource === "files" ? (
+            {singleSource === "dynasty" ? (
+              <label className="importField">
+                <span>Dynasty Save File</span>
+                <div className="kicker" style={{ marginTop: -6 }}>Select your dynasty save file directly from your exported or virtual memory card</div>
+                                {canDesktopDynastyImport ? (
+                  <>
+                    <button type="button" className="fileButton importFileButton" onClick={onPickDynastyFile} disabled={busy}>
+                      Select Dynasty Save File
+                    </button>
+
+                    <div className="importFilesMeta">
+                      {dynastyFilePath ? (
+                        <div className="kicker">Selected: {dynastyFilePath}</div>
+                      ) : (
+                        <div className="kicker">No dynasty file selected yet.</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      id="importDynastyFileWeb"
+                      type="file"
+                      onChange={onPickDynastyFileWeb}
+                      disabled={busy}
+                      style={{ display: "none" }}
+                    />
+                    <label htmlFor="importDynastyFileWeb" className="fileButton importFileButton">
+                      {dynastyFile ? "Choose Dynasty Save (" + dynastyFile.name + ")" : "Choose Dynasty Save"}
+                    </label>
+
+                    <div className="importFilesMeta">
+                      {dynastyFile ? (
+                        <div className="kicker">Selected: {dynastyFile.name}</div>
+                      ) : (
+                        <div className="kicker">No dynasty file selected yet.</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </label>
+            ) : null}
+
+            {singleSource === "dynasty" ? null : singleSource === "files" ? (
               <label className="importField">
                 <span>CSV Files</span>
+                <div className="kicker" style={{ marginTop: -6 }}>Select all of your season CSVs that have been exported from the DB-Editor</div>
                 <input
                   id="importFiles"
                   type="file"

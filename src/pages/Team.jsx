@@ -402,7 +402,8 @@ useEffect(() => {
               bowlName,
               bowlLogoUrl,
               outcome,
-              result: hasScore ? `${g.homeScore} - ${g.awayScore}` : "—",
+              // Always show the selected team's score first (not home/away order).
+              result: hasScore && teamScore != null && oppScore != null ? `${teamScore} - ${oppScore}` : "—",
             };
           });
       };

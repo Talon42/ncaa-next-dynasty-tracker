@@ -73,12 +73,14 @@ function bowlDisplayName(fullName) {
 
 export default function BowlResults() {
   const location = useLocation();
-  const [dynastyId, setDynastyId] = useState(null);
+  // `undefined` while loading, `null` if loaded and none selected.
+  const [dynastyId, setDynastyId] = useState(undefined);
   const [rows, setRows] = useState([]);
   const [title, setTitle] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [postseasonLogoMap, setPostseasonLogoMap] = useState(new Map());
   const [winnerLabel, setWinnerLabel] = useState("Winner");
+  const [loadingRows, setLoadingRows] = useState(false);
 
   const bowlName = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -87,8 +89,12 @@ export default function BowlResults() {
 
   useEffect(() => {
     (async () => {
-      const id = await getActiveDynastyId();
-      setDynastyId(id);
+      try {
+        const id = await getActiveDynastyId();
+        setDynastyId(id ?? null);
+      } catch {
+        setDynastyId(null);
+      }
     })();
   }, []);
 
@@ -105,22 +111,25 @@ export default function BowlResults() {
   }, []);
 
   useEffect(() => {
-    if (!dynastyId || !bowlName) {
+    if (dynastyId == null || !bowlName) {
       setRows([]);
+      setLoadingRows(false);
       return;
     }
 
     let alive = true;
+    setLoadingRows(true);
     (async () => {
-      const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
-        db.games.where({ dynastyId }).toArray(),
-        db.teamSeasons.where({ dynastyId }).toArray(),
-        db.teamLogos.where({ dynastyId }).toArray(),
-        db.logoOverrides.where({ dynastyId }).toArray(),
-        db.bowlGames.where({ dynastyId }).toArray(),
-      ]);
+      try {
+        const [gamesRaw, teamSeasonRows, teamLogoRows, overrideRows, bowlRows] = await Promise.all([
+          db.games.where({ dynastyId }).toArray(),
+          db.teamSeasons.where({ dynastyId }).toArray(),
+          db.teamLogos.where({ dynastyId }).toArray(),
+          db.logoOverrides.where({ dynastyId }).toArray(),
+          db.bowlGames.where({ dynastyId }).toArray(),
+        ]);
 
-      if (!alive) return;
+        if (!alive) return;
 
       const nameByKey = new Map();
       for (const t of teamSeasonRows) {
@@ -193,12 +202,18 @@ export default function BowlResults() {
           return String(a.homeTgid).localeCompare(String(b.homeTgid));
         });
 
-      setRows(filtered);
-      setTitle(bowlDisplayName(bowlName));
-      setLogoUrl(
-        postseasonLogoFor(/national championship/i.test(bowlName) ? "Nat Trophy" : bowlName)
-      );
-      setWinnerLabel(/national championship/i.test(bowlName) ? "Champion" : "Winner");
+        setRows(filtered);
+        setTitle(bowlDisplayName(bowlName));
+        setLogoUrl(
+          postseasonLogoFor(/national championship/i.test(bowlName) ? "Nat Trophy" : bowlName)
+        );
+        setWinnerLabel(/national championship/i.test(bowlName) ? "Champion" : "Winner");
+      } catch {
+        if (!alive) return;
+        setRows([]);
+      } finally {
+        if (alive) setLoadingRows(false);
+      }
     })();
 
     return () => {
@@ -206,7 +221,11 @@ export default function BowlResults() {
     };
   }, [dynastyId, bowlName, postseasonLogoMap]);
 
-  if (!dynastyId) {
+  if (dynastyId === undefined) {
+    return null;
+  }
+
+  if (dynastyId === null) {
     return (
       <div>
         <h2>Bowl Results</h2>
@@ -239,16 +258,24 @@ export default function BowlResults() {
 
       {!bowlName ? (
         <p className="kicker">No bowl selected.</p>
+      ) : loadingRows ? (
+        <p className="kicker">Loading...</p>
       ) : rows.length === 0 ? (
         <p className="kicker">No games found for this bowl.</p>
       ) : (
         <div className="tableWrap">
-          <table className="table">
+          <table className="table bowlResultsTable">
+            <colgroup>
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "25%" }} />
+              <col style={{ width: "25%" }} />
+            </colgroup>
             <thead>
               <tr>
-                <th style={{ width: 80 }}>Season</th>
+                <th>Season</th>
                 <th>{winnerLabel}</th>
-                <th style={{ width: 140 }}>Result</th>
+                <th>Result</th>
                 <th>Opponent</th>
               </tr>
             </thead>

@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, Menu } from "electron";
+﻿import { app, BrowserWindow, dialog, Menu, ipcMain } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "./server.js";
+import { exportCsvFromDynastyFile } from "./dynastyImportService.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOCAL_PORT = 5174;
@@ -54,6 +55,23 @@ async function createMainWindow() {
 
 const portableRoot = getPortableRoot();
 configurePortablePaths(portableRoot);
+
+ipcMain.handle("dynasty:pickFile", async () => {
+  const res = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    title: "Select Dynasty Save File",
+  });
+  if (res.canceled) return null;
+  return res.filePaths?.[0] ?? null;
+});
+
+ipcMain.handle("dynasty:exportCsv", async (_event, payload) => {
+  const filePath = payload?.filePath;
+  const maxRows = payload?.maxRows;
+
+  const result = exportCsvFromDynastyFile({ dynastyFilePath: filePath, maxRows });
+  return { files: result.files };
+});
 
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
