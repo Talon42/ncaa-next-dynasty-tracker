@@ -1,50 +1,50 @@
 {
-    "name":  "ncaa-next-dynasty-tracker",
-    "private":  true,
-    "version":  "0.6.0",
-    "type":  "module",
-    "main":  "electron/main.js",
-    "scripts":  {
-                    "dev":  "vite",
-                    "build":  "vite build",
-                    "preview":  "vite preview",
-                    "build:electron":  "vite build --mode electron",
-                    "electron:start":  "electron .",
-                    "package:electron":  "electron-builder --win zip --publish never"
-                },
-    "dependencies":  {
-                         "dexie":  "^4.2.1",
-                         "papaparse":  "^5.5.3",
-                         "react":  "^18.3.1",
-                         "react-dom":  "^18.3.1",
-                         "react-router-dom":  "^7.11.0"
-                     },
-    "devDependencies":  {
-                            "@vitejs/plugin-react":  "^4.3.1",
-                            "electron":  "^34.0.0",
-                            "electron-builder":  "^25.1.8",
-                            "vite":  "^7.3.0"
-                        },
-    "build":  {
-                  "appId":  "com.dynastytracker.desktop",
-                  "productName":  "Dynasty Tracker",
-                  "icon":  "public/app_logo.ico",
-                  "directories":  {
-                                      "output":  "release"
-                                  },
-                  "artifactName":  "DynastyTracker_${version}.zip",
-                  "files":  [
-                                "dist-electron/**",
-                                "electron/**",
-                                "package.json"
-                            ],
-                  "asar":  true,
-                  "win":  {
-                              "publisherName":  "Talon Inc.",
-                              "icon":  "public/app_logo.ico",
-                              "target":  [
-                                             "zip"
-                                         ]
-                          }
-              }
+    "name": "ncaa-next-dynasty-tracker",
+    "private": true,
+    "version": "0.7.0",
+    "type": "module",
+    "main": "electron/main.js",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "build:electron": "vite build --mode electron",
+        "electron:start": "electron .",
+        "package:electron": "electron-builder --win zip --publish never"
+    },
+    "dependencies": {
+        "dexie": "^4.2.1",
+        "papaparse": "^5.5.3",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-router-dom": "^7.11.0"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.3.1",
+        "electron": "^34.0.0",
+        "electron-builder": "^25.1.8",
+        "vite": "^7.3.0"
+    },
+    "build": {
+        "appId": "com.dynastytracker.desktop",
+        "productName": "Dynasty Tracker",
+        "icon": "public/app_logo.ico",
+        "directories": {
+            "output": "release"
+        },
+        "artifactName": "DynastyTracker_${version}.zip",
+        "files": [
+            "dist-electron/**",
+            "electron/**",
+            "package.json"
+        ],
+        "asar": true,
+        "win": {
+            "publisherName": "Talon Inc.",
+            "icon": "public/app_logo.ico",
+            "target": [
+                "zip"
+            ]
+        }
+    }
 }
