@@ -1,4 +1,10 @@
 # AI Rules for This Repository
+This is the active application under development.
+
+Rules:
+- You may modify files in this repo.
+- Use Repo 2 as a reference only.
+- Show a plan and diffs before applying large changes.
 
 ## General
 - The app already works; avoid unnecessary or risky refactors
