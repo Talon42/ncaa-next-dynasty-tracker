@@ -72,7 +72,7 @@ body {
   font-weight: var(--app-font-weight);
   background: var(--bg);
   color: var(--text);
-  min-width: 1440px;
+  min-width: auto; /* Or 100% if you want it to always take full width */
 }
 
 /* Force unified typography everywhere */
