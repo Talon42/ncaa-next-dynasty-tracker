@@ -41,7 +41,7 @@ function TeamCell({ name, logoUrl }) {
 /**
  * Conference header row (logo + name)
  */
-function ConfHeader({ name, logoUrl, size = 44 }) {
+function ConfHeader({ name, logoUrl, size = 44, showName = true }) {
   const [src, setSrc] = useState(logoUrl || FALLBACK_CONF_LOGO);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function ConfHeader({ name, logoUrl, size = 44 }) {
           if (src !== FALLBACK_CONF_LOGO) setSrc(FALLBACK_CONF_LOGO);
         }}
       />
-      <span>{name}</span>
+      {showName ? <span>{name}</span> : null}
     </div>
   );
 }
@@ -440,12 +440,12 @@ useEffect(() => {
       <table className="table">
         <thead>
           <tr>
-            <th style={{ textAlign: "left" }}>Team</th>
-            <th style={{ width: 110 }}>Overall</th>
-            <th style={{ width: 110 }}>Conf</th>
-            <th style={{ width: 90 }} className="col-p1">PF</th>
-            <th style={{ width: 90 }} className="col-p1">PA</th>
-            <th style={{ width: 90 }} className="col-p1">Diff</th>
+            <th style={{ textAlign: "left" }}>TEAM</th>
+            <th style={{ width: 110 }}>OVERALL</th>
+            <th style={{ width: 110 }}>CONF</th>
+            <th style={{ width: 90 }}>PF</th>
+            <th style={{ width: 90 }}>PA</th>
+            <th style={{ width: 90 }}>DIFF</th>
           </tr>
         </thead>
         <tbody>
@@ -458,7 +458,7 @@ useEffect(() => {
           ) : (
             rows.map((r) => (
               <tr key={r.id}>
-                <td data-label="Team">
+                <td data-label="TEAM">
                   <Link
                     to={`/team/${r.id}`}
                     style={{ color: "inherit", textDecoration: "none", display: "inline-block" }}
@@ -467,17 +467,17 @@ useEffect(() => {
                     <TeamCell name={r.name} logoUrl={r.logoUrl} />
                   </Link>
                 </td>
-                <td data-label="Overall">
+                <td data-label="OVERALL">
                   {r.OverallW}-{r.OverallL}
                   {r.OverallT ? `-${r.OverallT}` : ""}
                 </td>
-                <td data-label="Conf">
+                <td data-label="CONF">
                   {r.ConfW}-{r.ConfL}
                   {r.ConfT ? `-${r.ConfT}` : ""}
                 </td>
-                <td data-label="PF" className="col-p1">{r.PF}</td>
-                <td data-label="PA" className="col-p1">{r.PA}</td>
-                <td data-label="Diff" className="col-p1">{r.Diff}</td>
+                <td data-label="PF">{r.PF}</td>
+                <td data-label="PA">{r.PA}</td>
+                <td data-label="DIFF">{r.Diff}</td>
               </tr>
             ))
           )}
@@ -488,31 +488,14 @@ useEffect(() => {
 
   return (
     <div>
-      <div className="hrow" style={{ alignItems: "flex-start" }}>
-        <h2>
-          {cgid === "All" ? (
-            "Conference Standings"
-          ) : (
-            <ConfHeader name={headerTitle} logoUrl={headerLogo} size={44} />
-          )}
-        </h2>
+      <div className="hrow">
+        <h2>{headerTitle}</h2>
+        {cgid !== "All" ? (
+          <ConfHeader name={headerTitle} logoUrl={headerLogo} size={44} showName={false} />
+        ) : null}
       </div>
       <div className="playerStatsControlRow flexRowWrap">
         <div className="playerStatsFilters flexRowWrap">
-          <select
-            value={cgid}
-            onChange={(e) => setCgid(e.target.value)}
-            disabled={!teamsById.size}
-            aria-label="Conference"
-          >
-            <option value="All">All</option>
-            {availableConfs.map((id) => (
-              <option key={id} value={id}>
-                {getConferenceName(id)}
-              </option>
-            ))}
-          </select>
-
           <select
             value={season}
             onChange={(e) => {
@@ -532,6 +515,20 @@ useEffect(() => {
                 </option>
               ))
             )}
+          </select>
+
+          <select
+            value={cgid}
+            onChange={(e) => setCgid(e.target.value)}
+            disabled={!teamsById.size}
+            aria-label="Conference"
+          >
+            <option value="All">All</option>
+            {availableConfs.map((id) => (
+              <option key={id} value={id}>
+                {getConferenceName(id)}
+              </option>
+            ))}
           </select>
         </div>
       </div>

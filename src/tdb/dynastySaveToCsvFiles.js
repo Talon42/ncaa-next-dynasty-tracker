@@ -12,6 +12,7 @@ const REQUIRED_TABLES = [
   "PSDE",
   "PSKI",
   "PSKP",
+  "PSOL",
   "AAPL",
   "OSPA",
 ];

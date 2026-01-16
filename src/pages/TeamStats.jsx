@@ -71,34 +71,7 @@ const EFFICIENCY_COMPACT_DEFS = [
 ];
 
 const TAB_ORDER = ["Offense", "Defense", "Efficiency"];
-const TEAMSTAT_P0_KEYS = new Set([
-  "offPtsTotal",
-  "offPtsPerGame",
-  "defPtsPerGame",
-  "tsoy",
-  "tsop",
-  "tspt",
-  "tsor",
-  "tsrt",
-  // Defense: keep visible at <=768
-  "defTotYds", // TOT YDS
-  "tsdp", // PASS YDS
-  "tsdy", // RUSH YDS
-  "tssk", // SACK
-  "tsdi", // INT
-
-  // Efficiency (<=1024 compact)
-  "eff3dPct",
-  "eff4dPct",
-  "eff2pPct",
-  "rzOffPct",
-  "rzDefPct",
-]);
-const TEAMSTAT_P1_KEYS = new Set([
-  // Defense turnovers (hide at <=768)
-  "tsff",
-  "tsfr",
-]);
+// TEAMSTAT P0/P1 buckets removed; columns are not categorized by priority anymore.
 
 function toComparable(v) {
   if (v === null || v === undefined) return null;
@@ -167,11 +140,7 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
-function teamStatPriorityClass(key) {
-  if (TEAMSTAT_P0_KEYS.has(key)) return "";
-  if (TEAMSTAT_P1_KEYS.has(key)) return "col-p1";
-  return "col-p2";
-}
+// P0/P1/P2 column states removed — priority class helper deleted.
 
 function useMaxWidth(maxWidthPx) {
   const getMatch = () => {
@@ -403,8 +372,8 @@ export default function TeamStats() {
     };
   }, [dynastyId, seasonYear]);
 
-  const isAtOrBelow1024 = useMaxWidth(1024);
-  const isAtOrBelow768 = useMaxWidth(768);
+  const isAtOrBelow1024 = useMaxWidth(1440);
+  const isAtOrBelow768 = useMaxWidth(1440);
   const colsForTab = useMemo(() => {
     if (tab === "Efficiency" && isAtOrBelow1024) return EFFICIENCY_COMPACT_DEFS;
 
@@ -724,10 +693,7 @@ export default function TeamStats() {
               <colgroup>
                 <col className="teamColWidth" />
                 {colsForTab.map((c) => (
-                  <col
-                    key={`col-${c.key}`}
-                    className={`statColWidth ${teamStatPriorityClass(c.key)}`}
-                  />
+                  <col key={`col-${c.key}`} className="statColWidth" />
                 ))}
               </colgroup>
               <thead>
@@ -772,7 +738,7 @@ export default function TeamStats() {
                     }}
                     title="Sort"
                   >
-                    Team{sortIndicator("teamName")}
+                    TEAM{sortIndicator("teamName")}
                   </th>
 
                   {colsForTab.map((c, idx) => {
@@ -803,7 +769,7 @@ export default function TeamStats() {
                     return (
                       <th
                         key={c.key}
-                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol ${teamStatPriorityClass(c.key)}`}
+                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol`}
                         onClick={() => clickSort(c.key)}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title={c.fullLabel}
@@ -858,9 +824,9 @@ export default function TeamStats() {
                                 isPenaltiesStart
                               : false;
                     return (
-                      <td
+                        <td
                         key={c.key}
-                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol ${teamStatPriorityClass(c.key)}`}
+                        className={`${idx === 0 ? "teamDivider " : ""}${isGroupStart ? "tableGroupDivider " : ""}statCol`}
                         data-label={c.fullLabel || c.label}
                       >
                         {getVal(r, c.key) ?? ""}

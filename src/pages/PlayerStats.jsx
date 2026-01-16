@@ -24,6 +24,9 @@ const POSITION_FILTER_ORDER = [
   "FB",
   "WR",
   "TE",
+  "OT",
+  "OG",
+  "C",
   "Edge",
   "DT",
   "LB",
@@ -50,6 +53,9 @@ const POSITION_FILTER_CODES = new Map([
   ["FB", ["FB"]],
   ["WR", ["WR"]],
   ["TE", ["TE"]],
+  ["OT", ["LT", "RT"]],
+  ["OG", ["LG", "RG"]],
+  ["C", ["C"]],
   ["K", ["K"]],
   ["P", ["P"]],
 ]);
@@ -70,64 +76,7 @@ const SPECIAL_TEAMS_TABS = [
 ];
 const CATEGORY_TABS = ["Offense", "Defense", "Scoring", "Special Teams"];
 
-const PLAYERSTAT_P0_KEYS = new Set([
-  "passYds",
-  "passTd",
-  "passPct",
-  "passInt",
-  "passSacks",
-  "passQbr",
-  "rushAtt",
-  "rushYds",
-  "rushYpc",
-  "rushYpg",
-  "rushTd",
-  "recvCat",
-  "recvYpc",
-  "recvYds",
-  "recvTd",
-  "defTkl",
-  "defTfl",
-  "defSack",
-  "defPDef",
-  "defInt",
-  "defFF",
-  "puntYds",
-  "puntLong",
-  "puntAtt",
-  "puntAvg",
-  "puntIn20",
-  "puntBlocked",
-  "krAtt",
-  "krYds",
-  "krTd",
-  "prAtt",
-  "prYds",
-  "prTd",
-  "totalTd",
-  "scoringPts",
-  "fgm",
-  "fga",
-  "fgPct",
-  "fgLong",
-  "xpm",
-  "xpa",
-  "xpPct",
-]);
-
-const PLAYERSTAT_P1_KEYS = new Set([
-  "passAtt",
-  "passComp",
-  "passYpg",
-  "passTd",
-  "rushTd",
-  "recvTd",
-  "retTd",
-  "recvYpg",
-  "recvDrops",
-  "recvYac",
-  "scoringPtsPg",
-]);
+// P0/P1/P2 stat buckets removed; columns no longer categorized by priority.
 
 function positionCategory(value) {
   const label = positionLabel(value);
@@ -140,6 +89,9 @@ function positionCategory(value) {
   if (label === "FB") return "FB";
   if (label === "WR") return "WR";
   if (label === "TE") return "TE";
+  if (label === "LT" || label === "RT") return "OT";
+  if (label === "LG" || label === "RG") return "OG";
+  if (label === "C") return "C";
   if (label === "CB") return "CB";
   if (label === "SS") return "SS";
   if (label === "FS") return "FS";
@@ -172,9 +124,8 @@ function categoryForTab(tab) {
 }
 
 function playerStatPriorityClass(key) {
-  if (PLAYERSTAT_P0_KEYS.has(key)) return "";
-  if (PLAYERSTAT_P1_KEYS.has(key)) return "col-p1";
-  return "col-p2";
+  // P0/P1/P2 column states removed — always return empty class.
+  return "";
 }
 
 function defaultTabForCategory(category) {
@@ -243,7 +194,7 @@ export default function PlayerStats() {
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
 
-    const mql = window.matchMedia("(max-width: 1024px)");
+    const mql = window.matchMedia("(max-width: 1440px)");
     const sync = () => {
       const compact = Boolean(mql.matches);
       setIsCompactFilters(compact);
@@ -941,7 +892,7 @@ export default function PlayerStats() {
 
   return (
     <div>
-      <div className="playerStatsHeader">
+      <div className="hrow">
         <h2>{headerText}</h2>
       </div>
 
@@ -1016,7 +967,7 @@ export default function PlayerStats() {
         <div className="muted">Loading...</div>
       ) : !hasAnyYears ? (
         <div className="muted">
-          No Player Stats imported yet. Import a season with PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv.
+          No Player Stats imported yet. Import a season with PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv (and PSOL.csv for OL stats).
         </div>
       ) : filteredRows.length === 0 ? (
         <div className="muted">No player stats found for {seasonYear}.</div>
@@ -1040,11 +991,11 @@ export default function PlayerStats() {
                 <col className="playerStatsRankCol" />
                 <col className="playerStatsJerseyCol" />
                 <col className="playerStatsNameColWidth" />
-                <col className="playerStatsMetaCol col-p2 showBelow1024" />
-                <col className="playerStatsMetaCol col-p2" />
+                <col className="playerStatsMetaCol" />
+                <col className="playerStatsMetaCol" />
                 <col className="playerStatsStatCol playerStatsGColWidth" />
                 {colsForTab.map((c) => (
-                  <col key={c.key} className={`playerStatsStatCol ${playerStatPriorityClass(c.key)}`} />
+                  <col key={c.key} className="playerStatsStatCol" />
                 ))}
               </colgroup>
               <thead>
@@ -1066,7 +1017,7 @@ export default function PlayerStats() {
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">KICKOFFS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">PUNTS</th>
                     </tr>
-                    <tr className="statsGroupRow showBelow1024Row">
+                    <tr className="statsGroupRow">
                       <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
@@ -1081,7 +1032,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className={`centerCol col-p2 showBelow1024${isScoringTab ? "" : " tableGroupDivider"}`}
+                        className={`centerCol${isScoringTab ? "" : " tableGroupDivider"}`}
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -1089,7 +1040,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2"
+                        className="centerCol"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -1111,12 +1062,11 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isKickoffStart || isPuntStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                            className={`${isKickoffStart || isPuntStart ? "tableGroupDivider " : ""}statCol`}
                           >
                             {c.key === "defTkl" ? (
                               <>
-                                <span className="hideBelow1024">{c.label}</span>
-                                <span className="showBelow1024Inline">TACKLES</span>
+                                {c.label}
                               </>
                             ) : (
                               c.label
@@ -1139,7 +1089,7 @@ export default function PlayerStats() {
                       <th colSpan={4} className="tableGroupHeader tableGroupDivider">FIELD GOALS</th>
                       <th colSpan={3} className="tableGroupHeader tableGroupDivider">EXTRA POINTS</th>
                     </tr>
-                    <tr className="statsGroupRow showBelow1024Row">
+                    <tr className="statsGroupRow">
                       <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>RNK</th>
                       <th style={{ whiteSpace: "nowrap", textAlign: "left" }}>#</th>
                       <th
@@ -1154,7 +1104,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2 showBelow1024"
+                        className="centerCol"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -1162,7 +1112,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2"
+                        className="centerCol"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -1186,7 +1136,7 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                            className={`${isFgStart || isXpStart ? "tableGroupDivider " : ""}statCol`}
                           >
                             {c.label}
                             {sortIndicator(c.key)}
@@ -1219,7 +1169,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2 showBelow1024"
+                        className="centerCol"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -1227,7 +1177,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2"
+                        className="centerCol"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -1235,7 +1185,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("gp")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className={`centerCol${isOffenseTab || isDefenseTab ? " gDividerLeft" : ""}`}
+                        className={`centerCol${isOffenseTab || isDefenseTab ? " gDividerLeft" : ""} dividerAfter`}
                       >
                         G{sortIndicator("gp")}
                       </th>
@@ -1256,12 +1206,11 @@ export default function PlayerStats() {
                               (isTackleStart && !isDefenseTab)
                                 ? "tableGroupDivider "
                                 : ""
-                            }${isDefenseTab && isTackleStart ? "noDividerAfterG " : ""}${c.key === "defPDef" || c.key === "defInt" || c.key === "defFF" ? "noDividerBelow1024 " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                            }${isDefenseTab && isTackleStart ? "noDividerAfterG " : ""}${c.key === "defPDef" || c.key === "defInt" || c.key === "defFF" ? "noDividerBelow1024 " : ""}statCol`}
                           >
                             {c.key === "defTkl" ? (
                               <>
-                                <span className="hideBelow1024">{c.label}</span>
-                                <span className="showBelow1024Inline">TACKLES</span>
+                                {c.label}
                               </>
                             ) : (
                               c.label
@@ -1295,7 +1244,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2 showBelow1024"
+                        className="centerCol"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -1303,7 +1252,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("classYear")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2"
+                        className="centerCol"
                       >
                         YR{sortIndicator("classYear")}
                       </th>
@@ -1325,7 +1274,7 @@ export default function PlayerStats() {
                             onClick={() => clickSort(c.key)}
                             style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             title={c.fullLabel}
-                            className={`${isTdStart || isScoreStart ? "tableGroupDivider " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                            className={`${isTdStart || isScoreStart ? "tableGroupDivider " : ""}statCol`}
                           >
                             {c.label}
                             {sortIndicator(c.key)}
@@ -1350,7 +1299,7 @@ export default function PlayerStats() {
                         onClick={() => clickSort("position")}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title="Sort"
-                        className="centerCol col-p2 showBelow1024"
+                        className="centerCol"
                       >
                         POS{sortIndicator("position")}
                       </th>
@@ -1358,7 +1307,7 @@ export default function PlayerStats() {
                       onClick={() => clickSort("classYear")}
                       style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                       title="Sort"
-                      className="centerCol col-p2"
+                      className="centerCol"
                     >
                       YR{sortIndicator("classYear")}
                     </th>
@@ -1379,26 +1328,9 @@ export default function PlayerStats() {
                         onClick={() => clickSort(c.key)}
                         style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                         title={c.fullLabel}
-                        className={`${isOffenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                        className={`${isOffenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol`}
                       >
-                        {tab === "Rushing" && c.key === "rushYpc" ? (
-                          <>
-                            <span className="hideBelow1024">{c.label}</span>
-                            <span className="showBelow1024Inline">AVG</span>
-                          </>
-                        ) : tab === "Receiving" && c.key === "recvYpc" ? (
-                          <>
-                            <span className="hideBelow1024">{c.label}</span>
-                            <span className="showBelow1024Inline">AVG</span>
-                          </>
-                        ) : tab === "Receiving" && c.key === "recvYac" ? (
-                          <>
-                            <span className="hideBelow1024">{c.label}</span>
-                            <span className="showBelow1024Inline">RAC</span>
-                          </>
-                        ) : (
-                          c.label
-                        )}
+                        {c.label}
                         {sortIndicator(c.key)}
                       </th>
                     ))}
@@ -1447,6 +1379,7 @@ export default function PlayerStats() {
                         {r.playerUid ? (
                           <Link
                             to={`/player/${r.playerUid}`}
+                            state={{ seasonYear }}
                             style={{ color: "inherit", textDecoration: "none" }}
                           >
                             {r.playerNameBase || r.playerName}
@@ -1455,14 +1388,7 @@ export default function PlayerStats() {
                           <span>{r.playerNameBase || r.playerName}</span>
                         )}
                         {r.teamAbbr ? (
-                          <span
-                            style={{
-                              marginLeft: 6,
-                              fontWeight: 400,
-                              fontSize: "0.8em",
-                              color: "var(--muted)",
-                            }}
-                          >
+                          <span className="playerInlineTeamAbbr">
                             {r.teamAbbr}
                           </span>
                         ) : null}
@@ -1472,14 +1398,14 @@ export default function PlayerStats() {
                         data-label="POS"
                         className={`${
                           isReturnsTab ? "tableGroupDivider " : ""
-                        }centerCol col-p2 showBelow1024`}
+                        }centerCol`}
                       >
                         {positionLabel(r.position)}
                       </td>
-                    <td data-label="YR" className="centerCol col-p2">{classLabel(r.classYear)}</td>
+                    <td data-label="YR" className="centerCol">{classLabel(r.classYear)}</td>
                     <td
                       data-label="G"
-                      className={`centerCol${isOffenseTab || isDefenseTab || isPuntingTab ? " gDividerLeft" : ""}`}
+                      className={`centerCol${isOffenseTab || isDefenseTab || isPuntingTab ? " gDividerLeft" : ""} dividerAfter`}
                     >
                       {Number.isFinite(getGpForTab(r, normalizeTab(tab)))
                         ? getGpForTab(r, normalizeTab(tab))
@@ -1517,7 +1443,7 @@ export default function PlayerStats() {
                             c.key === "defPDef" || c.key === "defInt" || c.key === "defFF"
                               ? "noDividerBelow1024 "
                               : ""
-                          }${isDefenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol ${playerStatPriorityClass(c.key)}`}
+                          }${isDefenseTab && idx === 0 ? "noDividerAfterG " : ""}statCol`}
                         >
                           {displayValue}
                         </td>

@@ -4,6 +4,7 @@ import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 import { computeCoachCareerBases } from "./coachRecords";
 import { rebuildLatestSnapshotsForDynasty } from "./latestSnapshots";
+import { prluLurtFromLuvl } from "./prlu";
 
 const OSPA_AWARDS = new Map([
   [0, "Heisman Memorial Trophy"],
@@ -29,6 +30,13 @@ function parseCsvText(text) {
   return res.data;
 }
 
+function normalizeFieldKey(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 function requireColumns(rows, required, label) {
   if (!rows.length) throw new Error(`${label} has no rows.`);
   const cols = Object.keys(rows[0] || {});
@@ -38,16 +46,22 @@ function requireColumns(rows, required, label) {
 
 function requireColumnsLoose(rows, required, label) {
   if (!rows.length) throw new Error(`${label} has no rows.`);
-  const cols = Object.keys(rows[0] || {}).map((c) => String(c ?? "").toLowerCase());
-  const missing = required.filter((c) => !cols.includes(String(c ?? "").toLowerCase()));
+  const cols = Object.keys(rows[0] || {}).map((c) => normalizeFieldKey(c));
+  const missing = required.filter((c) => !cols.includes(normalizeFieldKey(c)));
   if (missing.length) throw new Error(`${label} missing required columns: ${missing.join(", ")}`);
 }
 
 function requireColumnsLooseFromFields(fields, required, label) {
   if (!fields?.length) throw new Error(`${label} has no rows.`);
-  const cols = fields.map((c) => String(c ?? "").toLowerCase());
-  const missing = required.filter((c) => !cols.includes(String(c ?? "").toLowerCase()));
+  const cols = fields.map((c) => normalizeFieldKey(c));
+  const missing = required.filter((c) => !cols.includes(normalizeFieldKey(c)));
   if (missing.length) throw new Error(`${label} missing required columns: ${missing.join(", ")}`);
+}
+
+function findHeaderByNormalized(fields, key) {
+  const target = normalizeFieldKey(key);
+  if (!target) return null;
+  return (fields || []).find((field) => normalizeFieldKey(field) === target) || null;
 }
 
 function getTypeFromName(fileName) {
@@ -75,7 +89,9 @@ function calcTeamIdFromPgid(pgid) {
 }
 
 function toNumberOrNull(v) {
-  const n = Number(String(v ?? "").trim());
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -95,7 +111,7 @@ function parseRowWithNumbers(row) {
   return out;
 }
 
-function parseCsvFileStream(file, { label, requiredColumns, onRow }) {
+function parseCsvFileStream(file, { label, requiredColumns, onRow, onHeaders }) {
   return new Promise((resolve, reject) => {
     let rowCount = 0;
     let checkedHeaders = false;
@@ -124,6 +140,7 @@ function parseCsvFileStream(file, { label, requiredColumns, onRow }) {
           if (requiredColumns?.length) {
             requireColumnsLooseFromFields(fields, requiredColumns, label);
           }
+          if (typeof onHeaders === "function") onHeaders(fields);
           checkedHeaders = true;
         }
 
@@ -145,23 +162,25 @@ function parseCsvFileStream(file, { label, requiredColumns, onRow }) {
 function getRowValue(row, key) {
   if (!row) return null;
   if (row[key] !== undefined) return row[key];
-  const target = String(key ?? "").toLowerCase();
+  const target = normalizeFieldKey(key);
   if (!target) return null;
-  const found = Object.keys(row).find((k) => String(k ?? "").toLowerCase() === target);
+  const found = Object.keys(row).find((k) => normalizeFieldKey(k) === target);
   return found ? row[found] : null;
 }
 
 function toLowerKeyMap(row) {
   const lc = {};
   for (const [k, v] of Object.entries(row || {})) {
-    lc[String(k ?? "").toLowerCase()] = v;
+    const key = normalizeFieldKey(k);
+    if (!key) continue;
+    if (lc[key] === undefined) lc[key] = v;
   }
   return lc;
 }
 
 function getRowValueFast(row, lc, key) {
   if (row[key] !== undefined) return row[key];
-  return lc[String(key ?? "").toLowerCase()];
+  return lc[normalizeFieldKey(key)];
 }
 
 function normalizeNamePart(value) {
@@ -242,14 +261,17 @@ function createPlayerStatsAccumulator({
         gpDef: null,
         gpKick: null,
         gpRet: null,
+        gpOl: null,
         hasOffRow: false,
         hasDefRow: false,
         hasKickRow: false,
         hasRetRow: false,
+        hasOlRow: false,
         off: {},
         def: {},
         kick: {},
         ret: {},
+        ol: {},
       };
       statsByPgid.set(pgid, entry);
     }
@@ -281,6 +303,26 @@ function createPlayerStatsAccumulator({
         position: toNumberOrNull(getRowValue(row, "PPOS")),
         classYear: toNumberOrNull(getRowValue(row, "PYER")),
         overall: toNumberOrNull(getRowValue(row, "POVR")),
+        pten: toNumberOrNull(getRowValue(row, "PTEN")),
+        pacc: prluLurtFromLuvl(getRowValue(row, "PACC")),
+        pagi: prluLurtFromLuvl(getRowValue(row, "PAGI")),
+        pawr: prluLurtFromLuvl(getRowValue(row, "PAWR")),
+        pcar: prluLurtFromLuvl(getRowValue(row, "PCAR")),
+        pbtk: prluLurtFromLuvl(getRowValue(row, "PBTK")),
+        pcth: prluLurtFromLuvl(getRowValue(row, "PCTH")),
+        pinj: prluLurtFromLuvl(getRowValue(row, "PINJ")),
+        pjmp: prluLurtFromLuvl(getRowValue(row, "PJMP")),
+        pkac: prluLurtFromLuvl(getRowValue(row, "PKAC")),
+        pkpr: prluLurtFromLuvl(getRowValue(row, "PKPR")),
+        ppbk: prluLurtFromLuvl(getRowValue(row, "PPBK")),
+        prbk: prluLurtFromLuvl(getRowValue(row, "PRBK")),
+        pspd: prluLurtFromLuvl(getRowValue(row, "PSPD")),
+        psta: prluLurtFromLuvl(getRowValue(row, "PSTA")),
+        pstr: prluLurtFromLuvl(getRowValue(row, "PSTR")),
+        ptak: prluLurtFromLuvl(getRowValue(row, "PTAK")),
+        ptha: prluLurtFromLuvl(getRowValue(row, "PTHA")),
+        pthp: prluLurtFromLuvl(getRowValue(row, "PTHP")),
+        povr: prluLurtFromLuvl(getRowValue(row, "POVR")),
         redshirt: toNumberOrNull(getRowValue(row, "PRSD")),
         skin: toNumberOrNull(getRowValue(row, "PSKI")),
         faceShape: toNumberOrNull(getRowValue(row, "PFGM")),
@@ -295,9 +337,7 @@ function createPlayerStatsAccumulator({
   const shouldIncludeSeasonRow = (row, lc) => {
     const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
     if (seyr == null) return true;
-    if (Number.isFinite(seasonIndex) && seyr === seasonIndex) return true;
-    if (seyr === seasonYear) return true;
-    return false;
+    return Number.isFinite(seasonIndex) ? seyr === seasonIndex : true;
   };
 
   const addOffenseRow = (row) => {
@@ -419,6 +459,24 @@ function createPlayerStatsAccumulator({
     addStat(entry.ret, "prLong", getRowValueFast(row, lc, "srpL"));
   };
 
+  const addOffensiveLineRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    if (!shouldIncludeSeasonRow(row, lc)) return;
+    const pgid = normId(getRowValueFast(row, lc, "PGID"));
+    if (!pgid) return;
+    const entry = ensure(pgid);
+    const sgmp = toNumberOrNull(getRowValueFast(row, lc, "SGMP") ?? getRowValueFast(row, lc, "sgmp"));
+    if (sgmp != null) entry.gpOl = entry.gpOl == null ? sgmp : Math.max(entry.gpOl, sgmp);
+    entry.hasOlRow = true;
+
+    const tgid =
+      normalizeTeamId(getRowValueFast(row, lc, "TGID")) || calcTeamIdFromPgid(pgid);
+    if (!entry.tgid && tgid) entry.tgid = tgid;
+
+    addStat(entry.ol, "pancakes", getRowValueFast(row, lc, "SOPA") ?? getRowValueFast(row, lc, "sopa"));
+    addStat(entry.ol, "sacksAllowed", getRowValueFast(row, lc, "SOSA") ?? getRowValueFast(row, lc, "sosa"));
+  };
+
   const finalize = () => {
     for (const pgid of playByPgid.keys()) {
       ensure(pgid);
@@ -454,19 +512,24 @@ function createPlayerStatsAccumulator({
           ? gpSpec
           : teamGp
         : 0;
+      const gpOl = entry.hasOlRow
+        ? Number.isFinite(entry.gpOl) && entry.gpOl > 0
+          ? entry.gpOl
+          : teamGp
+        : 0;
 
       const hasStat =
         (Number.isFinite(gpOff) && gpOff > 0) ||
         (Number.isFinite(gpDef) && gpDef > 0) ||
         (Number.isFinite(resolvedGpSpec) && resolvedGpSpec > 0) ||
+        (Number.isFinite(gpOl) && gpOl > 0) ||
         Object.values(entry.off).some((v) => Number.isFinite(v) && v !== 0) ||
         Object.values(entry.def).some((v) => Number.isFinite(v) && v !== 0) ||
         Object.values(entry.kick).some((v) => Number.isFinite(v) && v !== 0) ||
-        Object.values(entry.ret).some((v) => Number.isFinite(v) && v !== 0);
-
-      if (isOffensiveLinePosition(info.position) && !hasStat) {
-        continue;
-      }
+        Object.values(entry.ret).some((v) => Number.isFinite(v) && v !== 0) ||
+        Object.values(entry.ol).some((v) => Number.isFinite(v) && v !== 0);
+      // Always include offensive line players in `playerSeasonStats` (roster/ratings),
+      // even though they often have no counting stats rows in PSOF.
 
       const passComp = entry.off.passComp ?? null;
       const passAtt = entry.off.passAtt ?? null;
@@ -510,6 +573,9 @@ function createPlayerStatsAccumulator({
       const prYds = entry.ret.prYds ?? null;
       const prTd = entry.ret.prTd ?? null;
       const prLong = entry.ret.prLong ?? null;
+
+      const olPancakes = entry.ol.pancakes ?? null;
+      const olSacksAllowed = entry.ol.sacksAllowed ?? null;
 
       const nameKey = buildPlayerNameKey(info);
       const priorUid = priorSeasonByPgid.get(entry.pgid) || null;
@@ -649,10 +715,32 @@ function createPlayerStatsAccumulator({
         gpOff,
         gpDef,
         gpSpec: resolvedGpSpec,
+        gpOl,
         jersey: info.jersey ?? null,
         position: info.position ?? null,
         classYear: info.classYear ?? null,
         redshirt: info.redshirt ?? null,
+        pten: info.pten ?? null,
+
+        pacc: info.pacc ?? null,
+        pagi: info.pagi ?? null,
+        pawr: info.pawr ?? null,
+        pcar: info.pcar ?? null,
+        pbtk: info.pbtk ?? null,
+        pcth: info.pcth ?? null,
+        pinj: info.pinj ?? null,
+        pjmp: info.pjmp ?? null,
+        pkac: info.pkac ?? null,
+        pkpr: info.pkpr ?? null,
+        ppbk: info.ppbk ?? null,
+        prbk: info.prbk ?? null,
+        pspd: info.pspd ?? null,
+        psta: info.psta ?? null,
+        pstr: info.pstr ?? null,
+        ptak: info.ptak ?? null,
+        ptha: info.ptha ?? null,
+        pthp: info.pthp ?? null,
+        povr: info.povr ?? null,
 
         passComp,
         passAtt,
@@ -710,6 +798,9 @@ function createPlayerStatsAccumulator({
         prYds,
         prTd,
         prLong,
+
+        olPancakes,
+        olSacksAllowed,
       });
     }
 
@@ -727,7 +818,85 @@ function createPlayerStatsAccumulator({
     addDefenseRow,
     addKickingRow,
     addReturnRow,
+    addOffensiveLineRow,
     finalize,
+  };
+}
+
+function collectSeyrValuesFromRows(rows) {
+  const values = [];
+  for (const row of rows || []) {
+    const lc = toLowerKeyMap(row);
+    const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
+    if (!Number.isFinite(seyr)) continue;
+    values.push(seyr);
+  }
+  return values;
+}
+
+function pickSeasonIndexFromSeyr({ seasonYear, dynastyStartYear, rowsByType, seyrHeaderByType } = {}) {
+  const year = Number(seasonYear);
+  if (!Number.isFinite(year)) return { seasonIndex: null, inferredStartYear: null, usedFallback: false };
+
+  // `SEYR` is a 0-based season index within the dynasty/save.
+  // If the dynasty has a startYear, then SEYR for a given seasonYear is fixed as:
+  //   expectedIndex = seasonYear - startYear
+  // This matters for overwriting older seasons (e.g. reimport 2025 => SEYR=0 even if later seasons exist).
+  const expectedIndex = Number.isFinite(Number(dynastyStartYear))
+    ? year - Number(dynastyStartYear)
+    : null;
+
+  const allSeyr = [];
+  for (const rows of Object.values(rowsByType || {})) {
+    allSeyr.push(...collectSeyrValuesFromRows(rows));
+  }
+
+  if (!allSeyr.length) return { seasonIndex: expectedIndex, inferredStartYear: null, usedFallback: false };
+
+  const seyrSet = new Set(allSeyr);
+  const unique = Array.from(seyrSet.values()).filter((v) => Number.isFinite(v));
+
+  if (Number.isFinite(expectedIndex)) {
+    if (seyrSet.has(expectedIndex)) {
+      return { seasonIndex: expectedIndex, inferredStartYear: null, usedFallback: false };
+    }
+
+    if (unique.length === 1) {
+      // Per-season exports sometimes only include one SEYR value; accept it but mark fallback.
+      return { seasonIndex: unique[0], inferredStartYear: null, usedFallback: true };
+    }
+
+    const detail = Object.entries(rowsByType || {})
+      .map(([type, rows]) => {
+        const vals = Array.from(new Set(collectSeyrValuesFromRows(rows))).sort((a, b) => a - b);
+        const header = seyrHeaderByType?.[type];
+        const headerLabel = header ? `SEYR header "${header}"` : "SEYR header missing";
+        return vals.length ? `${type}: ${vals.join(", ")} (${headerLabel})` : `${type}: (no SEYR values found, ${headerLabel})`;
+      })
+      .join(" | ");
+    throw new Error(
+      `Season ${year} maps to SEYR=${expectedIndex} (startYear=${dynastyStartYear}), but the selected files contain SEYR values: ${unique
+        .slice()
+        .sort((a, b) => a - b)
+        .join(", ")}. (${detail}) Pick the correct season year for this dynasty file, or adjust the dynasty start year so SEYR=0 matches the dynasty's first season.`
+    );
+  }
+
+  if (unique.length === 1) {
+    return {
+      seasonIndex: unique[0],
+      inferredStartYear: Number.isFinite(expectedIndex) ? null : year - unique[0],
+      usedFallback: Number.isFinite(expectedIndex) && expectedIndex !== unique[0],
+    };
+  }
+
+  const maxSeyr = Math.max(...unique);
+  if (!Number.isFinite(maxSeyr)) return { seasonIndex: expectedIndex, inferredStartYear: null, usedFallback: false };
+
+  return {
+    seasonIndex: maxSeyr,
+    inferredStartYear: Number.isFinite(expectedIndex) ? null : year - maxSeyr,
+    usedFallback: Number.isFinite(expectedIndex) && expectedIndex !== maxSeyr,
   };
 }
 
@@ -1007,9 +1176,77 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
       .filter(Boolean)
   );
 
-  const seasonIndex = Number.isFinite(Number(dynasty.startYear))
-    ? year - Number(dynasty.startYear)
-    : null;
+  const playRowsRaw = [];
+  await parseCsvFileStream(byType.PLAY, {
+    label: "PLAY",
+    requiredColumns: ["PGID", "FirstName", "LastName", "RCHD"],
+    onRow: (row) => {
+      playRowsRaw.push(row);
+    },
+  });
+
+  const psofRowsRaw = [];
+  const psdeRowsRaw = [];
+  const pskiRowsRaw = [];
+  const pskpRowsRaw = [];
+  const psolRowsRaw = [];
+  const seyrHeaderByType = {};
+
+  await parseCsvFileStream(byType.PSOF, {
+    label: "PSOF",
+    requiredColumns: ["PGID", "SEYR", "SGMP"],
+    onHeaders: (fields) => {
+      seyrHeaderByType.PSOF = findHeaderByNormalized(fields, "SEYR");
+    },
+    onRow: (row) => psofRowsRaw.push(row),
+  });
+
+  await parseCsvFileStream(byType.PSDE, {
+    label: "PSDE",
+    requiredColumns: ["PGID", "SEYR", "SGMP"],
+    onHeaders: (fields) => {
+      seyrHeaderByType.PSDE = findHeaderByNormalized(fields, "SEYR");
+    },
+    onRow: (row) => psdeRowsRaw.push(row),
+  });
+
+  await parseCsvFileStream(byType.PSKI, {
+    label: "PSKI",
+    requiredColumns: ["PGID", "SEYR", "SGMP"],
+    onHeaders: (fields) => {
+      seyrHeaderByType.PSKI = findHeaderByNormalized(fields, "SEYR");
+    },
+    onRow: (row) => pskiRowsRaw.push(row),
+  });
+
+  await parseCsvFileStream(byType.PSKP, {
+    label: "PSKP",
+    requiredColumns: ["PGID", "SEYR", "SGMP"],
+    onHeaders: (fields) => {
+      seyrHeaderByType.PSKP = findHeaderByNormalized(fields, "SEYR");
+    },
+    onRow: (row) => pskpRowsRaw.push(row),
+  });
+
+  if (byType.PSOL) {
+    await parseCsvFileStream(byType.PSOL, {
+      label: "PSOL",
+      requiredColumns: ["PGID", "SEYR", "SGMP"],
+      onHeaders: (fields) => {
+        seyrHeaderByType.PSOL = findHeaderByNormalized(fields, "SEYR");
+      },
+      onRow: (row) => psolRowsRaw.push(row),
+    });
+  }
+
+  const picked = pickSeasonIndexFromSeyr({
+    seasonYear: year,
+    dynastyStartYear: dynasty.startYear,
+    rowsByType: { PSOF: psofRowsRaw, PSDE: psdeRowsRaw, PSKI: pskiRowsRaw, PSKP: pskpRowsRaw, PSOL: psolRowsRaw },
+    seyrHeaderByType,
+  });
+  const seasonIndex = picked.seasonIndex;
+
   const statsAccumulator = createPlayerStatsAccumulator({
     dynastyId,
     seasonYear: year,
@@ -1021,37 +1258,12 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
     teamGamesByTgid,
   });
 
-  await parseCsvFileStream(byType.PLAY, {
-    label: "PLAY",
-    requiredColumns: ["PGID", "FirstName", "LastName", "RCHD"],
-    onRow: (row) => {
-      statsAccumulator.addPlayRow(row);
-    },
-  });
-
-  await parseCsvFileStream(byType.PSOF, {
-    label: "PSOF",
-    requiredColumns: ["PGID", "SGMP"],
-    onRow: (row) => statsAccumulator.addOffenseRow(row),
-  });
-
-  await parseCsvFileStream(byType.PSDE, {
-    label: "PSDE",
-    requiredColumns: ["PGID", "SGMP"],
-    onRow: (row) => statsAccumulator.addDefenseRow(row),
-  });
-
-  await parseCsvFileStream(byType.PSKI, {
-    label: "PSKI",
-    requiredColumns: ["PGID", "SGMP"],
-    onRow: (row) => statsAccumulator.addKickingRow(row),
-  });
-
-  await parseCsvFileStream(byType.PSKP, {
-    label: "PSKP",
-    requiredColumns: ["PGID", "SGMP"],
-    onRow: (row) => statsAccumulator.addReturnRow(row),
-  });
+  for (const row of playRowsRaw) statsAccumulator.addPlayRow(row);
+  for (const row of psofRowsRaw) statsAccumulator.addOffenseRow(row);
+  for (const row of psdeRowsRaw) statsAccumulator.addDefenseRow(row);
+  for (const row of pskiRowsRaw) statsAccumulator.addKickingRow(row);
+  for (const row of pskpRowsRaw) statsAccumulator.addReturnRow(row);
+  for (const row of psolRowsRaw) statsAccumulator.addOffensiveLineRow(row);
 
   const { playerSeasonStats, seasonIdentityMapRows, newIdentities, identityUpdates } =
     statsAccumulator.finalize();
@@ -1082,11 +1294,20 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   );
   const allAmericanRows = [];
   const awardRows = [];
+  const pendingOspaByPoat = new Map();
+
+  const shouldIncludeSeasonRow = (row) => {
+    const lc = toLowerKeyMap(row);
+    const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
+    if (seyr == null) return true;
+    return Number.isFinite(seasonIndex) ? seyr === seasonIndex : true;
+  };
 
   await parseCsvFileStream(byType.AAPL, {
     label: "AAPL",
     requiredColumns: ["CGID", "PGID", "TTYP", "SEYR", "PPOS"],
     onRow: (row) => {
+      if (!shouldIncludeSeasonRow(row)) return;
       const lc = toLowerKeyMap(row);
       const pgid = normId(getRowValueFast(row, lc, "PGID"));
       if (!pgid) return;
@@ -1105,31 +1326,46 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
     },
   });
 
-  const shouldIncludeSeasonRow = (row) => {
-    const lc = toLowerKeyMap(row);
-    const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
-    if (seyr == null) return true;
-    if (Number.isFinite(seasonIndex) && seyr === seasonIndex) return true;
-    if (seyr === year) return true;
-    return false;
-  };
-
   await parseCsvFileStream(byType.OSPA, {
     label: "OSPA",
     requiredColumns: ["PGID", "POAR", "POAT", "SEYR"],
     onRow: (row) => {
-      if (!shouldIncludeSeasonRow(row)) return;
       const lc = toLowerKeyMap(row);
+      const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));
+      if (!Number.isFinite(seyr)) return;
+      if (Number.isFinite(seasonIndex) && seyr !== seasonIndex) return;
+
       const pgid = normId(getRowValueFast(row, lc, "PGID"));
       if (!pgid) return;
-      const playerUid = playerUidByPgid.get(pgid);
-      if (!playerUid) return;
       const poar = toNumberOrNull(getRowValueFast(row, lc, "POAR"));
-      if (poar !== 0) return;
+      if (!Number.isFinite(poar)) return;
       const poat = toNumberOrNull(getRowValueFast(row, lc, "POAT"));
       if (!Number.isFinite(poat)) return;
-      const awardName = OSPA_AWARDS.get(poat);
-      if (!awardName) return;
+
+      // Defer picking the winner until we've seen all rows for a given award.
+      // Some exports may encode placement differently; prefer POAR=0 when present,
+      // otherwise fall back to the minimum POAR within that POAT group.
+      const list = pendingOspaByPoat.get(poat) || [];
+      list.push({ pgid, poar });
+      pendingOspaByPoat.set(poat, list);
+    },
+  });
+
+  for (const [poat, rows] of pendingOspaByPoat.entries()) {
+    const awardName = OSPA_AWARDS.get(poat);
+    if (!awardName) continue;
+
+    const poarValues = rows.map((r) => r.poar).filter((v) => Number.isFinite(v));
+    if (!poarValues.length) continue;
+
+    const hasZero = poarValues.includes(0);
+    const winnerRank = hasZero ? 0 : Math.min(...poarValues);
+
+    for (const r of rows) {
+      if (r.poar !== winnerRank) continue;
+      const pgid = r.pgid;
+      const playerUid = playerUidByPgid.get(pgid);
+      if (!playerUid) continue;
       const name = nameByPgid.get(pgid) || { firstName: "", lastName: "" };
       awardRows.push({
         dynastyId,
@@ -1141,10 +1377,10 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
         awardKey: String(poat),
         awardName,
         poat,
-        poar,
+        poar: r.poar,
       });
-    },
-  });
+    }
+  }
 
   await db.transaction(
     "rw",
@@ -1194,7 +1430,11 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
       // Option A currentYear advance
       const d = await db.dynasties.get(dynastyId);
       if (d && year >= Number(d.currentYear)) {
-        await db.dynasties.update(dynastyId, { currentYear: year + 1 });
+        const patch = { currentYear: year + 1 };
+        if (!Number.isFinite(Number(d.startYear)) && Number.isFinite(Number(picked?.inferredStartYear))) {
+          patch.startYear = Math.trunc(Number(picked.inferredStartYear));
+        }
+        await db.dynasties.update(dynastyId, patch);
       }
     }
   );

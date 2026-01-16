@@ -50,6 +50,10 @@ export const STAT_DEFS = [
   { key: "defSafety", label: "Safety", fullLabel: "Safeties", group: "Defense" },
   { key: "defBlk", label: "Blk", fullLabel: "Blocks", group: "Defense" },
 
+  // Offensive Line
+  { key: "olPancakes", label: "PANCAKES", fullLabel: "Pancakes", group: "Offensive Line" },
+  { key: "olSacksAllowed", label: "SACKS ALLOWED", fullLabel: "Sacks Allowed", group: "Offensive Line" },
+
   // Special Teams (Kicking)
   { key: "fgm", label: "FGM", fullLabel: "Field Goals Made", group: "Special Teams" },
   { key: "fga", label: "FGA", fullLabel: "Field Goals Attempted", group: "Special Teams" },
@@ -237,6 +241,10 @@ export function formatStat(value, key) {
 
 export function getGpForTab(row, tab) {
   const legacy = Number(row.gp);
+  if (tab === "Offensive Line") {
+    const gpOl = Number(row.gpOl);
+    return Number.isFinite(gpOl) ? gpOl : legacy;
+  }
   if (tab === "Passing" || tab === "Rushing" || tab === "Receiving") {
     const gpOff = Number(row.gpOff);
     return Number.isFinite(gpOff) ? gpOff : legacy;
@@ -264,6 +272,10 @@ export function getGpForTab(row, tab) {
 }
 
 export function rowHasStatsForTab(row, defs, tab) {
+  if (tab === "Offensive Line") {
+    const gp = getGpForTab(row, tab);
+    if (Number.isFinite(gp) && gp > 0) return true;
+  }
   for (const c of defs) {
     const value =
       ONE_DECIMAL_KEYS.has(c.key) ||
@@ -281,6 +293,12 @@ export function rowHasStatsForTab(row, defs, tab) {
 export function getPlayerCardStatDefs(tab) {
   const defs = STAT_DEFS.filter((d) => d.group === tab);
   if (!defs.length) return defs;
+
+  if (tab === "Offensive Line") {
+    const order = ["olPancakes", "olSacksAllowed"];
+    const map = new Map(defs.map((d) => [d.key, d]));
+    return order.map((key) => map.get(key)).filter(Boolean);
+  }
 
   if (tab === "Rushing") {
     const order = [

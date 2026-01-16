@@ -19,6 +19,8 @@ export const REQUIRED_TYPES = [
   "PSDE",
   "PSKI",
   "PSKP",
+  // Offensive line stats (not present in older saves)
+  "PSOL",
   "AAPL",
   "OSPA",
 ];
@@ -63,6 +65,8 @@ export function exportCsvFromDynastyFile({ dynastyFilePath, maxRows } = {}) {
   for (const t of REQUIRED_TYPES) {
     const filePath = path.join(outDir, `${t}.csv`);
     if (!fs.existsSync(filePath)) {
+      // PSOL may not exist in older saves; keep dynasty export usable.
+      if (t === "PSOL") continue;
       throw new Error(`Missing exported CSV: ${t}.csv`);
     }
     const text = fs.readFileSync(filePath, "utf8");

@@ -72,7 +72,7 @@ body {
   font-weight: var(--app-font-weight);
   background: var(--bg);
   color: var(--text);
-  min-width: 768px;
+  min-width: 1440px;
 }
 
 /* Force unified typography everywhere */
@@ -162,19 +162,7 @@ h2 {
   max-width: 100%;
 }
 
-.hideBelow1024 {
-  display: inline;
-}
-
-.showBelow1024Inline {
-  display: none;
-}
-
-.showAbove1024Inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+/* Legacy responsive helper classes for P0/P1/P2 removed */
 
 .shellGrid {
   display: grid;
@@ -213,6 +201,7 @@ h2 {
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.2px;
+  text-align: right;
 }
 
 .mobileHeaderActions {
@@ -289,17 +278,45 @@ h2 {
   background: rgba(0, 0, 0, 0.55);
   z-index: 1300;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start; /* align drawer to left under the hamburger */
 }
 
 .mobileDrawer {
   width: min(360px, 92vw);
   height: 100%;
   background: var(--panel);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: 16px;
   overflow: auto;
+}
+
+/* Desktop / narrow-desktop dropdown: render the drawer as a compact
+   dropdown panel under the hamburger when viewport is wider than 1024px. */
+@media (min-width: 1025px) {
+  .mobileDrawerOverlay {
+    /* keep overlay to capture outside clicks but make background transparent */
+    background: rgba(0,0,0,0.0);
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .mobileDrawer {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 12px;
+    width: auto;
+    min-width: 220px;
+    max-width: 420px;
+    height: auto;
+    border-radius: 12px;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .mobileDrawerHeader {
+    margin-bottom: 8px;
+  }
 }
 
 .mobileDrawerHeader {
@@ -624,9 +641,28 @@ h2 {
   max-width: 1500px;
 }
 
-@media (min-width: 1536px) {
+@media (min-width: 1440px) {
   .routedCard.cardSchedule {
     max-width: var(--schedule-max);
+  }
+}
+/* Header/menu adjustments active up to 1440px so header controls appear
+  on narrower desktop widths without switching to mobile sidebar layout. */
+@media (max-width: 1440px) {
+  .mobileHeader { display: flex; font-size: 1rem; }
+  .headerTrigger,
+  .headerNavBtn {
+    font-size: var(--app-header-menu-font-size);
+    font-weight: var(--app-header-menu-font-weight);
+    letter-spacing: 0.2px;
+  }
+  .teamLogo {
+    width: calc(20px * 1.1);
+    height: calc(20px * 1.1);
+  }
+  .postseasonMeta img {
+    width: calc(16px * 1.1);
+    height: calc(16px * 1.1);
   }
 }
 .card {
@@ -907,9 +943,13 @@ button:disabled {
   overflow-x: visible;
   overflow-y: visible;
   position: relative;
+  /* Wrapper handles outer border and rounded corners */
+  border-radius: 14px;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .tableWrap,
   .statsTableWrap {
     overflow-x: auto;
@@ -926,7 +966,7 @@ button:disabled {
   max-width: 280px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1440px) {
   /* On small screens we scroll the whole table; don't force a wide fixed first column. */
   .firstColFixed280 th:first-child,
   .firstColFixed280 td:first-child {
@@ -938,10 +978,46 @@ button:disabled {
 
 .table {
   width: 100%;
-  border-collapse: collapse;
-  border-radius: 14px;
-  border: 1px solid var(--border);
+  /* Table internals use separated borders so wrapper controls outer border */
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  outline: none;
+  box-shadow: none;
   min-width: 0;
+}
+
+/* Remove any default/inherited cell borders so wrapper & explicit rules control dividers */
+.table th,
+.table td {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Internal vertical column borders (apply to all but last column) */
+.table th:not(:last-child),
+.table td:not(:last-child) {
+  border-right: 1px solid #2a2a2a;
+}
+
+/* First row bottom border: applies to thead th, or tbody first row cells if no thead */
+.table thead th {
+  border-bottom: 1px solid #2a2a2a;
+}
+.table tbody tr:first-child th {
+  border-bottom: 1px solid #2a2a2a;
+}
+
+/* Global header-bottom border for all tables (header row only).
+   Applies to `thead` headers, and to the first row in tables
+   that don't use `thead`/`tbody`. Uses `var(--border)` and
+   `!important` to ensure visibility across table resets. */
+table thead th {
+  border-bottom: 1px solid var(--border) !important;
+}
+table tr:first-child th {
+  border-bottom: 1px solid var(--border) !important;
 }
 
 
@@ -1003,6 +1079,25 @@ button:disabled {
   border-left: 1px solid var(--border);
 }
 
+/* Explicit divider for columns that need a full-height separator. */
+.table thead th.dividerAfter,
+.table tbody td.dividerAfter {
+  position: relative;
+}
+
+.table thead th.dividerAfter::after,
+.table tbody td.dividerAfter::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #2a2a2a;
+  pointer-events: none;
+  z-index: 4;
+}
+
 .table thead th.gDividerLeft,
 .table tbody td.gDividerLeft {
   border-left: 1px solid var(--border);
@@ -1019,12 +1114,41 @@ button:disabled {
   border-left: 1px solid var(--border);
 }
 
+/* Desktop: visible vertical dividers for Team Stats parent/group columns. */
+.teamStatsTable thead th.tableGroupDivider,
+.teamStatsTable tbody td.tableGroupDivider {
+  border-left: 1px solid #2a2a2a !important;
+  position: relative;
+}
+
+.teamStatsTable thead th.tableGroupDivider::before,
+.teamStatsTable tbody td.tableGroupDivider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #2a2a2a;
+  pointer-events: none;
+  z-index: 4;
+}
+
 .table tbody td {
   padding: 8px 12px;
   font-size: var(--app-table-cell-font-size);
   font-weight: var(--app-table-cell-font-weight);
   border-bottom: 1px solid rgba(42,42,42,0.85);
   white-space: nowrap;
+}
+
+/* Explicit padding for TEAM column (first column in team tables) */
+.teamCol,
+.teamCol th,
+.teamCol td,
+.table thead th.teamCol,
+.table tbody td.teamCol {
+  padding: 8px 12px;
 }
 
 .table th.statCol,
@@ -1105,8 +1229,8 @@ button:disabled {
   --ps-stat-w: 56px;
 }
 
-.playerStatsTable th.centerCol.col-p2,
-.playerStatsTable td.centerCol.col-p2 {
+.playerStatsTable th.centerCol,
+.playerStatsTable td.centerCol {
   width: var(--ps-meta-w);
   min-width: var(--ps-meta-w);
   max-width: var(--ps-meta-w);
@@ -1544,7 +1668,7 @@ button:disabled {
   text-align: right;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
   .postseasonBracket {
     display: none;
     gap: 10px;
@@ -1614,7 +1738,7 @@ button:disabled {
 }
 
 /* Pass 2: subtle bracket connectors */
-@media (min-width: 768px) {
+@media (min-width: 1440px) {
   .bracketCol:not(.bracketColFinal) .bracketCard::after {
     content: "";
     position: absolute;
@@ -1651,19 +1775,17 @@ button:disabled {
   margin-bottom: 12px;
 }
 
+.hrow.teamHeader {
+  flex-direction: column;
+  align-items: center;
+}
+
+.hrow.bowlFilterHeader {
+  margin-top: 6px;
+  margin-bottom: 14px;
+}
+
 .hrow h2 {
-  margin: 10px 0;
-  font-size: var(--app-header-font-size);
-  font-weight: var(--app-header-font-weight);
-  line-height: var(--app-header-line-height);
-}
-
-.playerStatsHeader {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.playerStatsHeader h2 {
   margin: 10px 0;
   font-size: var(--app-header-font-size);
   font-weight: var(--app-header-font-weight);
@@ -1679,9 +1801,37 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+/* Teams page: ensure conf cards and rows use the design radius. */
+.teamsPage .confCard {
+  border-radius: var(--radius);
+}
+.teamsPage .confCard .confTeams,
+.teamsPage .confCard .confTeamRow {
+  border-radius: var(--radius);
+}
+
 .playerStatsTable th.playerStatsNameCol,
 .playerStatsTable td.playerStatsNameCol {
   padding-left: 18px;
+}
+
+.playerInlineTeamAbbr {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 0.8em;
+  color: var(--muted);
+}
+
+.rosterNameCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rosterNameCell .teamLogo {
+  width: 18px;
+  height: 18px;
 }
 
 .playerStatsCategoryRow {
@@ -1948,7 +2098,7 @@ button:disabled {
 }
 
 /* Responsive (kept harmless) */
-@media (max-width: 1536px) {
+@media (max-width: 1024px) {
   .hideBelow1536 {
     display: none;
   }
@@ -2012,18 +2162,13 @@ button:disabled {
   .headerAddSeason { font-size: 20px; }
 }
 
+
 @media (max-width: 1024px) {
   :root {
     --sidebar-w: 0px;
   }
 
-  .playerStatsTable col.col-p2 {
-    display: none;
-  }
-
-  .playerStatsTable col.col-p2.showBelow1024 {
-    display: table-column;
-  }
+  /* P2 column-specific rules removed */
 
   .playerStatsTable {
     --ps-meta-w: 56px;
@@ -2043,9 +2188,7 @@ button:disabled {
     display: none;
   }
 
-  .playerStatsTable .showBelow1024Row {
-    display: table-row;
-  }
+  /* showBelow1024Row removed */
 
   .playerStatsTable .scoringGroupFull {
     display: none;
@@ -2055,13 +2198,7 @@ button:disabled {
     display: table-row;
   }
 
-  .col-p2 {
-    display: none;
-  }
-
-  .col-p2.showBelow1024 {
-    display: table-cell;
-  }
+  /* .col-p2 rules removed */
 
   .table thead th.noDividerBelow1024,
   .table tbody td.noDividerBelow1024 {
@@ -2076,19 +2213,7 @@ button:disabled {
     max-width: 72px;
   }
 
-  .hideBelow1024 {
-    display: none;
-  }
-
-  .showBelow1024Inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .showAbove1024Inline {
-    display: none;
-  }
+  /* hide/show helpers removed */
 
   .headerNavButtons {
     flex-wrap: wrap;
@@ -2182,6 +2307,29 @@ button:disabled {
     padding-right: 1px;
   }
 
+  /* Ensure visible vertical dividers for Team Stats parent/group columns.
+     Use !important to override the global `.table th, .table td { border: none !important; }`. */
+  .teamStatsTable thead th.tableGroupDivider,
+  .teamStatsTable tbody td.tableGroupDivider {
+    border-left: 1px solid #2a2a2a !important;
+    position: relative;
+  }
+
+  /* Stronger visual line using a pseudo-element so the divider remains visible
+     even when cell backgrounds or resets would hide a normal border. */
+  .teamStatsTable thead th.tableGroupDivider::before,
+  .teamStatsTable tbody td.tableGroupDivider::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #2a2a2a;
+    pointer-events: none;
+    z-index: 4;
+  }
+
   .teamStatsTable .teamCol {
     width: var(--teamstats-team-w);
     min-width: var(--teamstats-team-w);
@@ -2222,7 +2370,7 @@ button:disabled {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1440px) {
   .playerStatsTable .returnsGroupRowCompact {
     display: none;
   }
@@ -2313,7 +2461,7 @@ button:disabled {
   gap: 6px;
 }
 
-@media (min-width: 1536px) {
+@media (min-width: 1440px) {
   .matchupGrid {
     grid-template-columns: repeat(4, minmax(240px, 1fr));
   }
@@ -2382,7 +2530,7 @@ button:disabled {
   font-size: 12px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
   .matchupGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2392,7 +2540,7 @@ button:disabled {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1440px) {
   .matchupGrid {
     grid-template-columns: 1fr;
   }
@@ -2446,7 +2594,7 @@ button:disabled {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   padding: 6px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
   overflow: hidden;
 }
@@ -2497,7 +2645,7 @@ button:disabled {
   max-width: 420px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
   .coachProfileCardsRow {
     flex-direction: column;
     max-width: 560px;
@@ -2537,7 +2685,7 @@ button:disabled {
   font-weight: 800 !important;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1440px) {
   .filterMenuPopover {
     position: fixed;
     top: 50%;
@@ -2546,28 +2694,7 @@ button:disabled {
     transform: translate(-50%, -50%);
   }
 
-  .playerStatsTable col.col-p1,
-  .playerStatsTable col.col-p2 {
-    display: none;
-  }
-
-  .playerStatsTable col.col-p1.showBelow1024,
-  .playerStatsTable col.col-p2.showBelow1024 {
-    display: table-column;
-  }
-
-  .col-p1,
-  .col-p2 {
-    display: none;
-  }
-
-  .col-p1.showBelow1024 {
-    display: table-cell;
-  }
-
-  .col-p2.showBelow1024 {
-    display: table-cell;
-  }
+  /* P1/P2 column rules removed */
 
   .playerStatsTable .returnsGroupRowTiny {
     display: table-row;
@@ -2609,7 +2736,7 @@ button:disabled {
   background: transparent;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1440px) {
   .shell {
     padding: 0 0 24px;
   }
@@ -2648,9 +2775,7 @@ button:disabled {
     padding-right: 0;
   }
 
-  .col-p2 {
-    display: none;
-  }
+  /* Legacy .col-p2 rule removed */
 
   .coachesTable th,
   .coachesTable td {
@@ -2711,9 +2836,24 @@ button:disabled {
   }
 }
 
-@media (max-width: 768px) {
-  .col-p1,
-  .col-p2 {
-    display: none;
-  }
+/* Removed legacy P1/P2 hide rules */
+
+/* Header logo outline (Coach/Team/Player pages) */
+.headerLogoWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.headerLogoImg {
+  filter:
+    drop-shadow(1px 0 0 rgba(255, 255, 255, 0.85))
+    drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.85))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85))
+    drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.85))
+    drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(-1px 1px 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(1px -1px 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.55));
 }

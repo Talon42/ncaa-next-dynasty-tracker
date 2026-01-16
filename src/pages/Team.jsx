@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { db, getActiveDynastyId } from "../db";
 import { readSeasonFilter, writeSeasonFilter } from "../seasonFilter";
 import { loadPostseasonLogoMap } from "../logoService";
+import HeaderLogo from "../components/HeaderLogo";
 import {
   buildSeasonBowlNameMap,
   createPostseasonLogoResolver,
@@ -470,28 +471,8 @@ useEffect(() => {
   return (
     <div>
       {/* Centered logo */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: 0,
-          marginBottom: 6,
-        }}
-      >
-        <img
-          src={teamLogo}
-          alt={teamName}
-          style={{
-            width: 180,
-            height: 180,
-            objectFit: "contain",
-          }}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_LOGO;
-          }}
-        />
+      <div className="headerLogoWrap">
+        <HeaderLogo src={teamLogo} fallbackSrc={FALLBACK_LOGO} alt={teamName} />
       </div>
 
       {/* Centered team name */}

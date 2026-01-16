@@ -668,7 +668,7 @@
         "SEYR": {
           "sizeBits": 6,
           "type": "uint",
-          "bitOffset": 29,
+          "bitOffset": 32,
           "bitMode": "lsb"
         },
         "sslR": {
@@ -784,7 +784,7 @@
         "SEYR": {
           "sizeBits": 6,
           "type": "uint",
-          "bitOffset": 69,
+          "bitOffset": 72,
           "bitMode": "lsb"
         },
         "skaa": {
@@ -966,7 +966,7 @@
         "SEYR": {
           "sizeBits": 6,
           "type": "uint",
-          "bitOffset": 46,
+          "bitOffset": 48,
           "bitMode": "lsb"
         },
         "srka": {
@@ -1013,6 +1013,44 @@
         }
       }
     },
+    "PSOL": {
+      "recordSizeBytes": 8,
+      "recordCount": 2275,
+      "capacity": 6664,
+      "recordDataOffset": 120,
+      "fields": {
+        "PGID": {
+          "sizeBits": 16,
+          "type": "uint",
+          "bitOffset": 0,
+          "bitMode": "lsb"
+        },
+        "sopa": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 16,
+          "bitMode": "lsb"
+        },
+        "sosa": {
+          "sizeBits": 8,
+          "type": "uint",
+          "bitOffset": 24,
+          "bitMode": "lsb"
+        },
+        "SEYR": {
+          "sizeBits": 6,
+          "type": "uint",
+          "bitOffset": 32,
+          "bitMode": "lsb"
+        },
+        "sgmp": {
+          "sizeBits": 4,
+          "type": "uint",
+          "bitOffset": 38,
+          "bitMode": "lsb"
+        }
+      }
+    },
     "PSOF": {
       "recordSizeBytes": 28,
       "recordCount": 2188,
@@ -1046,7 +1084,7 @@
         "SEYR": {
           "sizeBits": 6,
           "type": "uint",
-          "bitOffset": 75,
+          "bitOffset": 80,
           "bitMode": "lsb"
         },
         "scca": {

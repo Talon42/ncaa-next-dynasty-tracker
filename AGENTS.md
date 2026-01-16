@@ -4,7 +4,7 @@ This is the active application under development.
 Rules:
 - You may modify files in this repo.
 - Use Repo 2 as a reference only.
-- Show a plan and diffs before applying large changes.
+- Show a plan and a brief diff summary before applying large changes (avoid long inline code/diff snippets unless requested).
 
 ## General
 - The app already works; avoid unnecessary or risky refactors
@@ -14,6 +14,7 @@ Rules:
 
 ## Code Changes
 - Briefly explain or summarize code changes with reasoning before asking to apply changes.
+- Prefer brief verbal summaries over long proposed diff/code snippets in chat (provide full diffs only if asked).
 - Standardize existing patterns instead of introducing parallel ones
 - For tasks, briefly outline the planned approach before making code changes
 

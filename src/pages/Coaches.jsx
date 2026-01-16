@@ -467,6 +467,7 @@ export default function Coaches() {
                     onClick={() => clickSort("teamName")}
                     style={{ cursor: "pointer", userSelect: "none" }}
                     title="Sort"
+                    className="dividerAfter"
                   >
                     TEAM{sortIndicator("teamName")}
                   </th>
@@ -482,7 +483,7 @@ export default function Coaches() {
                     onClick={() => clickSort("winPct")}
                     style={{ width: 120, cursor: "pointer", userSelect: "none" }}
                     title="Sort"
-                    className="statCol col-p2"
+                      className="statCol"
                   >
                     WIN%{sortIndicator("winPct")}
                   </th>
@@ -498,7 +499,7 @@ export default function Coaches() {
                     onClick={() => clickSort("confWinPct")}
                     style={{ width: 120, cursor: "pointer", userSelect: "none" }}
                     title="Sort"
-                    className="statCol col-p2"
+                      className="statCol"
                   >
                     WIN%{sortIndicator("confWinPct")}
                   </th>
@@ -514,7 +515,7 @@ export default function Coaches() {
                     onClick={() => clickSort("bowlWinPct")}
                     style={{ width: 140, cursor: "pointer", userSelect: "none" }}
                     title="Sort"
-                    className="statCol col-p2"
+                      className="statCol"
                   >
                     <span className="hideBelow1536">BOWL </span>WIN%{sortIndicator("bowlWinPct")}
                   </th>
@@ -544,7 +545,7 @@ export default function Coaches() {
                         {r.name || `Coach ${r.ccid}`}
                       </Link>
                     </td>
-                    <td data-label="Team">
+                    <td data-label="Team" className="dividerAfter">
                       {r.isNotHired ? (
                         <TeamCell name={r.teamName} logoUrl={r.teamLogo} />
                       ) : (
@@ -556,19 +557,19 @@ export default function Coaches() {
                     <td data-label="Record" className="statCol">
                       {recordLabel(r.careerWins, r.careerLosses)}
                     </td>
-                    <td data-label="Win%" className="statCol col-p2">
+                    <td data-label="Win%" className="statCol">
                       {winPctLabel(r.winPct)}
                     </td>
                     <td data-label="Conf Record" className="statCol">
                       {r.confRecord}
                     </td>
-                    <td data-label="Conf Win%" className="statCol col-p2">
+                    <td data-label="Conf Win%" className="statCol">
                       {winPctLabel(r.confWinPct)}
                     </td>
                     <td data-label="Bowl Record" className="statCol">
                       {bowlRecordLabel(r.bowlWins, r.bowlLosses)}
                     </td>
-                    <td data-label="Bowl Win%" className="statCol col-p2">
+                    <td data-label="Bowl Win%" className="statCol">
                       {winPctLabel(r.bowlWinPct)}
                     </td>
                     <td data-label="Prestige" className="statCol">

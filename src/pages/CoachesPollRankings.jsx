@@ -221,7 +221,7 @@ export default function CoachesPollRankings() {
 
   return (
     <div className="pollRankingsPage">
-      <div className="hrow" style={{ alignItems: "baseline" }}>
+      <div className="hrow">
         <h2>Coaches Poll Rankings</h2>
       </div>
       <div className="playerStatsControlRow flexRowWrap">
@@ -253,11 +253,11 @@ export default function CoachesPollRankings() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: 110 }}>Rank</th>
-                <th>Team</th>
-                <th style={{ width: 120 }}>Record</th>
-                <th className="col-p2 showBelow1024">Bowl</th>
-                <th style={{ width: 110 }} className="col-p2 showBelow1024">Bowl Result</th>
+                <th style={{ width: 110 }}>RANK</th>
+                <th>TEAM</th>
+                <th style={{ width: 120 }}>RECORD</th>
+                <th>BOWL</th>
+                <th style={{ width: 110 }}>BOWL RESULT</th>
               </tr>
             </thead>
             <tbody>
@@ -273,7 +273,7 @@ export default function CoachesPollRankings() {
                       </Link>
                     </td>
                     <td data-label="W/L">{r.recordText}</td>
-                    <td data-label="Bowl" className="col-p2 showBelow1024">
+                    <td data-label="Bowl">
                       {r.bowlName ? (
                         <Link
                           to={`/postseason/bowl?name=${encodeURIComponent(r.bowlName)}`}
@@ -281,36 +281,21 @@ export default function CoachesPollRankings() {
                           title="View bowl results"
                         >
                           {r.bowlLogoUrl ? (
-                            <>
-                              <span className="showBelow1024Inline">
-                                <img
-                                  className="postseasonBowlLogo"
-                                  src={r.bowlLogoUrl}
-                                  alt=""
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              </span>
-                              <span className="showAbove1024Inline">
-                                <img
-                                  className="postseasonBowlLogo"
-                                  src={r.bowlLogoUrl}
-                                  alt=""
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                />
-                              </span>
-                            </>
-                          ) : (
-                            <span className="showBelow1024Inline">{r.bowlName}</span>
-                          )}
-                          <span className="hideBelow1024">{r.bowlName}</span>
+                            <img
+                              className="postseasonBowlLogo"
+                              src={r.bowlLogoUrl}
+                              alt=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : null}
+                          <span>{r.bowlName}</span>
                         </Link>
                       ) : (
                         "-"
                       )}
                     </td>
-                    <td data-label="Bowl W/L" className="col-p2 showBelow1024">{r.bowlResult || "-"}</td>
+                    <td data-label="Bowl W/L">{r.bowlResult || "-"}</td>
                   </tr>
                 );
               })}

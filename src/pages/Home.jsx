@@ -451,59 +451,53 @@ export default function Home() {
 
   const filterControls = (
     <>
-      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <span>Conference</span>
-        <select
-          value={confFilter}
-          onChange={(e) => setConfFilter(e.target.value)}
-          disabled={!hasSeasons}
-        >
-          <option value="All">All</option>
-          {confOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+      <select
+        value={seasonYear}
+        onChange={(e) => {
+          const next = e.target.value;
+          setSeasonYear(next);
+          writeSeasonFilter(next);
+        }}
+        disabled={!hasSeasons}
+        aria-label="Season"
+      >
+        {!hasSeasons ? (
+          <option value="">No seasons uploaded</option>
+        ) : (
+          seasonOptions.map((y) => (
+            <option key={y} value={y}>
+              {y}
             </option>
-          ))}
-        </select>
-      </label>
+          ))
+        )}
+      </select>
 
-      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <span>Week</span>
-        <select
-          value={weekFilter}
-          onChange={(e) => setWeekFilter(e.target.value)}
-          disabled={!hasSeasons || availableWeeks.length === 0}
-        >
-          {weekOptions.map((w) => (
-            <option key={w} value={w}>
-              {w}
-            </option>
-          ))}
-        </select>
-      </label>
+      <select
+        value={confFilter}
+        onChange={(e) => setConfFilter(e.target.value)}
+        disabled={!hasSeasons}
+        aria-label="Conference"
+      >
+        <option value="All">All</option>
+        {confOptions.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
 
-      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <span>Season</span>
-        <select
-          value={seasonYear}
-          onChange={(e) => {
-            const next = e.target.value;
-            setSeasonYear(next);
-            writeSeasonFilter(next);
-          }}
-          disabled={!hasSeasons}
-        >
-          {!hasSeasons ? (
-            <option value="">No seasons uploaded</option>
-          ) : (
-            seasonOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))
-          )}
-        </select>
-      </label>
+      <select
+        value={weekFilter}
+        onChange={(e) => setWeekFilter(e.target.value)}
+        disabled={!hasSeasons || availableWeeks.length === 0}
+        aria-label="Week"
+      >
+        {weekOptions.map((w) => (
+          <option key={w} value={w}>
+            {w}
+          </option>
+        ))}
+      </select>
     </>
   );
 
@@ -514,7 +508,9 @@ export default function Home() {
   if (dynastyId === null) {
     return (
       <div>
-        <h2>Schedule / Results</h2>
+        <div className="hrow">
+          <h2>Schedule / Results</h2>
+        </div>
         <p className="kicker">No dynasty loaded. Select a dynasty from the sidebar.</p>
       </div>
     );
@@ -524,11 +520,12 @@ export default function Home() {
     <div>
       <div className="hrow">
         <h2>Schedule / Results</h2>
-        <div className="scheduleHeaderControls flexRowWrap">
-          <div className="scheduleFilters">{filterControls}</div>
-          <div className="scheduleControlsDivider" />
-          <div className="scheduleViewToggle">{viewToggle}</div>
-        </div>
+      </div>
+
+      <div className="playerStatsControlRow flexRowWrap">
+        <div className="playerStatsFilters flexRowWrap">{filterControls}</div>
+        <span className="playerStatsControlDivider" aria-hidden="true" />
+        <div className="playerStatsViewToggle">{viewToggle}</div>
       </div>
 
       {!seasonsLoaded ? (

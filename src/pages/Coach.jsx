@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getOrCreateCoachQuote } from "../coachQuotes";
 import { db, getActiveDynastyId } from "../db";
 import { loadPostseasonLogoMap } from "../logoService";
+import HeaderLogo from "../components/HeaderLogo";
 import { buildTeamSeasonWinLossMap, computeCoachCareerRecord } from "../coachRecords";
 import {
   buildSeasonBowlNameMap,
@@ -623,17 +624,8 @@ export default function Coach() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <img
-          src={header.teamLogo}
-          alt={header.teamName}
-          style={{ width: 180, height: 180, objectFit: "contain" }}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_LOGO;
-          }}
-        />
+      <div className="headerLogoWrap">
+        <HeaderLogo src={header.teamLogo} fallbackSrc={FALLBACK_LOGO} alt={header.teamName} />
       </div>
 
       <h2

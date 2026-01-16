@@ -9,6 +9,7 @@ import ConferenceStandings from "./pages/ConferenceStandings";
 import TeamsIndex from "./pages/TeamsIndex";
 import TeamStats from "./pages/TeamStats";
 import PlayerStats from "./pages/PlayerStats";
+import TeamRosters from "./pages/TeamRosters";
 import Player from "./pages/Player";
 import Postseason from "./pages/Postseason";
 import BowlResults from "./pages/BowlResults";
@@ -64,6 +65,7 @@ export default function App() {
   const isTeamsPage =
     location.pathname === "/team-stats" ||
     location.pathname === "/player-stats" ||
+    location.pathname === "/team-rosters" ||
     location.pathname === "/coaches" ||
     location.pathname.startsWith("/coach/");
   const isSchedulePage = location.pathname === "/";
@@ -532,6 +534,7 @@ export default function App() {
         { key: "schedule", label: "Schedule / Results", title: "Schedule / Results", path: "/" },
         { key: "team-stats", label: "Team Stats", title: "Team Stats", path: "/team-stats" },
         { key: "player-stats", label: "Player Stats", title: "Player Stats", path: "/player-stats" },
+        { key: "team-rosters", label: "Team Rosters", title: "Team Rosters", path: "/team-rosters" },
         { key: "teams", label: "Teams", title: "Teams", path: "/teams" },
       ],
     []
@@ -559,17 +562,7 @@ export default function App() {
     <div className="shell">
       <div className="mobileHeader">
         <div className="container mobileHeaderBar">
-          <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
           <div className="mobileHeaderActions">
-            <button
-              className="headerUploadBtn"
-              onClick={() => setShowImportSeason(true)}
-              title="Upload New Season"
-              aria-label="Upload New Season"
-              disabled={!activeId}
-            >
-              Upload Season <span aria-hidden="true">+</span>
-            </button>
             <button
               className="headerHamburger"
               onClick={() => setMobileDrawerOpen(true)}
@@ -580,7 +573,17 @@ export default function App() {
               <span />
               <span />
             </button>
+            <button
+              className="headerUploadBtn"
+              onClick={() => setShowImportSeason(true)}
+              title="Upload New Season"
+              aria-label="Upload New Season"
+              disabled={!activeId}
+            >
+              Upload Season <span aria-hidden="true">+</span>
+            </button>
           </div>
+          <div className="mobileTitle">NCAA Next Dynasty Tracker</div>
         </div>
         {mobileDrawerOpen ? (
           <div
@@ -872,6 +875,7 @@ export default function App() {
                   location.pathname.startsWith("/player/") ? "cardPlayer" : "",
                   location.pathname === "/player-stats" ||
                   location.pathname === "/team-stats" ||
+                  location.pathname === "/team-rosters" ||
                   location.pathname === "/teams" ||
                   location.pathname === "/coaches" ||
                   location.pathname.startsWith("/coach/") ||
@@ -897,6 +901,7 @@ export default function App() {
                 <Route path="/team/:tgid" element={<Team />} />
                 <Route path="/team-stats" element={<TeamStats />} />
                 <Route path="/player-stats" element={<PlayerStats />} />
+                <Route path="/team-rosters" element={<TeamRosters />} />
                 <Route path="/player/:playerUid" element={<Player />} />
                 <Route path="/coaches" element={<Coaches />} />
                 <Route path="/coaches-poll" element={<CoachesPollRankings />} />

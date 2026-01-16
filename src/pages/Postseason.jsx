@@ -70,10 +70,12 @@ function playoffRoundForGame(game) {
   const name = String(game?.bowlName ?? "");
   const lower = name.toLowerCase();
   const week = Number(game?.week);
+  const isCfp = /^cfp\b/i.test(name) || /^college football playoff\b/i.test(name);
 
   if (week === 22 && lower.includes("national championship")) return "National Championship";
-  if (week === 21 && /^cfp/i.test(name)) return "CFP - Semifinals";
-  if (week === 20 && /^cfp/i.test(name)) return "CFP - Quarterfinals";
+  if (week === 21 && isCfp) return "CFP - Semifinals";
+  // NCAA Next exports commonly schedule CFP quarterfinal bowls in week 19 (and some variants use week 20).
+  if ((week === 19 || week === 20) && isCfp) return "CFP - Quarterfinals";
   if (week === 18 && lower.includes("cfp - round 1")) return "CFP - Round 1";
 
   return null;
@@ -425,12 +427,12 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
-                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
-                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
-                    {showWinningCoach ? <th className="col-p1">Winning Coach</th> : null}
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
+                    {showWinningCoach ? <th>Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(season) || []).map((r, idx) => (
                     <Fragment key={`${season}-${r.week}-${idx}`}>
@@ -468,7 +470,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
-                        {showConfRecord ? <td className="col-p1">{r.leftConfRecord || "-"}</td> : null}
+                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -478,8 +480,8 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
-                        {showConfRecord ? <td className="col-p1">{r.rightConfRecord || "-"}</td> : null}
-                        {showWinningCoach ? <td className="col-p1">{r.leftCoachName || "-"}</td> : null}
+                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
+                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
                   ))}
@@ -497,12 +499,12 @@ export default function Postseason() {
                     {showGameColumn ? <th>Game</th> : null}
                     <th>{winnerLabel}</th>
                     <th>Record</th>
-                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
                     <th>Result</th>
                     <th>Opponent</th>
                     <th>Record</th>
-                    {showConfRecord ? <th className="col-p1">CONFERENCE</th> : null}
-                    {showWinningCoach ? <th className="col-p1">Winning Coach</th> : null}
+                    {showConfRecord ? <th>CONFERENCE</th> : null}
+                    {showWinningCoach ? <th>Winning Coach</th> : null}
                   </tr>
                   {(rowsBySeason.get(String(singleSeasonLabel ?? "")) || []).map((r, idx) => (
                     <Fragment key={`${r.seasonYear}-${r.week}-${idx}`}>
@@ -540,7 +542,7 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.leftRecord || "-"}</td>
-                        {showConfRecord ? <td className="col-p1">{r.leftConfRecord || "-"}</td> : null}
+                        {showConfRecord ? <td>{r.leftConfRecord || "-"}</td> : null}
                         <td>
                           {(r.leftScore ?? r.awayScore) ?? "-"} - {(r.rightScore ?? r.homeScore) ?? "-"}
                         </td>
@@ -550,8 +552,8 @@ export default function Postseason() {
                           </Link>
                         </td>
                         <td>{r.rightRecord || "-"}</td>
-                        {showConfRecord ? <td className="col-p1">{r.rightConfRecord || "-"}</td> : null}
-                        {showWinningCoach ? <td className="col-p1">{r.leftCoachName || "-"}</td> : null}
+                        {showConfRecord ? <td>{r.rightConfRecord || "-"}</td> : null}
+                        {showWinningCoach ? <td>{r.leftCoachName || "-"}</td> : null}
                       </tr>
                     </Fragment>
                   ))}
@@ -967,7 +969,9 @@ useEffect(() => {
   if (dynastyId === null) {
     return (
       <div>
-        <h2>Postseason</h2>
+        <div className="hrow">
+          <h2>Postseason</h2>
+        </div>
         <p className="kicker">No dynasty loaded. Select a dynasty from the sidebar.</p>
       </div>
     );
