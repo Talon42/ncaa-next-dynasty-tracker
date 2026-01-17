@@ -157,6 +157,20 @@ export default function App() {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const className = "mobile-drawer-open";
+    const body = document.body;
+    if (mobileDrawerOpen) {
+      body.classList.add(className);
+    } else {
+      body.classList.remove(className);
+    }
+    return () => {
+      body.classList.remove(className);
+    };
+  }, [mobileDrawerOpen]);
+
+  useEffect(() => {
     const next = `${location.pathname}${location.search}`;
     const prev = lastRouteRef.current;
     if (prev && prev !== next) {

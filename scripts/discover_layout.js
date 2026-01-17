@@ -241,7 +241,7 @@ function run() {
     process.exit(2);
   }
 
-  const requiredTables = ["TEAM", "SCHD", "TSSE", "BOWL", "COCH", "PLAY", "PSOF", "PSDE", "PSKI", "PSKP", "AAPL", "OSPA"];
+  const requiredTables = ["TEAM", "SCHD", "TSSE", "BOWL", "COCH", "PRLU", "PLAY", "PSOF", "PSDE", "PSKI", "PSKP", "AAPL", "OSPA"];
 
   // Oracle dump (desktop-only): uses tdbaccess.dll.
   const extracted = extractDynastyDatabasesToTempFiles(dynastyFile);

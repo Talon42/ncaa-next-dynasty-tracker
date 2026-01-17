@@ -14,6 +14,7 @@ export const REQUIRED_TYPES = [
   "TSSE",
   "BOWL",
   "COCH",
+  "PRLU",
   "PLAY",
   "PSOF",
   "PSDE",

@@ -4,7 +4,7 @@ import { ensureCoachQuotesForSeason } from "./coachQuotes";
 import { upsertTeamLogosFromSeasonTeams } from "./logoService";
 import { computeCoachCareerBases } from "./coachRecords";
 import { rebuildLatestSnapshotsForDynasty } from "./latestSnapshots";
-import { prluLurtFromLuvl } from "./prlu";
+import { buildPrluLurtByLuvl, prluLurtFromLuvl } from "./prlu";
 
 const OSPA_AWARDS = new Map([
   [0, "Heisman Memorial Trophy"],
@@ -241,6 +241,7 @@ function createPlayerStatsAccumulator({
   dynastyId,
   seasonYear,
   seasonIndex,
+  prluLurtByLuvl,
   existingIdentitiesByNameKey,
   identityByUid,
   priorSeasonByPgid,
@@ -304,25 +305,25 @@ function createPlayerStatsAccumulator({
         classYear: toNumberOrNull(getRowValue(row, "PYER")),
         overall: toNumberOrNull(getRowValue(row, "POVR")),
         pten: toNumberOrNull(getRowValue(row, "PTEN")),
-        pacc: prluLurtFromLuvl(getRowValue(row, "PACC")),
-        pagi: prluLurtFromLuvl(getRowValue(row, "PAGI")),
-        pawr: prluLurtFromLuvl(getRowValue(row, "PAWR")),
-        pcar: prluLurtFromLuvl(getRowValue(row, "PCAR")),
-        pbtk: prluLurtFromLuvl(getRowValue(row, "PBTK")),
-        pcth: prluLurtFromLuvl(getRowValue(row, "PCTH")),
-        pinj: prluLurtFromLuvl(getRowValue(row, "PINJ")),
-        pjmp: prluLurtFromLuvl(getRowValue(row, "PJMP")),
-        pkac: prluLurtFromLuvl(getRowValue(row, "PKAC")),
-        pkpr: prluLurtFromLuvl(getRowValue(row, "PKPR")),
-        ppbk: prluLurtFromLuvl(getRowValue(row, "PPBK")),
-        prbk: prluLurtFromLuvl(getRowValue(row, "PRBK")),
-        pspd: prluLurtFromLuvl(getRowValue(row, "PSPD")),
-        psta: prluLurtFromLuvl(getRowValue(row, "PSTA")),
-        pstr: prluLurtFromLuvl(getRowValue(row, "PSTR")),
-        ptak: prluLurtFromLuvl(getRowValue(row, "PTAK")),
-        ptha: prluLurtFromLuvl(getRowValue(row, "PTHA")),
-        pthp: prluLurtFromLuvl(getRowValue(row, "PTHP")),
-        povr: prluLurtFromLuvl(getRowValue(row, "POVR")),
+        pacc: prluLurtFromLuvl(getRowValue(row, "PACC"), prluLurtByLuvl),
+        pagi: prluLurtFromLuvl(getRowValue(row, "PAGI"), prluLurtByLuvl),
+        pawr: prluLurtFromLuvl(getRowValue(row, "PAWR"), prluLurtByLuvl),
+        pcar: prluLurtFromLuvl(getRowValue(row, "PCAR"), prluLurtByLuvl),
+        pbtk: prluLurtFromLuvl(getRowValue(row, "PBTK"), prluLurtByLuvl),
+        pcth: prluLurtFromLuvl(getRowValue(row, "PCTH"), prluLurtByLuvl),
+        pinj: prluLurtFromLuvl(getRowValue(row, "PINJ"), prluLurtByLuvl),
+        pjmp: prluLurtFromLuvl(getRowValue(row, "PJMP"), prluLurtByLuvl),
+        pkac: prluLurtFromLuvl(getRowValue(row, "PKAC"), prluLurtByLuvl),
+        pkpr: prluLurtFromLuvl(getRowValue(row, "PKPR"), prluLurtByLuvl),
+        ppbk: prluLurtFromLuvl(getRowValue(row, "PPBK"), prluLurtByLuvl),
+        prbk: prluLurtFromLuvl(getRowValue(row, "PRBK"), prluLurtByLuvl),
+        pspd: prluLurtFromLuvl(getRowValue(row, "PSPD"), prluLurtByLuvl),
+        psta: prluLurtFromLuvl(getRowValue(row, "PSTA"), prluLurtByLuvl),
+        pstr: prluLurtFromLuvl(getRowValue(row, "PSTR"), prluLurtByLuvl),
+        ptak: prluLurtFromLuvl(getRowValue(row, "PTAK"), prluLurtByLuvl),
+        ptha: prluLurtFromLuvl(getRowValue(row, "PTHA"), prluLurtByLuvl),
+        pthp: prluLurtFromLuvl(getRowValue(row, "PTHP"), prluLurtByLuvl),
+        povr: prluLurtFromLuvl(getRowValue(row, "POVR"), prluLurtByLuvl),
         redshirt: toNumberOrNull(getRowValue(row, "PRSD")),
         skin: toNumberOrNull(getRowValue(row, "PSKI")),
         faceShape: toNumberOrNull(getRowValue(row, "PFGM")),
@@ -932,6 +933,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
     "TSSE",
     "BOWL",
     "COCH",
+    "PRLU",
     "PLAY",
     "PSOF",
     "PSDE",
@@ -943,7 +945,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   const missingTypes = requiredTypes.filter((t) => !byType[t]);
   if (missingTypes.length) {
     throw new Error(
-      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
+      `Missing required CSV(s): ${missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PRLU, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
     );
   }
 
@@ -952,6 +954,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   const tsseRows = [];
   const bowlRows = [];
   const cochRowsRaw = [];
+  const prluRowsRaw = [];
 
   await parseCsvFileStream(byType.TEAM, {
     label: "TEAM",
@@ -998,6 +1001,13 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   });
 
   const cochRows = dedupeCoachRows(cochRowsRaw);
+
+  await parseCsvFileStream(byType.PRLU, {
+    label: "PRLU",
+    requiredColumns: ["LUVL", "LURT"],
+    onRow: (row) => prluRowsRaw.push(row),
+  });
+  const prluLurtByLuvl = buildPrluLurtByLuvl(prluRowsRaw);
 
   const teamSeasons = teamRows.map((r) => ({
     dynastyId,
@@ -1251,6 +1261,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
     dynastyId,
     seasonYear: year,
     seasonIndex,
+    prluLurtByLuvl,
     existingIdentitiesByNameKey,
     identityByUid,
     priorSeasonByPgid,

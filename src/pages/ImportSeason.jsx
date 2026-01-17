@@ -11,6 +11,7 @@ const REQUIRED_TYPES = [
   "TSSE",
   "BOWL",
   "COCH",
+  "PRLU",
   "PLAY",
   "PSOF",
   "PSDE",
@@ -424,7 +425,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
 
       if (!seasonsToImport.length) {
         setStatus(
-          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PLAY/PSOF/PSDE/PSKI/PSKP/AAPL/OSPA CSVs."
+          "Please select a root folder that contains year folders (e.g., 2025, 2026) with TEAM/SCHD/TSSE/BOWL/COCH/PRLU/PLAY/PSOF/PSDE/PSKI/PSKP/AAPL/OSPA CSVs."
         );
         return;
       }
@@ -434,7 +435,7 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
         setStatus(
           `Missing required CSV(s) for: ${bad
             .map((s) => `${s.year} (${s.missingTypes.join(", ")})`)
-            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
+            .join("; ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PRLU, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
         );
         return;
       }
@@ -507,15 +508,15 @@ export default function ImportSeason({ inline = false, onClose, onImported, hide
     if (!filesToUse.length) {
       setStatus(
         singleSource === "folder"
-          ? "Please select a folder that contains the season CSVs (TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, OSPA)."
-          : "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv."
+          ? "Please select a folder that contains the season CSVs (TEAM, SCHD, TSSE, BOWL, COCH, PRLU, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, OSPA)."
+          : "Please select TEAM.csv, SCHD.csv, TSSE.csv, BOWL.csv, COCH.csv, PRLU.csv, PLAY.csv, PSOF.csv, PSDE.csv, PSKI.csv, PSKP.csv, AAPL.csv, and OSPA.csv."
       );
       return;
     }
 
     if (singleSource === "folder" && singleFolderParsed.missingTypes.length) {
       setStatus(
-        `Missing required CSV(s): ${singleFolderParsed.missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
+        `Missing required CSV(s): ${singleFolderParsed.missingTypes.join(", ")}. Required: TEAM, SCHD, TSSE, BOWL, COCH, PRLU, PLAY, PSOF, PSDE, PSKI, PSKP, AAPL, and OSPA.`
       );
       return;
     }
