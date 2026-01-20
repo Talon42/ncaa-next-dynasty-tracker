@@ -576,12 +576,31 @@ export default function Postseason() {
     })();
   }, []);
 
+  const confNameForConfChamp = (bowlName) => {
+    const raw = String(bowlName ?? "").trim();
+    if (!raw) return "";
+    if (!/championship$/i.test(raw)) return "";
+    if (/national championship$/i.test(raw)) return "";
+
+    const base = raw.replace(/\s*championship\s*$/i, "").trim();
+    if (!base) return "";
+
+    // Normalize common abbreviation variants to the names used elsewhere in the app.
+    const upper = base.toUpperCase();
+    if (upper === "AAC") return "American";
+    if (upper === "B1G") return "Big Ten";
+    if (upper === "BIG XII") return "Big 12";
+    if (upper === "MWC") return "Mt West";
+
+    return base;
+  };
+
   const confOptions = useMemo(() => {
     if (tab !== "confChamp") return [];
     return Array.from(
       new Set(
         rows
-          .map((r) => r.homeConfName || r.awayConfName)
+          .map((r) => confNameForConfChamp(r.bowlName))
           .filter((name) => name && String(name).trim())
       )
     ).sort((a, b) => String(a).localeCompare(String(b)));
@@ -808,11 +827,21 @@ useEffect(() => {
             : bowlNameRaw;
           const bowlLogoUrl = bowlName ? postseasonLogoFor(bowlName) : "";
 
+          const hasScore = g.homeScore != null && g.awayScore != null;
+          const isConfChampGame =
+            /championship$/i.test(String(bowlName ?? "")) && !/national championship$/i.test(String(bowlName ?? ""));
+          const homeIdRaw = String(g.homeTgid ?? "").trim();
+          const awayIdRaw = String(g.awayTgid ?? "").trim();
+          const matchupResolved = homeIdRaw && awayIdRaw && homeIdRaw !== "511" && awayIdRaw !== "511";
+
+          // Conference championship matchups are frequently placeholder (TGID 511) until the game is set.
+          // Hide those games until the matchup is known (or a score exists).
+          if (isConfChampGame && !matchupResolved && !hasScore) return null;
+
           const homeName =
             nameByKey.get(`${g.seasonYear}|${g.homeTgid}`) || `TGID ${g.homeTgid}`;
           const awayName =
             nameByKey.get(`${g.seasonYear}|${g.awayTgid}`) || `TGID ${g.awayTgid}`;
-          const hasScore = g.homeScore != null && g.awayScore != null;
           const homeWins = hasScore && Number(g.homeScore) > Number(g.awayScore);
           const awayWins = hasScore && Number(g.awayScore) > Number(g.homeScore);
           const winner = homeWins ? "home" : awayWins ? "away" : null;
@@ -887,6 +916,7 @@ useEffect(() => {
             bowlLogoUrl,
           };
         })
+        .filter(Boolean)
         .sort((a, b) => {
           if (a.seasonYear !== b.seasonYear) return b.seasonYear - a.seasonYear;
           if (a.week !== b.week) return a.week - b.week;
@@ -1307,8 +1337,7 @@ useEffect(() => {
           const isAllConfs = !confFilter || confFilter === "All";
           if (!isAllConfs) {
             filtered = filtered.filter((r) => {
-              const confName = r.homeConfName || r.awayConfName;
-              return confName === confFilter;
+              return confNameForConfChamp(r.bowlName) === confFilter;
             });
           }
 

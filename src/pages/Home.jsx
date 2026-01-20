@@ -9,6 +9,17 @@ import { readCachedViewPreference, readViewFromSearch, readViewPreference, write
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 
+function isDisplayableScheduleGame(g) {
+  const hasScore = g?.homeScore != null && g?.awayScore != null;
+  const homeId = String(g?.homeTgid ?? "");
+  const awayId = String(g?.awayTgid ?? "");
+
+  // NCAA Next uses TGID 511 as an "unknown/unassigned" placeholder (common in not-yet-set postseason games).
+  // Hide those rows unless they have a real result.
+  const resolvedMatchup = homeId && awayId && homeId !== "511" && awayId !== "511";
+  return hasScore || resolvedMatchup;
+}
+
 function TeamCell({ name, logoUrl }) {
   const [src, setSrc] = useState(logoUrl || FALLBACK_LOGO);
 
@@ -298,7 +309,9 @@ export default function Home() {
         .where("[dynastyId+seasonYear]")
         .equals([dynastyId, year])
         .toArray();
-      const weeks = Array.from(new Set(games.map((g) => g.week))).sort((a, b) => a - b);
+      const weeks = Array.from(new Set(games.filter(isDisplayableScheduleGame).map((g) => g.week))).sort(
+        (a, b) => a - b
+      );
       setAvailableWeeks(weeks);
 
       if (weekFilter !== "All" && !weeks.includes(Number(weekFilter))) {
@@ -358,6 +371,7 @@ export default function Home() {
         .slice()
         .sort((a, b) => a.week - b.week)
         .map((g) => {
+          if (!isDisplayableScheduleGame(g)) return null;
           const homeId = String(g.homeTgid);
           const awayId = String(g.awayTgid);
           const homeConfId = confByTgid.get(homeId);
@@ -422,7 +436,8 @@ export default function Home() {
             leftRecord,
             rightRecord,
           };
-        });
+        })
+        .filter(Boolean);
 
       setRows(sorted);
     })();

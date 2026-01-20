@@ -111,7 +111,7 @@ function parseRowWithNumbers(row) {
   return out;
 }
 
-function parseCsvFileStream(file, { label, requiredColumns, onRow, onHeaders }) {
+function parseCsvFileStream(file, { label, requiredColumns, onRow, onHeaders, allowEmpty }) {
   return new Promise((resolve, reject) => {
     let rowCount = 0;
     let checkedHeaders = false;
@@ -147,8 +147,22 @@ function parseCsvFileStream(file, { label, requiredColumns, onRow, onHeaders }) 
         rowCount += 1;
         onRow(results.data);
       },
-      complete: () => {
+      complete: (results) => {
+        // If the CSV has headers but no data rows, `step` never runs; validate headers here too.
+        if (!checkedHeaders) {
+          const fields = results?.meta?.fields || [];
+          if (requiredColumns?.length && (!allowEmpty || fields.length)) {
+            requireColumnsLooseFromFields(fields, requiredColumns, label);
+          }
+          if (typeof onHeaders === "function") onHeaders(fields);
+          checkedHeaders = true;
+        }
+
         if (!rowCount) {
+          if (allowEmpty) {
+            finish();
+            return;
+          }
           finish(new Error(`${label} has no rows.`));
           return;
         }
@@ -1031,8 +1045,17 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   const games = schdRows.map((r) => {
     const week = Number(String(r.SEWN ?? "").trim()); // supports 0..22
     const stage = Number(String(r.SGNM ?? "").trim());
-    const awayScore = Number(String(r.GASC ?? "").trim());
-    const homeScore = Number(String(r.GHSC ?? "").trim());
+
+    const gsta = toNumberOrNull(getRowValue(r, "GSTA"));
+    const awayScore = toNumberOrNull(getRowValue(r, "GASC"));
+    const homeScore = toNumberOrNull(getRowValue(r, "GHSC"));
+
+    // SCHD stores future (unplayed) games as 0-0. If we treat 0-0 as a real score, downstream pages
+    // count those as ties. Use GSTA when present; otherwise fall back to "any non-zero score" logic.
+    const played =
+      gsta != null
+        ? Number(gsta) !== 0
+        : awayScore != null && homeScore != null && (Number(awayScore) !== 0 || Number(homeScore) !== 0);
 
     return {
       dynastyId,
@@ -1041,8 +1064,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
       sgnm: Number.isFinite(stage) ? stage : null,
       homeTgid: normId(r.GHTG),
       awayTgid: normId(r.GATG),
-      homeScore: Number.isFinite(homeScore) ? homeScore : null,
-      awayScore: Number.isFinite(awayScore) ? awayScore : null,
+      homeScore: played ? homeScore : null,
+      awayScore: played ? awayScore : null,
     };
   });
 
@@ -1317,6 +1340,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   await parseCsvFileStream(byType.AAPL, {
     label: "AAPL",
     requiredColumns: ["CGID", "PGID", "TTYP", "SEYR", "PPOS"],
+    allowEmpty: true, // Mid-season exports may have no All-American rows yet.
     onRow: (row) => {
       if (!shouldIncludeSeasonRow(row)) return;
       const lc = toLowerKeyMap(row);
@@ -1340,6 +1364,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
   await parseCsvFileStream(byType.OSPA, {
     label: "OSPA",
     requiredColumns: ["PGID", "POAR", "POAT", "SEYR"],
+    allowEmpty: true, // Mid-season exports may have no awards yet.
     onRow: (row) => {
       const lc = toLowerKeyMap(row);
       const seyr = toNumberOrNull(getRowValueFast(row, lc, "SEYR"));

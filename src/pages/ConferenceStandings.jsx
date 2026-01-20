@@ -320,10 +320,12 @@ useEffect(() => {
       const homeId = String(g.homeTgid ?? "");
       const awayId = String(g.awayTgid ?? "");
 
+      const hasScore = g.homeScore != null && g.awayScore != null;
+      if (!hasScore) continue;
+
       const hs = Number(g.homeScore);
       const as = Number(g.awayScore);
-      const played = Number.isFinite(hs) && Number.isFinite(as);
-      if (!played) continue;
+      if (!Number.isFinite(hs) || !Number.isFinite(as)) continue;
 
       const homeIn = confTeamIds.has(homeId);
       const awayIn = confTeamIds.has(awayId);
