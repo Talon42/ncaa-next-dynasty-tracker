@@ -1427,7 +1427,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
     db.bowlGames,
     db.coaches,
     db.playerSeasonStats,
-    db.playerAllAmericans,
+    db.playerAllAmericans2 ?? db.playerAllAmericans,
     db.playerAwards,
     db.playerIdentities,
     db.playerIdentitySeasonMap,
@@ -1443,7 +1443,8 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
         .where("[dynastyId+seasonYear]")
         .equals([dynastyId, year])
         .delete();
-      await db.playerAllAmericans.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
+      const aaTable = db.playerAllAmericans2 ?? db.playerAllAmericans;
+      await aaTable.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.playerAwards.where("[dynastyId+seasonYear]").equals([dynastyId, year]).delete();
       await db.playerIdentitySeasonMap
         .where("[dynastyId+seasonYear]")
@@ -1457,7 +1458,7 @@ export async function importSeasonBatch({ dynastyId, seasonYear, files, options 
       await db.bowlGames.bulkPut(bowlGames);
       await db.coaches.bulkPut(coaches);
       await db.playerSeasonStats.bulkPut(playerSeasonStats);
-      if (allAmericanRows.length) await db.playerAllAmericans.bulkPut(allAmericanRows);
+      if (allAmericanRows.length) await (db.playerAllAmericans2 ?? db.playerAllAmericans).bulkPut(allAmericanRows);
       if (awardRows.length) await db.playerAwards.bulkPut(awardRows);
       if (identityUpdates.length) await db.playerIdentities.bulkPut(identityUpdates);
       if (newIdentities.length) await db.playerIdentities.bulkPut(newIdentities);

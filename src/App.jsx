@@ -16,6 +16,8 @@ import BowlResults from "./pages/BowlResults";
 import Coaches from "./pages/Coaches";
 import Coach from "./pages/Coach";
 import CoachesPollRankings from "./pages/CoachesPollRankings";
+import PlayerAwards from "./pages/PlayerAwards";
+import Award from "./pages/Award";
 import { writePreviousRoute } from "./previousRoute";
 import { positionLabel } from "./playerStatsUtils";
 
@@ -535,6 +537,7 @@ export default function App() {
   const navItems = useMemo(
     () =>
       [
+        { key: "player-awards", label: "Player Awards", title: "Player Awards", path: "/player-awards" },
         { key: "coaches-poll", label: "Coaches Poll Rankings", title: "Coaches Poll Rankings", path: "/coaches-poll" },
         { key: "coaches", label: "Coaches", title: "Coaches", path: "/coaches" },
         {
@@ -893,7 +896,9 @@ export default function App() {
                   location.pathname === "/teams" ||
                   location.pathname === "/coaches" ||
                   location.pathname.startsWith("/coach/") ||
-                  location.pathname === "/postseason"
+                  location.pathname === "/postseason" ||
+                  location.pathname === "/player-awards" ||
+                  location.pathname.startsWith("/award/")
                     ? "cardStatsWide"
                     : "",
                   location.pathname === "/coaches-poll" ? "pollRankingsCard" : "",
@@ -923,6 +928,8 @@ export default function App() {
                 <Route path="/postseason" element={<Postseason />} />
                 <Route path="/postseason/bowl" element={<BowlResults />} />
                 <Route path="/standings" element={<ConferenceStandings />} />
+                <Route path="/player-awards" element={<PlayerAwards />} />
+                <Route path="/award/:awardName" element={<Award />} />
                 <Route path="/import" element={<ImportSeason />} />
                 <Route path="*" element={<div>Not found</div>} />
               </Routes>

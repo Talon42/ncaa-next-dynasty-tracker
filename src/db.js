@@ -627,6 +627,59 @@ db.version(20).stores({
     "[dynastyId+playerUid], dynastyId, playerUid, seasonYear, tgid, pgid, position",
 });
 
+// v21 (store multiple all-american rows per player/season)
+// Dexie does not support changing a table's primary key in-place, so we keep `playerAllAmericans`
+// and add a new table with a compound primary key that can store multiple rows per player/season.
+db.version(21)
+  .stores({
+    dynasties: "id, name, startYear, currentYear",
+    teams: "[dynastyId+tgid], dynastyId, tgid",
+    teamSeasons:
+      "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear],[dynastyId+tgid], dynastyId, seasonYear, tgid",
+    games:
+      "[dynastyId+seasonYear+week+homeTgid+awayTgid],[dynastyId+seasonYear],[dynastyId+homeTgid],[dynastyId+awayTgid],[dynastyId+seasonYear+homeTgid],[dynastyId+seasonYear+awayTgid], dynastyId, seasonYear, week, homeTgid, awayTgid",
+    settings: "key",
+    logoBaseByName: "nameKey",
+    teamLogos: "[dynastyId+tgid], dynastyId, tgid",
+    logoOverrides: "[dynastyId+tgid], dynastyId, tgid",
+    teamStats: "[dynastyId+seasonYear+tgid],[dynastyId+seasonYear], dynastyId, seasonYear, tgid",
+    bowlGames: "[dynastyId+seasonYear+sewn+sgnm],[dynastyId+seasonYear], dynastyId, seasonYear, sewn, sgnm",
+    coaches:
+      "[dynastyId+seasonYear+ccid],[dynastyId+ccid],[dynastyId+seasonYear],[dynastyId+seasonYear+tgid], dynastyId, seasonYear, ccid, tgid",
+    coachQuotes: "[dynastyId+ccid], dynastyId, ccid",
+    coachCareerBases: "[dynastyId+ccid], dynastyId, ccid, baseSeasonYear",
+    playerSeasonStats:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear+tgid],[dynastyId+seasonYear+position],[dynastyId+seasonYear],[dynastyId+playerUid], dynastyId, seasonYear, pgid, playerUid, tgid, position",
+    playerIdentities:
+      "[dynastyId+playerUid],[dynastyId+fingerprint], dynastyId, playerUid, fingerprint",
+    playerIdentitySeasonMap:
+      "[dynastyId+seasonYear+pgid],[dynastyId+seasonYear], dynastyId, seasonYear, pgid, playerUid",
+
+    playerAllAmericans:
+      "[dynastyId+seasonYear+playerUid],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid",
+    playerAllAmericans2:
+      "[dynastyId+seasonYear+playerUid+cgid+ttyp],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, cgid, ttyp",
+
+    playerAwards:
+      "[dynastyId+seasonYear+playerUid+awardKey],[dynastyId+playerUid],[dynastyId+seasonYear], dynastyId, seasonYear, playerUid, pgid, awardKey",
+
+    latestTeamSeasons: "[dynastyId+tgid], dynastyId, tgid, seasonYear",
+    latestCoaches: "[dynastyId+ccid], dynastyId, ccid, seasonYear",
+    latestPlayerSeasons:
+      "[dynastyId+playerUid], dynastyId, playerUid, seasonYear, tgid, pgid, position",
+  })
+  .upgrade(async (tx) => {
+    const oldRows = await tx.table("playerAllAmericans").toArray();
+    if (!oldRows.length) return;
+    await tx.table("playerAllAmericans2").bulkPut(
+      oldRows.map((r) => ({
+        ...r,
+        cgid: String(r?.cgid ?? "").trim(),
+        ttyp: r?.ttyp ?? null,
+      }))
+    );
+  });
+
 const ACTIVE_KEY = "activeDynastyId";
 
 export async function listDynasties() {
@@ -690,6 +743,7 @@ export async function deleteDynasty(id) {
     db.playerIdentities.where("dynastyId").equals(id).delete(),
     db.playerIdentitySeasonMap.where("dynastyId").equals(id).delete(),
     db.playerAllAmericans.where("dynastyId").equals(id).delete(),
+    db.playerAllAmericans2 ? db.playerAllAmericans2.where("dynastyId").equals(id).delete() : Promise.resolve(),
     db.playerAwards.where("dynastyId").equals(id).delete(),
     db.latestTeamSeasons.where("dynastyId").equals(id).delete(),
     db.latestCoaches.where("dynastyId").equals(id).delete(),

@@ -94,10 +94,21 @@ textarea {
 
 a { color: inherit; }
 
+.selectableText {
+  user-select: text;
+}
+
 .tableLink {
   color: inherit;
   text-decoration: none;
   font-weight: inherit;
+}
+
+.tableStatLabel {
+  font-size: var(--app-table-header-font-size);
+  font-weight: var(--app-table-header-font-weight);
+  letter-spacing: 0.35px;
+  color: var(--muted);
 }
 
 .tableLogoLabel {
@@ -2872,6 +2883,10 @@ table tr:first-child th {
     drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.55));
 }
 
+.headerLogoImg.awardHeaderLogo {
+  filter: none !important;
+}
+
 /* Chromium / Electron */
 ::-webkit-scrollbar {
   width: 8px;
@@ -2895,4 +2910,181 @@ table tr:first-child th {
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.35) transparent;
+}
+
+/* Player Awards */
+.awardShowcaseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  gap: 12px;
+}
+
+.awardShowcaseCard {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.awardShowcaseCard.isHeisman {
+  border-color: rgba(211, 0, 0, 0.55);
+  background: rgba(211, 0, 0, 0.08);
+  box-shadow: 0 16px 42px rgba(211, 0, 0, 0.10), var(--shadow);
+}
+
+.awardShowcaseCard.isHeisman .awardShowcaseImage {
+  width: 182px;
+  height: 182px;
+}
+
+.awardShowcaseCard.heismanHero {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(980px, 100%);
+}
+
+.awardShowcaseCard.heismanHero .awardShowcaseTitle {
+  text-align: center;
+}
+
+.awardShowcaseCard.heismanHero .awardShowcaseTitleRow {
+  justify-content: center;
+}
+
+.awardShowcaseCard.heismanHero .awardShowcaseTeamRow {
+  justify-content: center;
+}
+
+.awardShowcaseCard.heismanHero .awardShowcasePlayerRow {
+  justify-content: center;
+}
+
+.awardShowcaseCard.heismanHero .awardShowcasePlayer {
+  text-align: center;
+}
+
+.awardShowcaseCard.heismanHero .awardShowcaseStats {
+  justify-content: center;
+}
+
+.playerAwardsPage .table tr.heismanRow {
+  background: rgba(211, 0, 0, 0.06);
+}
+
+.playerAwardsPage .table tr.heismanRow:hover {
+  background: rgba(211, 0, 0, 0.10);
+}
+
+.awardShowcaseLeft {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.awardShowcaseImage {
+  width: 170px;
+  height: 170px;
+  object-fit: contain;
+}
+
+.awardShowcaseImageFallback {
+  width: 170px;
+  height: 170px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.awardShowcaseRight {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.awardShowcaseTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.awardShowcaseTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  min-width: 0;
+}
+
+.awardShowcasePlayer a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.awardShowcasePlayer a:hover {
+  text-decoration: underline;
+}
+
+.awardShowcaseTeamRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.awardShowcaseTeamLogo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.awardShowcaseStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.awardStatPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.awardStatLabel {
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.2px;
+}
+
+.awardStatValue {
+  color: var(--text);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .awardShowcaseGrid {
+    grid-template-columns: 1fr;
+  }
+  .awardShowcaseCard {
+    grid-template-columns: 1fr;
+  }
+  .awardShowcaseImage,
+  .awardShowcaseImageFallback {
+    width: 140px;
+    height: 140px;
+  }
 }

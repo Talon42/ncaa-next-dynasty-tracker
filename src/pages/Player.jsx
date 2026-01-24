@@ -506,10 +506,13 @@ export default function Player() {
         return;
       }
 
-      const rows = await db.playerAllAmericans.where({ dynastyId, playerUid }).toArray();
+      // v21+ stores All-Americans in playerAllAmericans2 (compound key); fall back for older DBs.
+      const rowsSafe = db.playerAllAmericans2
+        ? await db.playerAllAmericans2.where({ dynastyId, playerUid }).toArray()
+        : await db.playerAllAmericans.where({ dynastyId, playerUid }).toArray();
       if (!alive) return;
-      rows.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
-      setAllAmericanRows(rows);
+      rowsSafe.sort((a, b) => Number(a.seasonYear) - Number(b.seasonYear));
+      setAllAmericanRows(rowsSafe);
     })();
 
     return () => {

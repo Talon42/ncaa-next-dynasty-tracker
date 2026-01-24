@@ -18,6 +18,8 @@ const DYNASTY_TABLES = [
   "playerIdentities",
   "playerIdentitySeasonMap",
   "playerAllAmericans",
+  "playerAllAmericans2",
+  "playerAwards",
 ];
 
 function normalizeName(name) {
