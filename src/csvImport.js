@@ -318,6 +318,7 @@ function createPlayerStatsAccumulator({
         position: toNumberOrNull(getRowValue(row, "PPOS")),
         classYear: toNumberOrNull(getRowValue(row, "PYER")),
         overall: toNumberOrNull(getRowValue(row, "POVR")),
+        prideStickers: toNumberOrNull(getRowValue(row, "PRST")),
         pten: toNumberOrNull(getRowValue(row, "PTEN")),
         pacc: prluLurtFromLuvl(getRowValue(row, "PACC"), prluLurtByLuvl),
         pagi: prluLurtFromLuvl(getRowValue(row, "PAGI"), prluLurtByLuvl),
@@ -735,6 +736,7 @@ function createPlayerStatsAccumulator({
         position: info.position ?? null,
         classYear: info.classYear ?? null,
         redshirt: info.redshirt ?? null,
+        prideStickers: info.prideStickers ?? null,
         pten: info.pten ?? null,
 
         pacc: info.pacc ?? null,

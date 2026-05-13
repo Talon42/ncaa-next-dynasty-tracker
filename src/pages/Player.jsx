@@ -34,6 +34,7 @@ const SPECIAL_TEAMS_TABS = [
 const FALLBACK_LOGO =
   "https://raw.githubusercontent.com/Talon42/ncaa-next-26/refs/heads/main/textures/SLUS-21214/replacements/general/conf-logos/a12c6273bb2704a5-9cc5a928efa767d0-00005993.png";
 const CAPTAIN_LOGO = `${import.meta.env.BASE_URL}logos/captain.png`;
+const PRIDE_STICKER_LOGO = `${import.meta.env.BASE_URL}logos/pride_sticker.png`;
 const ALL_AMERICAN_LOGO =
   "https://github.com/Talon42/ncaa-next-26/blob/main/textures/SLUS-21214/replacements/general/dynasty-mode/d6ce085a9cf265a1-7d77d8b3187e07c4-00005553.png?raw=true";
 const AWARD_LABEL_RE = /\s+(Award|Trophy)\s*$/i;
@@ -165,6 +166,12 @@ function clampRating99(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.max(0, Math.min(99, Math.round(n)));
+}
+
+function formatPrideStickers(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.round(n));
 }
 
 function hexToRgba(hex, alpha = 1) {
@@ -915,6 +922,33 @@ export default function Player() {
     out.sort((a, b) => Number(String(a.key).split("|")[0]) - Number(String(b.key).split("|")[0]));
     return out;
   }, [playerRows, teamBySeasonTgid]);
+  const prideStickerBadges = useMemo(() => {
+    if (!playerRows.length) return [];
+    const out = [];
+    const seen = new Set();
+
+    for (const row of playerRows) {
+      const seasonYear = Number(row?.seasonYear);
+      const prideStickers = formatPrideStickers(row?.prideStickers);
+      if (!Number.isFinite(seasonYear) || prideStickers == null) continue;
+
+      const key = `${seasonYear}|prideSticker`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      out.push({
+        key,
+        title: `${seasonYear} - Team Pride Stickers`,
+        seasonYear,
+        logoUrl: PRIDE_STICKER_LOGO,
+        quantity: prideStickers,
+        type: "prideSticker",
+      });
+    }
+
+    out.sort((a, b) => Number(String(a.key).split("|")[0]) - Number(String(b.key).split("|")[0]));
+    return out;
+  }, [playerRows]);
   const allAmericanBadges = useMemo(() => {
     if (!allAmericanRows.length) return [];
     const seen = new Set();
@@ -982,11 +1016,12 @@ export default function Player() {
   const trophyBadges = useMemo(() => {
     const typeRank = new Map([
       ["captain", 0],
+      ["prideSticker", 1],
       ["allAmerican", 1],
       ["award", 2],
     ]);
 
-    const all = [...captainBadges, ...allAmericanBadges, ...awardBadges];
+    const all = [...captainBadges, ...prideStickerBadges, ...allAmericanBadges, ...awardBadges];
     all.sort((a, b) => {
       const ar = typeRank.get(a.type) ?? 99;
       const br = typeRank.get(b.type) ?? 99;
@@ -997,7 +1032,7 @@ export default function Player() {
       return String(a.key).localeCompare(String(b.key));
     });
     return all;
-  }, [allAmericanBadges, awardBadges, captainBadges]);
+  }, [allAmericanBadges, awardBadges, captainBadges, prideStickerBadges]);
 
   const activeDefs = useMemo(() => {
     return getPlayerStatsPageDefs(tab);
@@ -1175,40 +1210,91 @@ export default function Player() {
         <span>{displayName}</span>
       </h2>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: -6, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: -6, marginBottom: 16 }}>
         {(() => {
           const ovr = clampRating99(ratingsRow?.povr);
+          const prideStickers = formatPrideStickers(latestRow?.prideStickers);
+          const badgeStyle = {
+            width: 74,
+            height: 74,
+            borderRadius: 999,
+            border: "1px solid var(--border)",
+            background: "transparent",
+            boxShadow: teamAccentHex
+              ? [
+                  `0 0 0 2px ${hexToRgba(teamAccentHex, 0.9)}`,
+                  `0 0 18px ${hexToRgba(teamAccentHex, 0.35)}`,
+                  "0 2px 10px rgba(0,0,0,0.25)",
+                ].join(", ")
+              : "0 2px 10px rgba(0,0,0,0.25)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+          };
           return (
-            <div
-              title={ovr == null ? "OVR" : `OVR ${ovr}`}
-              aria-label={ovr == null ? "Overall rating" : `Overall rating ${ovr} out of 99`}
-              style={{
-                width: 74,
-                height: 74,
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "transparent",
-                boxShadow: teamAccentHex
-                  ? [
-                      `0 0 0 2px ${hexToRgba(teamAccentHex, 0.9)}`,
-                      `0 0 18px ${hexToRgba(teamAccentHex, 0.35)}`,
-                      "0 2px 10px rgba(0,0,0,0.25)",
-                    ].join(", ")
-                  : "0 2px 10px rgba(0,0,0,0.25)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 2,
-              }}
-            >
-              <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-                {ovr == null ? "-" : ovr}
+            <>
+              <div
+                title={ovr == null ? "OVR" : `OVR ${ovr}`}
+                aria-label={ovr == null ? "Overall rating" : `Overall rating ${ovr} out of 99`}
+                style={badgeStyle}
+              >
+                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                  {ovr == null ? "-" : ovr}
+                </div>
+                <div className="kicker" style={{ margin: 0, opacity: 0.9, lineHeight: 1 }}>
+                  OVR
+                </div>
               </div>
-              <div className="kicker" style={{ margin: 0, opacity: 0.9, lineHeight: 1 }}>
-                OVR
+              <div
+                title={prideStickers == null ? "Pride Stickers" : `Pride Stickers x${prideStickers}`}
+                aria-label={
+                  prideStickers == null ? "Pride Stickers" : `Pride Stickers x${prideStickers}`
+                }
+                style={{
+                  ...badgeStyle,
+                  position: "relative",
+                  overflow: "visible",
+                }}
+              >
+                <img
+                  src={PRIDE_STICKER_LOGO}
+                  alt=""
+                  aria-hidden="true"
+                  style={{
+                    width: 58,
+                    height: 58,
+                    objectFit: "contain",
+                    display: "block",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -4,
+                    minWidth: 28,
+                    height: 24,
+                    padding: "0 7px",
+                    borderRadius: 999,
+                    border: "1px solid var(--border)",
+                    background: "rgba(17,17,17,0.94)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 900,
+                    lineHeight: 1,
+                    fontVariantNumeric: "tabular-nums",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {prideStickers == null ? "-" : `x${prideStickers}`}
+                </div>
               </div>
-            </div>
+            </>
           );
         })()}
       </div>
@@ -1293,53 +1379,91 @@ export default function Player() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingLeft: 2, paddingRight: 2 }}>
                   {(() => {
                     const size = 42;
-                    const renderBadge = ({ key, title, logoUrl, label, isHeisman }) => {
+                    const renderBadge = ({ key, title, logoUrl, label, isHeisman, quantity }) => {
                       const champBorder = "rgba(216,180,90,0.95)";
+                      const qty = Number.isFinite(Number(quantity)) ? Math.max(0, Math.round(Number(quantity))) : null;
                       return (
                         <div
                           key={key}
                           title={title}
                           style={{
+                            position: "relative",
                             width: size,
                             height: size,
-                            borderRadius: 999,
-                            overflow: "hidden",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            position: "relative",
-                            background: isHeisman
-                              ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
-                              : "rgba(255,255,255,0.06)",
-                            border: isHeisman ? `1px solid ${champBorder}` : "1px solid var(--border)",
-                            boxShadow: isHeisman
-                              ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
-                              : "0 2px 8px rgba(0,0,0,0.25)",
+                            overflow: "visible",
                             flex: "0 0 auto",
                           }}
                         >
-                        {logoUrl ? (
-                          <img
-                            src={logoUrl}
-                            alt=""
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
-                          />
-                        ) : (
-                          <span
+                          <div
                             style={{
-                              fontSize: 10,
-                              lineHeight: 1.1,
-                              textAlign: "center",
-                              padding: 6,
-                              fontWeight: 600,
-                              color: "var(--text)",
+                              width: size,
+                              height: size,
+                              borderRadius: 999,
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: isHeisman
+                                ? "linear-gradient(135deg, rgba(216,180,90,0.24), rgba(255,255,255,0.06))"
+                                : "rgba(255,255,255,0.06)",
+                              border: isHeisman ? `1px solid ${champBorder}` : "1px solid var(--border)",
+                              boxShadow: isHeisman
+                                ? "0 0 0 1px rgba(216,180,90,0.55), 0 2px 10px rgba(216,180,90,0.25), 0 2px 8px rgba(0,0,0,0.25)"
+                                : "0 2px 8px rgba(0,0,0,0.25)",
+                              position: "relative",
+                              zIndex: 1,
                             }}
                           >
-                            {label || "Award"}
-                          </span>
-                        )}
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }}
+                              />
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  lineHeight: 1.1,
+                                  textAlign: "center",
+                                  padding: 6,
+                                  fontWeight: 600,
+                                  color: "var(--text)",
+                                }}
+                              >
+                                {label || "Award"}
+                              </span>
+                            )}
+                          </div>
+                          {qty != null ? (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: -5,
+                                right: -5,
+                                minWidth: 22,
+                                height: 18,
+                                padding: "0 5px",
+                                borderRadius: 999,
+                                border: "1px solid var(--border)",
+                                background: "rgba(17,17,17,0.94)",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 900,
+                                lineHeight: 1,
+                                fontVariantNumeric: "tabular-nums",
+                                whiteSpace: "nowrap",
+                                zIndex: 2,
+                              }}
+                            >
+                              {`x${qty}`}
+                            </div>
+                          ) : null}
                         </div>
                       );
                     };
@@ -1351,6 +1475,7 @@ export default function Player() {
                         logoUrl: badge.logoUrl,
                         label: badge.label,
                         isHeisman: badge.isHeisman,
+                        quantity: badge.quantity,
                       }),
                     );
                   })()}
